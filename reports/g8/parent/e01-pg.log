@@ -1,0 +1,11 @@
+permission denied while trying to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
+Traceback (most recent call last):
+  File "C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\reports\g8\parent\e01-run-pg.py", line 12, in <module>
+    info = json.loads(subprocess.check_output(["docker", "inspect", "vishue-api-1"], text=True))[0]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\playdata2\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\playdata2\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['docker', 'inspect', 'vishue-api-1']' returned non-zero exit status 1.

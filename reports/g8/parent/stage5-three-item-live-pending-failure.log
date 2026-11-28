@@ -1,0 +1,26 @@
+number 1 PASS HTTP 1
+reordered 1 PASS HTTP 1
+new_search 1 PASS HTTP 2
+number 2 PASS HTTP 1
+reordered 2 PASS HTTP 1
+new_search 2 FAIL HTTP 1
+number 3 PASS HTTP 1
+reordered 3 PASS HTTP 1
+new_search 3 FAIL HTTP 1
+Traceback (most recent call last):
+  File "C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\reports\g8\parent\stage5-three-item-live.py", line 75, in <module>
+    if __name__=='__main__':asyncio.run(main())
+                            ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\playdata2\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\playdata2\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\playdata2\AppData\Local\Programs\Python\Python312\Lib\asyncio\base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\reports\g8\parent\stage5-three-item-live.py", line 73, in main
+    assert all(x['pass'] for x in rows), 'Live contract failure; original outputs retained'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Live contract failure; original outputs retained

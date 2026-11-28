@@ -1,0 +1,18 @@
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 86 files, 307 dependencies.
+------------------------------------
+
+Layers: entry points -> routers -> services -> repositories/clients -> schemas 
+-> core KEPT
+Routers and jobs reach data only through services KEPT
+Clients do not depend on each other KEPT
+
+Contracts: 3 kept, 0 broken.

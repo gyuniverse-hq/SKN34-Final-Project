@@ -1,0 +1,37 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+..........s.....sss.....F.............ssss........                       [100%]
+================================== FAILURES ===================================
+___________ test_e01_partial_result_pg_restore_and_style_only_retry ___________
+tests\test_g7_memory_api_pg.py:2520: in test_e01_partial_result_pg_restore_and_style_only_retry
+    assert second["styleStatus"] == "ready"
+           ^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'styleStatus'
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "7a25990bfac54e52a7be4a64be7e87cb", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 119.4}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "adccecc4909c4be4afa95dbe1cff62e0", "method": "PATCH", "path": "/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3/state", "status": 200, "duration_ms": 77.5}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "010ce57587e246a0a5d3b86a9446e296", "method": "PATCH", "path": "/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3/state", "status": 200, "duration_ms": 47.9}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "894e69c904f340779cf9fa6ab9d72b83", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 194.2}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3 \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:27:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "4490b6c8c9144bf19069c3d35bdd42a0", "method": "GET", "path": "/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3", "status": 200, "duration_ms": 26.8}
+{"ts": "2026-11-27T18:27:13+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:27:13+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "f78abde4dd884db395ebb3505eeaa79a", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 59.3}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/2b93a07e-27d9-4e6a-8209-9edb4a1cbad3 "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+=========================== short test summary info ===========================
+FAILED tests/test_g7_memory_api_pg.py::test_e01_partial_result_pg_restore_and_style_only_retry
+1 failed, 41 passed, 8 skipped in 35.44s

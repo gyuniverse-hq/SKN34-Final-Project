@@ -1,0 +1,10 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/chat]
+- link "(tabs), back" [ref=e1]
+- heading "룩 상담" [level=1]
+- button "기억 관리" [ref=e3]: ""
+- button "최근 상담" [ref=e4]: ""
+- button "새 상담" [ref=e5]: ""
+- text: "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘 조금 더 알려주시면 이어서 도와드릴게요 · 추가 질문에 답해주세요뷰티 AI 어떤 상담 작업을 변경할지 다시 알려주세요.상담 대상: 사진발 윤곽 보정 메이크업"
+- textbox "궁금한 점을 입력하세요" [ref=e153] [placeholder="궁금한 점을 입력하세요"]
+- button "보내기" [ref=e154] [disabled]: ""

@@ -1,0 +1,69 @@
+{
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "sources": [
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "327f64c202a75e9a15733720228c7e327e1787c10859637f171bf3155931ce8a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_answer.py",
+      "sha256": "5dcf920d13d0abb86a01cd620911933e7fdad645975ffcaaaa1e0804b27e8bfa"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "c46c5e82ef962565abea7ee2f1436e74e4ccbd50fcfaa9e2f779385461d23295"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "143a804bcfeb15d72cf64337eb340d9d57339cb15294a312db7c9649dda04e4a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_intent.py",
+      "sha256": "5b33dd75f9dd13fc3fa86b1fff4fda2b901faef4c4c22056308ffff50a4e530c"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "f759118ff9b37739fe4a5c11e97128e7ad1e88f661c7c2fd1c89209eb33f5e3f"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_answer_service.py",
+      "sha256": "3dc6a496b25145ada55859f1c3adde353012dcf07948f1796e19072e900c6fb8"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "f68d58a31b1abb134dd1a81a87d7eeeb12d7fa76360dcd23470fb1f0e16f312b"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "c0e0cc97a7da456868053e71cf80c350eb69fe8f074bc3efad3763ce4cb3eda1"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "f8ed8202ff93a975ae3846d0c051dd06cde6d2f2f4893f8791712fae10582eff"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_interpreter.py",
+      "sha256": "8676b1d753ad9363a26a1c0c0a519d53c3f164de854ade089e7dee9a56f51121"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "0336d12d4f7cd9785ff1a101c1f5f867c5ead977dc38356cee951947c3a5a16b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_answer.py",
+      "sha256": "9d628014f7efb5bd675f65a65ea0d4763cb9b04681b645d2cc27a96110ae369a"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "7c17b4bb1d2dbaeb21354736b1713bad9f408aea937f0e7f173307c91bddcc10"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "2330cf47cdd79e6e63b65640784759e7f1932531728d8685cf860f41ff85be99"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+      "sha256": "22a78f8ad02ab8fb25115bb81f8cbede72a7348b318511e472de1c4e318b453c"
+    }
+  ]
+}

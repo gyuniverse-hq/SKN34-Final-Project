@@ -1,0 +1,11 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/product/oy-a000000122212]
+- link "(tabs), back" [ref=e1]
+- heading "다슈" [level=1]
+- generic [ref=e2] [scrollable]:
+  - text: "다슈"
+  - heading "다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml" [level=1]
+  - text: "다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml₩12,600 참고 가격 · 용량   153ml"
+  - button "비교에 담기" [ref=e3]: "비교에 담기"
+- button "VISHUE에게 물어보기" [ref=e4]: "AI"
+- button "장바구니 담기" [ref=e5]: "장바구니 담기"

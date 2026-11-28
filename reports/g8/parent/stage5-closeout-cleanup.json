@@ -1,0 +1,14 @@
+{
+  "at": "2026-11-27T17:29:13.3270909Z",
+  "stopped": [
+    {
+      "port": 19833,
+      "pid": 15016
+    },
+    {
+      "port": 19838,
+      "pid": 7000
+    }
+  ],
+  "retained": "existing Catalog19834/web19836/PostgreSQL15434; no containers or data removed"
+}

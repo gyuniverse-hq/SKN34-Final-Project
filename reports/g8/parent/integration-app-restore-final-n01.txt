@@ -1,0 +1,14 @@
+- title: "VISHUE" [url=http://localhost:19836/chat]
+- link "(tabs), back" [ref=e1]
+- heading "뷰티 AI" [level=1]
+- button "기억 관리" [ref=e2]: ""
+- button "최근 상담" [ref=e3]: ""
+- button "새 상담" [ref=e4]: ""
+- button "제품 추천" [ref=e24]
+- button "성분 확인" [ref=e25]
+- button "스타일 레시피" [ref=e26]
+- text: "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘뷰티 AI 오후에 화장이 뜨는 게 당김·각질 때문인지, 유분·뭉침 때문인지 알려주세요. 사용 중인 기초 제품과 베이스 제품, 화장이 뜨는 상황도 함께 알려주시면 원인 설명과 제품 찾기에 반영할게요.각질과 당김이 있어. 로션과…[+445 chars]"
+- button "참고한 자료 2개" [ref=e27]
+- button "검색 범위 보기" [ref=e28]
+- textbox "궁금한 점을 입력하세요" [ref=e22] [placeholder="궁금한 점을 입력하세요"]
+- button "보내기" [ref=e23] [disabled]: ""

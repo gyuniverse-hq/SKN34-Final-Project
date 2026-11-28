@@ -1,0 +1,115 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+..........s....Fsss................ssss........                          [100%]
+================================== FAILURES ===================================
+______ test_n02_consented_inventory_selected_look_persistence_and_replay ______
+tests\test_g7_memory_api_pg.py:1691: in test_n02_consented_inventory_selected_look_persistence_and_replay
+    assert [p["id"] for p in filter_clear["products"]] == ["blush-b"]
+E   AssertionError: assert [] == ['blush-b']
+E     
+E     Right contains one more item: 'blush-b'
+E     Use -v to get more diff
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-27T16:33:25+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:25+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "20f3fadd077a4ed7b91bda66d25dd80d", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 200.8}
+{"ts": "2026-11-27T16:33:25+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/9a80bd72-d43f-40b7-a275-23f792ed55bc/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:25+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "a2002a9f81dc48d0be4f54f80f174951", "method": "PATCH", "path": "/api/chat/conversations/9a80bd72-d43f-40b7-a275-23f792ed55bc/state", "status": 200, "duration_ms": 117.9}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "5e59943dae56488887af39f0f2a3b118", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 153.5}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/v2/memory-proposals?conversationId=9a80bd72-d43f-40b7-a275-23f792ed55bc \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "69a86c8f3c834e9283ef2481ddf77d45", "method": "GET", "path": "/api/chat/v2/memory-proposals", "status": 200, "duration_ms": 67.1}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/v2/memory-proposals/eff24797-43f8-40e6-b438-825e50af3b47/decisions \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "db7e4a3b5d494e7b80cb1b1ee4ad1102", "method": "POST", "path": "/api/chat/v2/memory-proposals/eff24797-43f8-40e6-b438-825e50af3b47/decisions", "status": 200, "duration_ms": 73.1}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "19c002d9b96540a1a2741b3351758c89", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 29.4}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/77485874-952e-4f2f-9d09-b033d9843f09/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "24cbe53b9e3745bb8cab234a81901b13", "method": "PATCH", "path": "/api/chat/conversations/77485874-952e-4f2f-9d09-b033d9843f09/state", "status": 200, "duration_ms": 72.0}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "2cf68fe7b91a4820abf2b54e50b7a755", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 335.1}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "0f1e0da1a6ee4adc9f29eac3c70093e4", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 128.3}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "7457e740a0b54397a2a248783ba7da2d", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 91.0}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/77485874-952e-4f2f-9d09-b033d9843f09 \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "9864b2ec12f244589165889b5f0b8494", "method": "GET", "path": "/api/chat/conversations/77485874-952e-4f2f-9d09-b033d9843f09", "status": 200, "duration_ms": 25.8}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:26+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "f86a1c523e614a54be41b0c86c85ad0e", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 19.9}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "98098a7e1f374d2bb724e2634818f8a0", "method": "PATCH", "path": "/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204/state", "status": 200, "duration_ms": 62.5}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "f84fde60f60a4dacb7fe6777413199d6", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 90.5}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "77e72382abdb480e8b8852c83ddd5e62", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 52.8}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204 \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "dafb76259dd447d0a3a0aae87501c8b2", "method": "GET", "path": "/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204", "status": 200, "duration_ms": 24.4}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204 \"HTTP/1.1 404 Not Found\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "c4d614c2d9f94c02b0a2ba31040231e0", "method": "GET", "path": "/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204", "status": 404, "duration_ms": 11.6}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 404 Not Found\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "5d3635e935f945dfba72ad76689488a9", "method": "POST", "path": "/api/chat", "status": 404, "duration_ms": 20.2}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "33f8621209c74ca3b50faf49924bb699", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 86.7}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "b39d9ef90bec4637adf7966199abc073", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 89.5}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204 \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "9272a5913386412bb107506904d96e0d", "method": "GET", "path": "/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204", "status": 200, "duration_ms": 26.1}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "0fb17d18c0d3462fa11731c8ed4a9917", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 38.6}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "faf1e3f716264259ade79d22274f9557", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 87.1}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "aad7adef65dd4bd9b415c8d5b12bf12b", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 111.2}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T16:33:27+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "9c8c4573d6a0489381995ee7e67873f9", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 129.1}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/9a80bd72-d43f-40b7-a275-23f792ed55bc/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/v2/memory-proposals?conversationId=9a80bd72-d43f-40b7-a275-23f792ed55bc "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/v2/memory-proposals/eff24797-43f8-40e6-b438-825e50af3b47/decisions "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/77485874-952e-4f2f-9d09-b033d9843f09/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/77485874-952e-4f2f-9d09-b033d9843f09 "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204 "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204 "HTTP/1.1 404 Not Found"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 404 Not Found"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/7c48a2ee-fb15-4088-9c3d-616a8f1fb204 "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+=========================== short test summary info ===========================
+FAILED tests/test_g7_memory_api_pg.py::test_n02_consented_inventory_selected_look_persistence_and_replay
+1 failed, 38 passed, 8 skipped in 34.10s

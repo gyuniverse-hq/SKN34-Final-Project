@@ -1,0 +1,42 @@
+{
+  "browser": "Aside direct REPL; actual existing Supabase login/G7 settings",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scope": "web, not physical device"
+  },
+  "freshN02SaleDetail": {
+    "result": "PASS",
+    "row": 7,
+    "url": "http://localhost:19836/product/oy-a000000162667?optionId=A000000162667-012&requireShade=1",
+    "optionName": "[단품] 07 웜 베이지",
+    "referencePriceKRW": 17000,
+    "asOf": "2026-10-28T10:06:07",
+    "optionCheckoutRestricted": true
+  },
+  "stopReplacement": {
+    "cancelHttp": 200,
+    "oldLateHttp": 409,
+    "replacementHttp": 200,
+    "replacementQuery": "립펜슬",
+    "maxPriceKRW": 15000,
+    "oldInternalHttpMayContinue": true
+  },
+  "recentRestore": {
+    "result": "FAIL",
+    "observed": "상담을 불러오는 중이에요.",
+    "attempts": [
+      "latest replacement room",
+      "current-run N02 room after full navigation"
+    ],
+    "serverDetailRequestObserved": false,
+    "rawCaptureCaveat": "One-shot attachment snapshots can show pre-loading state. Persistent REPL repeatedly showed loading. UI cause not proven; no successful restore inferred from an enabled-list snapshot."
+  },
+  "screenshots": "NOT_SAVED; actual DOM/server/PG evidence only",
+  "writes": {
+    "AR": false,
+    "cart": false,
+    "checkout": false,
+    "memoryConfirmation": false
+  }
+}

@@ -1,0 +1,34 @@
+
+> final_project@1.0.0 test
+> jest --runInBand __tests__/useChatConversations.test.tsx __tests__/chatProductDetail.test.tsx __tests__/chatProducts.test.ts
+
+FAIL __tests__/chatProducts.test.ts (29.343 s)
+  ● chat product cards › keeps unlinked video products in the carousel without inventing a detail link
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          120 |     await act(async () => { renderer.unmount(); });
+          121 |   });
+        > 122 |   it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
+              |   ^
+          123 |     const sourceProducts = [
+          124 |       { label: '원본 립', zone: 'lip', productId: lip.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+          125 |       { label: '원본 미연결 제품', zone: 'base', mappingStatus: 'unknown' as const, catalogValid: false, arEligible: false },
+
+          at it (__tests__/chatProducts.test.ts:122:3)
+          at Object.describe (__tests__/chatProducts.test.ts:71:1)
+
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       1 failed, 61 passed, 62 total
+Snapshots:   0 total
+Time:        35.82 s
+Ran all test suites matching __tests__/useChatConversations.test.tsx|__tests__/chatProductDetail.test.tsx|__tests__/chatProducts.test.ts.

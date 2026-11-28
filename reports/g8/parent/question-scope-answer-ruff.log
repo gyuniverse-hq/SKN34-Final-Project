@@ -1,0 +1,12 @@
+E501 Line too long (104 > 100)
+   --> app\schemas\consultation_parent.py:186:101
+    |
+184 |         default_factory=list,
+185 |         description=(
+186 |             "Only listed pending questions, once per question. Answer one and preserve a named sibling "
+    |                                                                                                     ^^^^
+187 |             "without preserving the whole owner task. Completed result preservation uses changes."
+188 |         ),
+    |
+
+Found 1 error.

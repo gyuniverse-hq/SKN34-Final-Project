@@ -1,0 +1,80 @@
+diff --git a/hooks/useChatConversations.ts b/hooks/useChatConversations.ts
+index df1a8ba3..f7c1031c 100644
+--- a/hooks/useChatConversations.ts
++++ b/hooks/useChatConversations.ts
+@@ -160,6 +160,7 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
+   };
+ 
+   const open = async (id: string, mode: 'select' | 'reload' | 'refresh' = 'select', stillSelected?: () => boolean) => {
++    if (__DEV__) console.info('[g8-restore] open-start');
+     const room = useChatConversationStore.getState().conversations[id]?.conversation;
+     if (!room || room.deletionState || room.ownerKey !== ownerKey) return;
+     if (!room.serverId) return id;
+@@ -178,13 +179,17 @@ export function useChatConversations(userId: string | null, ownerKey?: string) {
+     }
+     if (mode === 'refresh') refreshes.add(room.serverId);
+     try {
++      if (__DEV__) console.info('[g8-restore] detail-before');
+       const detail = await apiChatUserRequest<ServerConversationDetail>(
+         `/api/chat/conversations/${room.serverId}`, 'GET', userId!,
+       );
++      if (__DEV__) console.info('[g8-restore] detail-received');
+       if (!current() || (stillSelected && !stillSelected()) || detail.conversationId !== room.serverId) return;
+       const opened = useChatConversationStore.getState().restoreServerRoom(room, detail, room.generation,
+         mode === 'reload' || (mode === 'select' && room.notice === 'chat.session.conflict'));
++      if (__DEV__) console.info('[g8-restore] room-restored');
+       if (mode !== 'reload' && opened) await recover(opened, undefined, stillSelected);
++      if (__DEV__) console.info('[g8-restore] recovered');
+       if (current() && (!stillSelected || stillSelected())) return opened;
+     } catch (err) {
+       if (!current() || (stillSelected && !stillSelected())) return;
+diff --git a/lib/api.ts b/lib/api.ts
+index 89129694..8f0c8b3e 100644
+--- a/lib/api.ts
++++ b/lib/api.ts
+@@ -136,7 +136,9 @@ async function arCredentials(): Promise<OwnedCredentials> {
+   try {
+     const client = getSupabase();
+     if (!client && isAuthConfigured()) throw new Error('Authentication is unavailable');
++    if (__DEV__) console.info('[g8-restore] session-before');
+     const first = client ? await client.auth.getSession() : null;
++    if (__DEV__) console.info('[g8-restore] session-after');
+     if (first?.error) throw first.error;
+     const session = first?.data.session ?? null;
+     if (!session) {
+@@ -149,6 +151,7 @@ async function arCredentials(): Promise<OwnedCredentials> {
+     const token = session.access_token;
+     if (!token || !client) throw new Error('Missing access token');
+     const verified = await client.auth.getClaims(token);
++    if (__DEV__) console.info('[g8-restore] claims-after');
+     const claims = verified.data?.claims;
+     if (verified.error || !claims || typeof claims.sub !== 'string' || !claims.sub || claims.role !== 'authenticated' ||
+         !session.user?.id || session.user.id !== claims.sub) {
+@@ -156,6 +159,7 @@ async function arCredentials(): Promise<OwnedCredentials> {
+     }
+     // Verify the same token is still current after any asynchronous verification.
+     const latest = await client.auth.getSession();
++    if (__DEV__) console.info('[g8-restore] session-rechecked');
+     if (latest.error || latest.data.session?.access_token !== token || latest.data.session.user?.id !== claims.sub) {
+       throw new Error('Authentication changed');
+     }
+@@ -287,6 +291,7 @@ export async function apiChatUserRequest<T>(
+     if (session?.user.id !== expectedUserId) changed = true;
+   }).data.subscription;
+   try {
++    if (__DEV__) console.info('[g8-restore] credentials-before');
+     const credentials = await arCredentials();
+     if (changed || credentials.owner.kind !== 'user' || credentials.owner.id !== expectedUserId) {
+       throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+@@ -296,8 +301,11 @@ export async function apiChatUserRequest<T>(
+       headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
+       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+     }, { baseUrl: CHAT_API_BASE_URL, fixedToken: { value: credentials.token } });
++    if (__DEV__) console.info('[g8-restore] response');
+     const data = response.status === 204 ? undefined : await response.json();
++    if (__DEV__) console.info('[g8-restore] body');
+     const latest = await arCredentials();
++    if (__DEV__) console.info('[g8-restore] credentials-after');
+     if (changed || latest.owner.kind !== 'user' || latest.owner.id !== expectedUserId) {
+       throw new ApiError('Chat owner changed', 0, 'chat_owner_changed');
+     }

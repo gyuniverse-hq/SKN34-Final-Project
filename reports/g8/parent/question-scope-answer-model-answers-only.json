@@ -1,0 +1,857 @@
+{
+  "configuredMode": "live",
+  "promptSha256": "543a571938367e83abd008e4ffa66ffa84340831eacd57df35139cf39a1bf533",
+  "schemaSha256": "2fc7ce876949e3079300205373b43592cc2de0305a2d0a7899ea277784206804",
+  "records": [
+    {
+      "case": 1,
+      "repeat": 1,
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2113.4,
+        "result": {
+          "planId": "7f21392d-72d2-474a-95dc-3feacf5daa04",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담 결과는 그대로 둬",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 07웜베이지는 없어",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 07웜베이지는 없어"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "7f21392d-72d2-474a-95dc-3feacf5daa04",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "삐아 07웜베이지는 없어"
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담 결과는 그대로 둬"
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 1,
+      "repeat": 2,
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2187.2,
+        "result": {
+          "planId": "9b96b153-76d1-4e84-88a9-58faf535da46",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담 결과는 그대로 둬",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 07웜베이지는 없어",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 07웜베이지는 없어"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "9b96b153-76d1-4e84-88a9-58faf535da46",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "삐아 07웜베이지는 없어"
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담 결과는 그대로 둬"
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 1,
+      "repeat": 3,
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2391.4,
+        "result": {
+          "planId": "9c736e8c-c836-48ad-8eda-4d08aab673f5",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담 결과는 그대로 둬",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 07웜베이지는 없어",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 07웜베이지는 없어"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "9c736e8c-c836-48ad-8eda-4d08aab673f5",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "삐아 07웜베이지는 없어"
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담 결과는 그대로 둬"
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 2,
+      "repeat": 1,
+      "utterance": "삐아 팔레트는 없고, 롬앤은 나중에 답할게. 피부 설명은 유지해줘.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1679.8,
+        "result": {
+          "planId": "b508c230-bd36-4954-b2fd-6cd8d81e050f",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 팔레트는 없고",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 팔레트는 없고"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "b508c230-bd36-4954-b2fd-6cd8d81e050f",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "삐아 팔레트는 없고"
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 설명은 유지해줘."
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 2,
+      "repeat": 2,
+      "utterance": "삐아 팔레트는 없고, 롬앤은 나중에 답할게. 피부 설명은 유지해줘.",
+      "mode": "live",
+      "passed": false,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2054.0,
+        "result": {
+          "planId": "ed725b20-2adc-48bd-986d-d1f345c62c49",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 유지해줘",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 팔레트는 없고\n롬앤은 나중에 답할게",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 팔레트는 없고"
+            },
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "romand",
+              "operation": "answer",
+              "quote": "롬앤은 나중에 답할게"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "ed725b20-2adc-48bd-986d-d1f345c62c49",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "삐아 팔레트는 없고"
+          },
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "romand",
+            "operation": "answer",
+            "quote": "롬앤은 나중에 답할게"
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 설명은 유지해줘"
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 2,
+      "repeat": 3,
+      "utterance": "삐아 팔레트는 없고, 롬앤은 나중에 답할게. 피부 설명은 유지해줘.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1810.1,
+        "result": {
+          "planId": "248a1850-2fc3-480f-bc3e-7dda9f2c77d1",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 팔레트는 없고",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 팔레트는 없고"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "248a1850-2fc3-480f-bc3e-7dda9f2c77d1",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "삐아 팔레트는 없고"
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 설명은 유지해줘."
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 3,
+      "repeat": 1,
+      "utterance": "피부 설명은 그대로 두고, 컨투어 질문은 남겨 둬. 아이팔레트는 안 갖고 있어.",
+      "mode": "live",
+      "passed": false,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1931.4,
+        "result": {
+          "planId": "d18bcb4c-2d23-4caf-a5e3-d047bb353541",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 그대로 두고",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "아이팔레트는 안 갖고 있어.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "아이팔레트는 안 갖고 있어."
+            },
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "romand",
+              "operation": "preserve",
+              "quote": "컨투어 질문은 남겨 둬."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "d18bcb4c-2d23-4caf-a5e3-d047bb353541",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "아이팔레트는 안 갖고 있어."
+          },
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "romand",
+            "operation": "preserve",
+            "quote": "컨투어 질문은 남겨 둬."
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 설명은 그대로 두고"
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 3,
+      "repeat": 2,
+      "utterance": "피부 설명은 그대로 두고, 컨투어 질문은 남겨 둬. 아이팔레트는 안 갖고 있어.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1902.1,
+        "result": {
+          "planId": "0213b9ee-6df2-49ad-80b7-359f6bb39016",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 그대로 두고",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "아이팔레트는 안 갖고 있어.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "아이팔레트는 안 갖고 있어."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "0213b9ee-6df2-49ad-80b7-359f6bb39016",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "아이팔레트는 안 갖고 있어."
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 설명은 그대로 두고"
+          }
+        ]
+      },
+      "answer": null
+    },
+    {
+      "case": 3,
+      "repeat": 3,
+      "utterance": "피부 설명은 그대로 두고, 컨투어 질문은 남겨 둬. 아이팔레트는 안 갖고 있어.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2050.1,
+        "result": {
+          "planId": "0c474b3f-93b7-4a82-bcc4-6c264931d7c0",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 그대로 두고",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "아이팔레트는 안 갖고 있어.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "아이팔레트는 안 갖고 있어."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "proposal": {
+        "planId": "0c474b3f-93b7-4a82-bcc4-6c264931d7c0",
+        "version": 1,
+        "action": "continue",
+        "questionChanges": [
+          {
+            "taskId": "task-look",
+            "inputKey": "ownership",
+            "needId": "bbia",
+            "operation": "answer",
+            "quote": "아이팔레트는 안 갖고 있어."
+          }
+        ],
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 설명은 그대로 두고"
+          }
+        ]
+      },
+      "answer": null
+    }
+  ],
+  "actualHttpStarts": 9,
+  "events": [
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:07.493752+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:09.236084+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:09.451014+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:11.430767+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:11.722386+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:13.828814+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:14.092151+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:15.515480+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:15.843560+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:17.579210+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:17.837595+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:19.396909+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:19.655684+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:21.334271+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:21.594419+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:23.246252+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:10:23.537805+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:10:25.303947+00:00",
+      "status": 200
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+
+> final_project@1.0.0 check
+> npm run typecheck && npm run lint && npm test
+
+
+> final_project@1.0.0 typecheck
+> tsc --noEmit
+
+
+> final_project@1.0.0 lint
+> expo lint
+
+
+> final_project@1.0.0 test
+> jest
+
+FAIL __tests__/chatProducts.test.ts (54.936 s)
+  ● chat product cards › shows only exact verified options with their original ranks, observed price and ingredient checks
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          70 |
+          71 | describe('chat product cards', () => {
+        > 72 |   it('shows only exact verified options with their original ranks, observed price and ingredient checks', async () => {
+             |   ^
+          73 |     type Option = CompoundConsultation['options'][number];
+          74 |     const option = (rank: number, outcome: Option['outcome']): Option => ({
+          75 |       candidate: { rank, productId: 'care', optionId: 'opt-' + rank, optionName: 'Bottle ' + rank,
+
+          at it (__tests__/chatProducts.test.ts:72:3)
+          at Object.describe (__tests__/chatProducts.test.ts:71:1)
+
+  ● chat product cards › keeps unlinked video products in the carousel without inventing a detail link
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          120 |     await act(async () => { renderer.unmount(); });
+          121 |   });
+        > 122 |   it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
+              |   ^
+          123 |     const sourceProducts = [
+          124 |       { label: '원본 립', zone: 'lip', productId: lip.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+          125 |       { label: '원본 미연결 제품', zone: 'base', mappingStatus: 'unknown' as const, catalogValid: false, arEligible: false },
+
+          at it (__tests__/chatProducts.test.ts:122:3)
+          at Object.describe (__tests__/chatProducts.test.ts:71:1)
+
+
+Summary of all failing tests
+FAIL __tests__/chatProducts.test.ts (54.936 s)
+  ● chat product cards › shows only exact verified options with their original ranks, observed price and ingredient checks
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          70 |
+          71 | describe('chat product cards', () => {
+        > 72 |   it('shows only exact verified options with their original ranks, observed price and ingredient checks', async () => {
+             |   ^
+          73 |     type Option = CompoundConsultation['options'][number];
+          74 |     const option = (rank: number, outcome: Option['outcome']): Option => ({
+          75 |       candidate: { rank, productId: 'care', optionId: 'opt-' + rank, optionName: 'Bottle ' + rank,
+
+          at it (__tests__/chatProducts.test.ts:72:3)
+          at Object.describe (__tests__/chatProducts.test.ts:71:1)
+
+  ● chat product cards › keeps unlinked video products in the carousel without inventing a detail link
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          120 |     await act(async () => { renderer.unmount(); });
+          121 |   });
+        > 122 |   it('keeps unlinked video products in the carousel without inventing a detail link', async () => {
+              |   ^
+          123 |     const sourceProducts = [
+          124 |       { label: '원본 립', zone: 'lip', productId: lip.id, mappingStatus: 'product_only' as const, catalogValid: false, arEligible: false },
+          125 |       { label: '원본 미연결 제품', zone: 'base', mappingStatus: 'unknown' as const, catalogValid: false, arEligible: false },
+
+          at it (__tests__/chatProducts.test.ts:122:3)
+          at Object.describe (__tests__/chatProducts.test.ts:71:1)
+
+
+Test Suites: 1 failed, 107 passed, 108 total
+Tests:       2 failed, 1344 passed, 1346 total
+Snapshots:   0 total
+Time:        94.992 s
+Ran all test suites.

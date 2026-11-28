@@ -1,0 +1,13 @@
+......................................F................................. [ 75%]
+........................                                                 [100%]
+================================== FAILURES ===================================
+_ test_parent_scope_ignores_sibling_filters_but_keeps_selection_and_memory_fences _
+tests\test_g8_consultation_parent.py:873: in test_parent_scope_ignores_sibling_filters_but_keeps_selection_and_memory_fences
+    req.chat_context = BeautyContext(
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for BeautyContext
+E   issuedAt
+E     Field required [type=missing, input_value={'filters': BeautyFilters...gredient_conditions=[])}, input_type=dict]
+E       For further information visit https://errors.pydantic.dev/2.14/v/missing
+=========================== short test summary info ===========================
+FAILED tests/test_g8_consultation_parent.py::test_parent_scope_ignores_sibling_filters_but_keeps_selection_and_memory_fences
+1 failed, 95 passed in 2.09s

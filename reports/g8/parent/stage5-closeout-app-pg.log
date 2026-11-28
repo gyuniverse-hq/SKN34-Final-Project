@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\reports\g8\parent\stage5-closeout-app-pg.py", line 48, in <module>
+    assert toner["productContext"]["filters"]["excludedIngredients"] == ["���"]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'excludedIngredients'

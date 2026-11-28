@@ -1,0 +1,16 @@
+- title: "VISHUE" [url=http://localhost:19836/product/oy-a000000162667?optionId=A000000162667-012&requireShade=1]
+- link "(tabs), back" [ref=e1]
+- heading "삐아" [level=1]
+- generic [ref=e2] [scrollable]:
+  - text: "삐아"
+  - heading "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)" [level=1]
+  - text: "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)[단품] 07 웜 베이지 발색 참고 이미지 이 옵션은 장바구니에 보관할 수 있어요. 앱 결제는 아직 지원하지 않아요. 결제하려면 이 옵션을 장바구니에서 제외해 주세요.가격 기준일: 2026-10-28T10:06:07₩17,000 참고 가격 · 용량  5g"
+  - button "비교에 담기" [ref=e3] [disabled]: "비교에 담기"
+  - text: "제형·마무리 새틴 이 제품이 나온 영상"
+  - link "로판여주 재질💜 설윤 Pocket Locket 메이크업 복붙해봄✨(눈 4배 커지는 아이메이크업👁️) | #복붙메이크업 안다 ANDA" [ref=e4]
+  - link "서늘한 냉미녀 메이크업" [ref=e5]
+  - link "청순 청량 여름 데일리 메이크업" [ref=e6]
+  - link "사진발 윤곽 보정 메이크업" [ref=e7]
+  - link "스모키 눈확장 메이크업" [ref=e8]
+- button "VISHUE에게 물어보기" [ref=e9]: "AI"
+- button "장바구니 담기" [ref=e10]: "장바구니 담기"

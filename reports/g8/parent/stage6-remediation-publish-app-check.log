@@ -1,0 +1,22 @@
+
+> final_project@1.0.0 check
+> npm run typecheck && npm run lint && npm test
+
+
+> final_project@1.0.0 typecheck
+> tsc --noEmit
+
+
+> final_project@1.0.0 lint
+> expo lint
+
+
+> final_project@1.0.0 test
+> jest
+
+
+Test Suites: 108 passed, 108 total
+Tests:       1352 passed, 1352 total
+Snapshots:   0 total
+Time:        34.961 s
+Ran all test suites.

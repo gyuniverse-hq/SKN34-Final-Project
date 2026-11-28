@@ -1,0 +1,3608 @@
+[
+  {
+    "turns": [
+      {
+        "question": "토너 찾아줘. 크림도 찾아줘",
+        "answer": "조건에 맞는 토너 후보 6개를 찾았어요.\n아래 상품 카드에서 확인해 보세요.\n\n상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+        "parent": {
+          "schemaVersion": 1,
+          "planId": "2e70f02c-87da-4e35-b815-92b61082ad62",
+          "version": 2,
+          "tasks": [
+            {
+              "productOperation": "search",
+              "productRequirement": {
+                "kind": "toner"
+              },
+              "productAssessment": {
+                "status": "completed",
+                "outcome": "matched",
+                "requirement": {
+                  "kind": "toner"
+                },
+                "inspected": 4991,
+                "matched": 6,
+                "unknown": 1450,
+                "evidence": [
+                  {
+                    "productId": "oy-a000000002839",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "바이오더마 센시비오 토너 250ml"
+                  },
+                  {
+                    "productId": "oy-a000000004434",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "바이오더마 하이드라비오 토너 250ml"
+                  },
+                  {
+                    "productId": "oy-a000000011085",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "엠도씨 세붐 스트라이크 토너 150ml"
+                  },
+                  {
+                    "productId": "oy-a000000016873",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml"
+                  },
+                  {
+                    "productId": "oy-a000000104167",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획"
+                  },
+                  {
+                    "productId": "oy-a000000104169",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획"
+                  }
+                ],
+                "limitations": []
+              },
+              "productContext": {
+                "version": 1,
+                "issuedAt": 1795788945,
+                "filters": {
+                  "category": "skincare",
+                  "maxPriceKRW": null,
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "query": "",
+                  "ingredientConditions": []
+                },
+                "candidateIds": [
+                  "oy-a000000002839",
+                  "oy-a000000004434",
+                  "oy-a000000011085",
+                  "oy-a000000016873",
+                  "oy-a000000104167",
+                  "oy-a000000104169"
+                ],
+                "scopeIds": [
+                  "oy-a000000002839",
+                  "oy-a000000004434",
+                  "oy-a000000011085",
+                  "oy-a000000016873",
+                  "oy-a000000104167",
+                  "oy-a000000104169"
+                ],
+                "selectedProductId": null,
+                "selectedOptionId": null
+              },
+              "taskId": "task-d604dd544d1041cbabe23521438dd1b0",
+              "attempts": 1,
+              "reason": "matched",
+              "toolTraceIds": [
+                "2e70f02c-87da-4e35-b815-92b61082ad62:2:task-d604dd544d1041cbabe23521438dd1b0:1"
+              ],
+              "goal": "product",
+              "objective": "토너 찾아줘",
+              "explanationQuote": "",
+              "status": "completed",
+              "version": 2,
+              "dependsOn": [],
+              "inputRefs": [],
+              "referenceDigest": null,
+              "resultRefs": [
+                "oy-a000000002839",
+                "oy-a000000004434",
+                "oy-a000000011085",
+                "oy-a000000016873",
+                "oy-a000000104167",
+                "oy-a000000104169"
+              ],
+              "limitations": [],
+              "displayResult": {
+                "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+                "products": [
+                  {
+                    "id": "oy-a000000002839",
+                    "brand": "바이오더마",
+                    "name": "바이오더마 센시비오 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000004434",
+                    "brand": "바이오더마",
+                    "name": "바이오더마 하이드라비오 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000011085",
+                    "brand": "엠도씨",
+                    "name": "엠도씨 세붐 스트라이크 토너 150ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000016873",
+                    "brand": "유리아쥬",
+                    "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000104167",
+                    "brand": "크리니크",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000104169",
+                    "brand": "크리니크",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+                    "category": "skincare"
+                  }
+                ],
+                "resultType": "recommendations",
+                "evidence": [
+                  {
+                    "productId": "oy-a000000002839",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000004434",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000011085",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000016873",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000104167",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000104169",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  }
+                ]
+              },
+              "scopeDigest": "0fb553a28d8daeee068dce3d88fd635af8ceb1c22928f25247aecdf75550597f"
+            },
+            {
+              "productOperation": "search",
+              "productRequirement": null,
+              "productAssessment": null,
+              "productContext": {
+                "version": 1,
+                "issuedAt": 1795788948,
+                "filters": {
+                  "category": null,
+                  "maxPriceKRW": null,
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "query": "",
+                  "ingredientConditions": []
+                },
+                "candidateIds": [],
+                "scopeIds": [],
+                "selectedProductId": null,
+                "selectedOptionId": null
+              },
+              "taskId": "task-48099443f6264a0aa868dbc4d1ec32b0",
+              "attempts": 1,
+              "reason": null,
+              "toolTraceIds": [
+                "2e70f02c-87da-4e35-b815-92b61082ad62:2:task-48099443f6264a0aa868dbc4d1ec32b0:1"
+              ],
+              "goal": "product",
+              "objective": "크림도 찾아줘",
+              "explanationQuote": "",
+              "status": "waiting_user",
+              "version": 2,
+              "dependsOn": [],
+              "inputRefs": [],
+              "referenceDigest": null,
+              "resultRefs": [],
+              "limitations": [],
+              "displayResult": {
+                "answer": "상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+                "products": [],
+                "resultType": "clarification",
+                "evidence": []
+              },
+              "scopeDigest": "0fb553a28d8daeee068dce3d88fd635af8ceb1c22928f25247aecdf75550597f"
+            }
+          ],
+          "question": {
+            "comparisonPriceBasis": null,
+            "comparisonBaseId": null,
+            "comparisonChoices": [],
+            "taskId": "task-48099443f6264a0aa868dbc4d1ec32b0",
+            "goal": "product",
+            "version": 2,
+            "text": "상품 종류와 조건을 알려주시거나, 최근 후보의 번호를 지정해 주세요.",
+            "inputKey": "selection",
+            "zone": null,
+            "needId": null,
+            "recipeVersion": null,
+            "ownershipScope": null
+          },
+          "look": null,
+          "executionState": "active"
+        },
+        "events": [
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "127.0.0.1",
+            "path": "/api/products",
+            "status": 200
+          },
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          }
+        ],
+        "modelConfiguredMode": "live",
+        "actualModelHttpCalls": 3
+      }
+    ],
+    "parentSeed": null,
+    "auth": "mock",
+    "pg": "live",
+    "catalog": "live",
+    "model": "gpt-6-luna",
+    "evidence": "common-entry-cooperation-live-pg-initial.xml"
+  },
+  {
+    "turns": [
+      {
+        "question": "토너 찾아줘. 크림도 찾아줘",
+        "answer": "조건에 맞는 토너 후보 6개를 찾았어요.\n아래 상품 카드에서 확인해 보세요.\n\n조건에 맞는 크림 후보 6개를 찾았어요.\n아래 상품 카드에서 확인해 보세요.",
+        "parent": {
+          "schemaVersion": 1,
+          "planId": "69b2af39-5abf-4fb2-b1b2-97b13e2dc282",
+          "version": 2,
+          "tasks": [
+            {
+              "productOperation": "search",
+              "productRequirement": {
+                "kind": "toner"
+              },
+              "productAssessment": {
+                "status": "completed",
+                "outcome": "matched",
+                "requirement": {
+                  "kind": "toner"
+                },
+                "inspected": 4991,
+                "matched": 6,
+                "unknown": 1450,
+                "evidence": [
+                  {
+                    "productId": "oy-a000000002839",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "바이오더마 센시비오 토너 250ml"
+                  },
+                  {
+                    "productId": "oy-a000000004434",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "바이오더마 하이드라비오 토너 250ml"
+                  },
+                  {
+                    "productId": "oy-a000000011085",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "엠도씨 세붐 스트라이크 토너 150ml"
+                  },
+                  {
+                    "productId": "oy-a000000016873",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml"
+                  },
+                  {
+                    "productId": "oy-a000000104167",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획"
+                  },
+                  {
+                    "productId": "oy-a000000104169",
+                    "verdict": "match",
+                    "kind": "toner",
+                    "source": "catalog_product_name",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획"
+                  }
+                ],
+                "limitations": []
+              },
+              "productContext": {
+                "version": 1,
+                "issuedAt": 1795789124,
+                "filters": {
+                  "category": "skincare",
+                  "maxPriceKRW": null,
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "query": "",
+                  "ingredientConditions": []
+                },
+                "candidateIds": [
+                  "oy-a000000002839",
+                  "oy-a000000004434",
+                  "oy-a000000011085",
+                  "oy-a000000016873",
+                  "oy-a000000104167",
+                  "oy-a000000104169"
+                ],
+                "scopeIds": [
+                  "oy-a000000002839",
+                  "oy-a000000004434",
+                  "oy-a000000011085",
+                  "oy-a000000016873",
+                  "oy-a000000104167",
+                  "oy-a000000104169"
+                ],
+                "selectedProductId": null,
+                "selectedOptionId": null
+              },
+              "taskId": "task-723e11be6b274644a387d32e80f353ca",
+              "attempts": 1,
+              "reason": "matched",
+              "toolTraceIds": [
+                "69b2af39-5abf-4fb2-b1b2-97b13e2dc282:2:task-723e11be6b274644a387d32e80f353ca:1"
+              ],
+              "goal": "product",
+              "objective": "토너 찾아줘.",
+              "explanationQuote": "",
+              "status": "completed",
+              "version": 2,
+              "dependsOn": [],
+              "inputRefs": [],
+              "referenceDigest": null,
+              "resultRefs": [
+                "oy-a000000002839",
+                "oy-a000000004434",
+                "oy-a000000011085",
+                "oy-a000000016873",
+                "oy-a000000104167",
+                "oy-a000000104169"
+              ],
+              "limitations": [],
+              "displayResult": {
+                "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+                "products": [
+                  {
+                    "id": "oy-a000000002839",
+                    "brand": "바이오더마",
+                    "name": "바이오더마 센시비오 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000004434",
+                    "brand": "바이오더마",
+                    "name": "바이오더마 하이드라비오 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000011085",
+                    "brand": "엠도씨",
+                    "name": "엠도씨 세붐 스트라이크 토너 150ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000016873",
+                    "brand": "유리아쥬",
+                    "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000104167",
+                    "brand": "크리니크",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000104169",
+                    "brand": "크리니크",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+                    "category": "skincare"
+                  }
+                ],
+                "resultType": "recommendations",
+                "evidence": [
+                  {
+                    "productId": "oy-a000000002839",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000004434",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000011085",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000016873",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000104167",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000104169",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  }
+                ]
+              },
+              "scopeDigest": "0fb553a28d8daeee068dce3d88fd635af8ceb1c22928f25247aecdf75550597f"
+            },
+            {
+              "productOperation": "search",
+              "productRequirement": {
+                "kind": "cream"
+              },
+              "productAssessment": {
+                "status": "completed",
+                "outcome": "matched",
+                "requirement": {
+                  "kind": "cream"
+                },
+                "inspected": 4991,
+                "matched": 6,
+                "unknown": 1450,
+                "evidence": [
+                  {
+                    "productId": "oy-a000000006014",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[닥터이아소] 트리플 엠 하이드레이팅 크림"
+                  },
+                  {
+                    "productId": "oy-a000000012881",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "피지오겔 DMT 페이셜 보습장벽 크림 150ml"
+                  },
+                  {
+                    "productId": "oy-a000000016808",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "유세린 볼륨리프팅 나이트 크림 50ml"
+                  },
+                  {
+                    "productId": "oy-a000000112890",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[올리브베러단독] 라로슈포제 똘러리앙 센시티브 크림"
+                  },
+                  {
+                    "productId": "oy-a000000116004",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[끝장크림] 시카고 시카 피니쉬 크림 50ml"
+                  },
+                  {
+                    "productId": "oy-a000000116032",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "유리아쥬 오 떼르말 워터 크림 40ml"
+                  }
+                ],
+                "limitations": []
+              },
+              "productContext": {
+                "version": 1,
+                "issuedAt": 1795789126,
+                "filters": {
+                  "category": "skincare",
+                  "maxPriceKRW": null,
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "query": "",
+                  "ingredientConditions": []
+                },
+                "candidateIds": [
+                  "oy-a000000006014",
+                  "oy-a000000012881",
+                  "oy-a000000016808",
+                  "oy-a000000112890",
+                  "oy-a000000116004",
+                  "oy-a000000116032"
+                ],
+                "scopeIds": [
+                  "oy-a000000006014",
+                  "oy-a000000012881",
+                  "oy-a000000016808",
+                  "oy-a000000112890",
+                  "oy-a000000116004",
+                  "oy-a000000116032"
+                ],
+                "selectedProductId": null,
+                "selectedOptionId": null
+              },
+              "taskId": "task-ce54f2f8bfc64c0aa56616974cda8f2d",
+              "attempts": 1,
+              "reason": "matched",
+              "toolTraceIds": [
+                "69b2af39-5abf-4fb2-b1b2-97b13e2dc282:2:task-ce54f2f8bfc64c0aa56616974cda8f2d:1"
+              ],
+              "goal": "product",
+              "objective": "크림도 찾아줘",
+              "explanationQuote": "",
+              "status": "completed",
+              "version": 2,
+              "dependsOn": [],
+              "inputRefs": [],
+              "referenceDigest": null,
+              "resultRefs": [
+                "oy-a000000006014",
+                "oy-a000000012881",
+                "oy-a000000016808",
+                "oy-a000000112890",
+                "oy-a000000116004",
+                "oy-a000000116032"
+              ],
+              "limitations": [],
+              "displayResult": {
+                "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+                "products": [
+                  {
+                    "id": "oy-a000000006014",
+                    "brand": "이아소",
+                    "name": "[닥터이아소] 트리플 엠 하이드레이팅 크림",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000012881",
+                    "brand": "피지오겔",
+                    "name": "피지오겔 DMT 페이셜 보습장벽 크림 150ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000016808",
+                    "brand": "유세린",
+                    "name": "유세린 볼륨리프팅 나이트 크림 50ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000112890",
+                    "brand": "라로슈포제",
+                    "name": "[올리브베러단독] 라로슈포제 똘러리앙 센시티브 크림",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000116004",
+                    "brand": "시카고",
+                    "name": "[끝장크림] 시카고 시카 피니쉬 크림 50ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000116032",
+                    "brand": "유리아쥬",
+                    "name": "유리아쥬 오 떼르말 워터 크림 40ml",
+                    "category": "skincare"
+                  }
+                ],
+                "resultType": "recommendations",
+                "evidence": [
+                  {
+                    "productId": "oy-a000000006014",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000012881",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000016808",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000112890",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000116004",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000116032",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  }
+                ]
+              },
+              "scopeDigest": "0fb553a28d8daeee068dce3d88fd635af8ceb1c22928f25247aecdf75550597f"
+            }
+          ],
+          "question": null,
+          "look": null,
+          "executionState": "active"
+        },
+        "events": [
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "127.0.0.1",
+            "path": "/api/products",
+            "status": 200
+          },
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "127.0.0.1",
+            "path": "/api/products",
+            "status": 200
+          }
+        ],
+        "modelConfiguredMode": "live",
+        "actualModelHttpCalls": 3
+      },
+      {
+        "question": "토너 쪽은 놔두고 크림만 15,000원 이하로",
+        "answer": "토너 추천은 그대로 유지했어요.\n\n크림은 15,000원 이하로 맞췄어요.\n조건에 맞는 크림 후보 6개를 찾았어요.\n아래 상품 카드에서 확인해 보세요.\n가격은 앱 등록 가격 기준이며, 구매할 옵션의 가격은 상세 화면에서 확인해 주세요.",
+        "parent": {
+          "schemaVersion": 1,
+          "planId": "69b2af39-5abf-4fb2-b1b2-97b13e2dc282",
+          "version": 3,
+          "tasks": [
+            {
+              "productOperation": "search",
+              "productRequirement": {
+                "kind": "toner"
+              },
+              "productAssessment": {
+                "status": "completed",
+                "outcome": "matched",
+                "requirement": {
+                  "kind": "toner"
+                },
+                "inspected": 4991,
+                "matched": 6,
+                "unknown": 1450,
+                "evidence": [
+                  {
+                    "kind": "toner",
+                    "name": "바이오더마 센시비오 토너 250ml",
+                    "source": "catalog_product_name",
+                    "verdict": "match",
+                    "productId": "oy-a000000002839"
+                  },
+                  {
+                    "kind": "toner",
+                    "name": "바이오더마 하이드라비오 토너 250ml",
+                    "source": "catalog_product_name",
+                    "verdict": "match",
+                    "productId": "oy-a000000004434"
+                  },
+                  {
+                    "kind": "toner",
+                    "name": "엠도씨 세붐 스트라이크 토너 150ml",
+                    "source": "catalog_product_name",
+                    "verdict": "match",
+                    "productId": "oy-a000000011085"
+                  },
+                  {
+                    "kind": "toner",
+                    "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+                    "source": "catalog_product_name",
+                    "verdict": "match",
+                    "productId": "oy-a000000016873"
+                  },
+                  {
+                    "kind": "toner",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+                    "source": "catalog_product_name",
+                    "verdict": "match",
+                    "productId": "oy-a000000104167"
+                  },
+                  {
+                    "kind": "toner",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+                    "source": "catalog_product_name",
+                    "verdict": "match",
+                    "productId": "oy-a000000104169"
+                  }
+                ],
+                "limitations": []
+              },
+              "productContext": {
+                "filters": {
+                  "query": "",
+                  "category": "skincare",
+                  "maxPriceKRW": null,
+                  "moisturizing": false,
+                  "fragranceFree": false,
+                  "ingredientConditions": []
+                },
+                "version": 1,
+                "issuedAt": 1795789124,
+                "scopeIds": [
+                  "oy-a000000002839",
+                  "oy-a000000004434",
+                  "oy-a000000011085",
+                  "oy-a000000016873",
+                  "oy-a000000104167",
+                  "oy-a000000104169"
+                ],
+                "candidateIds": [
+                  "oy-a000000002839",
+                  "oy-a000000004434",
+                  "oy-a000000011085",
+                  "oy-a000000016873",
+                  "oy-a000000104167",
+                  "oy-a000000104169"
+                ],
+                "selectedOptionId": null,
+                "selectedProductId": null
+              },
+              "taskId": "task-723e11be6b274644a387d32e80f353ca",
+              "attempts": 0,
+              "reason": "preserved_completed_result",
+              "toolTraceIds": [],
+              "goal": "product",
+              "objective": "토너 찾아줘.",
+              "explanationQuote": "",
+              "status": "completed",
+              "version": 3,
+              "dependsOn": [],
+              "inputRefs": [
+                "69b2af39-5abf-4fb2-b1b2-97b13e2dc282:2:task-723e11be6b274644a387d32e80f353ca"
+              ],
+              "referenceDigest": null,
+              "resultRefs": [
+                "oy-a000000002839",
+                "oy-a000000004434",
+                "oy-a000000011085",
+                "oy-a000000016873",
+                "oy-a000000104167",
+                "oy-a000000104169"
+              ],
+              "limitations": [],
+              "displayResult": {
+                "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+                "products": [
+                  {
+                    "id": "oy-a000000002839",
+                    "brand": "바이오더마",
+                    "name": "바이오더마 센시비오 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000004434",
+                    "brand": "바이오더마",
+                    "name": "바이오더마 하이드라비오 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000011085",
+                    "brand": "엠도씨",
+                    "name": "엠도씨 세붐 스트라이크 토너 150ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000016873",
+                    "brand": "유리아쥬",
+                    "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000104167",
+                    "brand": "크리니크",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000104169",
+                    "brand": "크리니크",
+                    "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+                    "category": "skincare"
+                  }
+                ],
+                "resultType": "recommendations",
+                "evidence": [
+                  {
+                    "productId": "oy-a000000002839",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000004434",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000011085",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000016873",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000104167",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000104169",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  }
+                ]
+              },
+              "scopeDigest": "0fb553a28d8daeee068dce3d88fd635af8ceb1c22928f25247aecdf75550597f"
+            },
+            {
+              "productOperation": "search",
+              "productRequirement": {
+                "kind": "cream"
+              },
+              "productAssessment": {
+                "status": "completed",
+                "outcome": "matched",
+                "requirement": {
+                  "kind": "cream"
+                },
+                "inspected": 1359,
+                "matched": 6,
+                "unknown": 434,
+                "evidence": [
+                  {
+                    "productId": "oy-a000000122212",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml"
+                  },
+                  {
+                    "productId": "oy-a000000135340",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[장벽UP] 더랩바이블랑두 저분자 히알루론산 카밍+ 크림 50ml"
+                  },
+                  {
+                    "productId": "oy-a000000141317",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[보습크림] 디오디너리 내추럴 모이스처라이징 팩터스 + HA 30ml"
+                  },
+                  {
+                    "productId": "oy-a000000141723",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "라운드랩 자작나무 수분 크림 80ml"
+                  },
+                  {
+                    "productId": "oy-a000000144918",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[고보습광채크림] 하다라보 고쿠쥰 크림 50ml"
+                  },
+                  {
+                    "productId": "oy-a000000147087",
+                    "verdict": "match",
+                    "kind": "cream",
+                    "source": "catalog_product_name",
+                    "name": "[진정케어/장벽크림] 키노닉스 원더 레미디 세라마이드 고보습 크림 50ml"
+                  }
+                ],
+                "limitations": []
+              },
+              "productContext": {
+                "version": 1,
+                "issuedAt": 1795789134,
+                "filters": {
+                  "category": "skincare",
+                  "maxPriceKRW": 15000,
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "query": "",
+                  "ingredientConditions": []
+                },
+                "candidateIds": [
+                  "oy-a000000122212",
+                  "oy-a000000135340",
+                  "oy-a000000141317",
+                  "oy-a000000141723",
+                  "oy-a000000144918",
+                  "oy-a000000147087"
+                ],
+                "scopeIds": [
+                  "oy-a000000122212",
+                  "oy-a000000135340",
+                  "oy-a000000141317",
+                  "oy-a000000141723",
+                  "oy-a000000144918",
+                  "oy-a000000147087"
+                ],
+                "selectedProductId": null,
+                "selectedOptionId": null
+              },
+              "taskId": "task-ce54f2f8bfc64c0aa56616974cda8f2d",
+              "attempts": 1,
+              "reason": "matched",
+              "toolTraceIds": [
+                "69b2af39-5abf-4fb2-b1b2-97b13e2dc282:3:task-ce54f2f8bfc64c0aa56616974cda8f2d:1"
+              ],
+              "goal": "product",
+              "objective": "크림도 찾아줘\n현재 변경 요청: 크림만 15,000원 이하로",
+              "explanationQuote": "",
+              "status": "completed",
+              "version": 3,
+              "dependsOn": [],
+              "inputRefs": [],
+              "referenceDigest": null,
+              "resultRefs": [
+                "oy-a000000122212",
+                "oy-a000000135340",
+                "oy-a000000141317",
+                "oy-a000000141723",
+                "oy-a000000144918",
+                "oy-a000000147087"
+              ],
+              "limitations": [],
+              "displayResult": {
+                "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+                "products": [
+                  {
+                    "id": "oy-a000000122212",
+                    "brand": "다슈",
+                    "name": "다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000135340",
+                    "brand": "더랩바이블랑두",
+                    "name": "[장벽UP] 더랩바이블랑두 저분자 히알루론산 카밍+ 크림 50ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000141317",
+                    "brand": "디오디너리",
+                    "name": "[보습크림] 디오디너리 내추럴 모이스처라이징 팩터스 + HA 30ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000141723",
+                    "brand": "라운드랩",
+                    "name": "라운드랩 자작나무 수분 크림 80ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000144918",
+                    "brand": "하다라보",
+                    "name": "[고보습광채크림] 하다라보 고쿠쥰 크림 50ml",
+                    "category": "skincare"
+                  },
+                  {
+                    "id": "oy-a000000147087",
+                    "brand": "키노닉스",
+                    "name": "[진정케어/장벽크림] 키노닉스 원더 레미디 세라마이드 고보습 크림 50ml",
+                    "category": "skincare"
+                  }
+                ],
+                "resultType": "recommendations",
+                "evidence": [
+                  {
+                    "productId": "oy-a000000122212",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000135340",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000141317",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000141723",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000144918",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  },
+                  {
+                    "productId": "oy-a000000147087",
+                    "source": "catalog_api",
+                    "ingredientCoverage": "unknown",
+                    "fragranceStatus": "unknown"
+                  }
+                ]
+              },
+              "scopeDigest": "0fb553a28d8daeee068dce3d88fd635af8ceb1c22928f25247aecdf75550597f"
+            }
+          ],
+          "question": null,
+          "look": null,
+          "executionState": "active"
+        },
+        "events": [
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "api.openai.com",
+            "path": "/v1/chat/completions",
+            "status": 200
+          },
+          {
+            "host": "127.0.0.1",
+            "path": "/api/products",
+            "status": 200
+          }
+        ],
+        "modelConfiguredMode": "live",
+        "actualModelHttpCalls": 2
+      }
+    ],
+    "parentSeed": null,
+    "auth": "mock",
+    "pg": "live",
+    "catalog": "live",
+    "model": "gpt-6-luna",
+    "evidence": "common-entry-cooperation-live-pg.xml"
+  },
+  {
+    "question": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘.",
+    "events": [
+      {
+        "host": "127.0.0.1",
+        "path": "/api/style-looks",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/style-looks",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/chat/completions",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/style-looks",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-62b72149813801678ed2",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000201055",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-03780f4dc0b8e1e52231",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-584c5fb6595c6b9deca7",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-470737ee388970d0df9a",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-f42b1e24a7e4b43561a5",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000162667",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-68de8ac8806017480318",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-b43b3e3646347ca7f26a",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000137019",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-a9654105af9351ae7f3c",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-28606e8bcb5aa9552720",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000216419",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/catalog/options/search",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/internal/knowledge/search",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/responses",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/internal/knowledge/context",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/responses",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/responses",
+        "status": 200
+      }
+    ],
+    "modelConfiguredMode": "live",
+    "actualModelHttpCalls": 4,
+    "auth": "mock",
+    "pg": "live",
+    "catalog": "live",
+    "g5": "live",
+    "answer": "추가로 구매할 제품으로 삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) (07웜베이지) 제품을 추천해요.\n\n이 룩에 연결된 상품 중 없다고 알려주신 제품이에요.\n\n베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color) 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 팡팡 헤어 섀도우 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n밀크터치 스케치 립 펜슬 소프트 모카 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n같은 부위의 제품을 모두 함께 써야 하는지, 서로 대체할 수 있는지는 아직 확인되지 않았어요.\n\n일반적인 메이크업 순서로 안내할게요. 영상의 실제 사용 순서는 확인되지 않았어요.\n\n1. None\n\n2. None\n\n3. None\n\n4. None\n\n5. None\n\n6. None\n\n7. None\n\n롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?\n\n베이스를 먼저 하고 블러셔를 사용할 때, 파우더 블러셔라면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있어요. [E1]\n\n제공된 근거만으로는 이 룩에서 눈썹·아이섀도·아이라인·블러셔·윤곽·립을 해당 순서로 배치한 이유는 확인할 수 없어요.",
+    "trace": [
+      {
+        "planId": "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2",
+        "planVersion": 2,
+        "task": {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-2a62421af4a94ab780744dec17ee228d",
+          "attempts": 1,
+          "reason": null,
+          "toolTraceIds": [
+            "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2:2:task-2a62421af4a94ab780744dec17ee228d:1"
+          ],
+          "goal": "owned_look",
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘.",
+          "explanationQuote": "이 룩 순서의 이유도 설명해줘.",
+          "status": "waiting_user",
+          "version": 2,
+          "dependsOn": [],
+          "inputRefs": [],
+          "referenceDigest": null,
+          "resultRefs": [
+            "oy-a000000162667"
+          ],
+          "limitations": [],
+          "displayResult": null,
+          "scopeDigest": null
+        },
+        "input": {
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘."
+        },
+        "result": {
+          "ownedLookOptions": {
+            "selections": [
+              {
+                "productId": "oy-a000000162667",
+                "shadeId": null,
+                "optionId": "A000000162667-012",
+                "productName": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                "brand": "삐아",
+                "shadeName": "[단품] 07 웜 베이지"
+              }
+            ],
+            "batches": [
+              {
+                "schemaVersion": 1,
+                "limitations": [
+                  "rights_unverified"
+                ],
+                "effectiveRequest": {
+                  "query": "",
+                  "category": null,
+                  "productIds": [
+                    "oy-a000000162667"
+                  ],
+                  "optionScope": [
+                    {
+                      "productId": "oy-a000000162667",
+                      "shadeId": null,
+                      "optionId": "A000000162667-012"
+                    }
+                  ],
+                  "texture": null,
+                  "maxPriceKRW": null,
+                  "priceBasis": "collected_snapshot",
+                  "ingredientConditions": [],
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "unsupportedConditions": []
+                },
+                "checkedAt": "2026-11-27T14:24:27.485334Z",
+                "status": "SUCCESS",
+                "items": [
+                  {
+                    "productId": "oy-a000000162667",
+                    "shadeId": null,
+                    "optionId": "A000000162667-012",
+                    "optionName": "[단품] 07 웜 베이지",
+                    "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                    "group": "ELIGIBLE",
+                    "checks": [
+                      {
+                        "condition": "identity",
+                        "verdict": "MATCH",
+                        "reason": "verified_option",
+                        "ingredientName": null,
+                        "operator": null,
+                        "evidenceId": null,
+                        "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                        "sourceRef": null,
+                        "reviewRef": null,
+                        "observedAt": null,
+                        "reviewedAt": null,
+                        "ingredientCoverage": null,
+                        "normalizationStatus": null,
+                        "reviewStatus": null,
+                        "limitations": [],
+                        "textureBasis": null,
+                        "textureCode": null
+                      }
+                    ],
+                    "price": null,
+                    "synthetic": false,
+                    "ingredientEntryCount": null,
+                    "ingredientIdentityCount": null
+                  }
+                ],
+                "products": [
+                  {
+                    "id": "oy-a000000162667",
+                    "brand": "삐아",
+                    "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                    "nameKo": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                    "category": "eye",
+                    "makeupZone": null,
+                    "texture": "satin",
+                    "priceKRW": 17000,
+                    "priceEvidence": null,
+                    "description": "",
+                    "keyIngredients": [],
+                    "tags": [
+                      "oliveyoung",
+                      "아이섀도우"
+                    ],
+                    "shades": []
+                  }
+                ],
+                "checkedScope": {
+                  "candidateProducts": 1,
+                  "candidateOptions": 1,
+                  "checkedOptions": 1,
+                  "unidentifiedOptions": 0,
+                  "exhaustive": true,
+                  "stoppedReason": "COMPLETE",
+                  "errors": 0
+                },
+                "excludedCount": 0,
+                "omittedCount": 0
+              }
+            ],
+            "failedProductIds": []
+          },
+          "styleStatus": "ready",
+          "styleRecipe": {
+            "lookId": "AG03mUj4vnY",
+            "sourceLookId": "AG03mUj4vnY",
+            "kind": "video",
+            "recipeId": "video:AG03mUj4vnY",
+            "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+            "title": "사진발 윤곽 보정 메이크업",
+            "basis": "video_metadata",
+            "reviewStatus": "unreviewed",
+            "productUsageTrusted": true,
+            "productQuestion": false,
+            "videoAnalyzed": false,
+            "synthetic": false,
+            "source": "https://www.youtube.com/watch?v=AG03mUj4vnY",
+            "evidenceId": null,
+            "features": [
+              "사진발 윤곽 보정 메이크업",
+              "보정·맞춤",
+              "#사진발윤곽보정"
+            ],
+            "steps": [
+              {
+                "order": 1,
+                "zone": "foundation",
+                "title": "베이스",
+                "description": null,
+                "guideKey": "foundation"
+              },
+              {
+                "order": 2,
+                "zone": "brow",
+                "title": "눈썹",
+                "description": null,
+                "guideKey": "brow"
+              },
+              {
+                "order": 3,
+                "zone": "eyeshadow",
+                "title": "아이섀도",
+                "description": null,
+                "guideKey": "eyeshadow"
+              },
+              {
+                "order": 4,
+                "zone": "eyeliner",
+                "title": "아이라인",
+                "description": null,
+                "guideKey": "eyeliner"
+              },
+              {
+                "order": 5,
+                "zone": "blush",
+                "title": "블러셔",
+                "description": null,
+                "guideKey": "blush"
+              },
+              {
+                "order": 6,
+                "zone": "contour",
+                "title": "윤곽",
+                "description": null,
+                "guideKey": "contour"
+              },
+              {
+                "order": 7,
+                "zone": "lip",
+                "title": "립",
+                "description": null,
+                "guideKey": "lip"
+              }
+            ],
+            "currentStep": 0,
+            "products": [
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "투쿨포스쿨 아트클래스 스튜디오 드 땅뜨 픽싱 커버 쿠션 [SPF45/PA++]",
+                "zone": "unknown",
+                "productId": "yt-62b72149813801678ed2",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": "A000000201055-002",
+                "optionName": "02그레이쿨",
+                "optionSource": "raw_oy_product_option:A000000201055-002",
+                "consultationZone": "contour",
+                "label": "롬앤 롬앤 베러 댄 컨투어",
+                "zone": "unknown",
+                "productId": "oy-a000000201055",
+                "shadeId": "A000000201055-002",
+                "mappingStatus": "verified",
+                "catalogValid": true,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "eyeshadow",
+                "label": "에뛰드 팡팡 헤어 섀도우",
+                "zone": "eyeshadow",
+                "productId": "yt-03780f4dc0b8e1e52231",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "헤브블루 (HEVEBLUE) 펜타베리 판테놀 리페어 컨실러 [SPF35/PA++] [13호 아이보리]",
+                "zone": "unknown",
+                "productId": "yt-584c5fb6595c6b9deca7",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "어바웃톤 블러 파우더 팩트",
+                "zone": "unknown",
+                "productId": "yt-470737ee388970d0df9a",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "blush",
+                "label": "페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크",
+                "zone": "blush",
+                "productId": "yt-f42b1e24a7e4b43561a5",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": "A000000162667-012",
+                "optionName": "07웜베이지",
+                "optionSource": "raw_oy_product_option:A000000162667-012",
+                "consultationZone": "eyeshadow",
+                "label": "삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                "zone": "eyeshadow",
+                "productId": "oy-a000000162667",
+                "shadeId": null,
+                "mappingStatus": "verified",
+                "catalogValid": true,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "eyeliner",
+                "label": "컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운]",
+                "zone": "eyeliner",
+                "productId": "yt-68de8ac8806017480318",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "brow",
+                "label": "에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙]",
+                "zone": "brow",
+                "productId": "yt-b43b3e3646347ca7f26a",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "brow",
+                "label": "키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color)",
+                "zone": "brow",
+                "productId": "oy-a000000137019",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "루미르 멜팅 핏 샤인밤",
+                "zone": "unknown",
+                "productId": "yt-a9654105af9351ae7f3c",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "밀크터치 스케치 립 펜슬 소프트 모카",
+                "zone": "lip",
+                "productId": null,
+                "shadeId": null,
+                "mappingStatus": "unknown",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "lip",
+                "label": "클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치]",
+                "zone": "lip",
+                "productId": "yt-28606e8bcb5aa9552720",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "세잔느 세잔느 펄 글로우 하이라이트 4colors",
+                "zone": "unknown",
+                "productId": "oy-a000000216419",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              }
+            ],
+            "arEligible": false,
+            "reason": "video_not_analyzed",
+            "makeup": null
+          },
+          "styleContext": {
+            "kind": "video",
+            "lookId": "AG03mUj4vnY",
+            "recipeId": "video:AG03mUj4vnY",
+            "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+            "currentStep": 0
+          },
+          "answer": "추가로 구매할 제품으로 삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) (07웜베이지) 제품을 추천해요.\n\n이 룩에 연결된 상품 중 없다고 알려주신 제품이에요.\n\n베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color) 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 팡팡 헤어 섀도우 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n밀크터치 스케치 립 펜슬 소프트 모카 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n같은 부위의 제품을 모두 함께 써야 하는지, 서로 대체할 수 있는지는 아직 확인되지 않았어요.\n\n일반적인 메이크업 순서로 안내할게요. 영상의 실제 사용 순서는 확인되지 않았어요.\n\n1. None\n\n2. None\n\n3. None\n\n4. None\n\n5. None\n\n6. None\n\n7. None\n\n롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?",
+          "products": [
+            {
+              "id": "oy-a000000162667",
+              "brand": "삐아",
+              "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+              "category": "eye"
+            }
+          ],
+          "resultType": "recommendations"
+        }
+      },
+      {
+        "continuation": "accepted",
+        "sourceTaskId": "task-2a62421af4a94ab780744dec17ee228d",
+        "taskId": "task-f28aa057948f4fa1931a0f7487cd7761",
+        "sourceFingerprint": "b7e41e5ddb1ad3b90fd79d643ebdf9c0e5c5cfcd59b0413d6b1773af239f86ff"
+      },
+      {
+        "planId": "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2",
+        "planVersion": 3,
+        "task": {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-f28aa057948f4fa1931a0f7487cd7761",
+          "attempts": 1,
+          "reason": null,
+          "toolTraceIds": [
+            "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2:3:task-f28aa057948f4fa1931a0f7487cd7761:1"
+          ],
+          "goal": "knowledge",
+          "objective": "이 룩 순서의 이유도 설명해줘.",
+          "explanationQuote": "",
+          "status": "partial",
+          "version": 3,
+          "dependsOn": [
+            "task-2a62421af4a94ab780744dec17ee228d"
+          ],
+          "inputRefs": [],
+          "referenceDigest": null,
+          "resultRefs": [],
+          "limitations": [],
+          "displayResult": null,
+          "scopeDigest": null
+        },
+        "input": {
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘."
+        },
+        "result": {
+          "knowledge": {
+            "status": "partial",
+            "claims": [
+              {
+                "claim": "베이스를 먼저 하고 블러셔를 사용할 때, 파우더 블러셔라면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있어요.",
+                "citations": [
+                  "E3"
+                ]
+              }
+            ],
+            "evidence": [
+              {
+                "id": "E3",
+                "documentId": 1569,
+                "chunkId": "b4d6a17a91b6041564416f4333950991ce6d38847050f1efc61df594480bfcc7",
+                "title": "강의노트02",
+                "sourceFileId": 1771,
+                "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                "blockOrder": 211,
+                "startUtf16": 0,
+                "endUtf16": 36,
+                "sourceLocator": {
+                  "end": 5840,
+                  "row": -1,
+                  "cell": -1,
+                  "part": "main",
+                  "path": [],
+                  "unit": "utf16",
+                  "start": 5803,
+                  "table": -1,
+                  "format": "ole",
+                  "paragraph": 211
+                },
+                "quote": "파우더 블러셔 사용 시: 파운데이션 픽싱 후 '브러시 톡톡' 기법",
+                "relevance": "support"
+              }
+            ],
+            "findings": [
+              {
+                "index": 2,
+                "label": "UNSUPPORTED",
+                "reason": "질문 일치 판정 IRRELEVANT. 섀딩 방법은 순서의 이유를 설명하지 않아요."
+              }
+            ],
+            "limitations": "제공된 근거만으로는 이 룩에서 눈썹·아이섀도·아이라인·블러셔·윤곽·립을 해당 순서로 배치한 이유는 확인할 수 없어요."
+          },
+          "answer": "베이스를 먼저 하고 블러셔를 사용할 때, 파우더 블러셔라면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있어요. [E3]\n\n제공된 근거만으로는 이 룩에서 눈썹·아이섀도·아이라인·블러셔·윤곽·립을 해당 순서로 배치한 이유는 확인할 수 없어요.",
+          "products": []
+        }
+      },
+      {
+        "parentIntent": {
+          "configured": true,
+          "invocations": 1,
+          "planVersion": 1,
+          "status": "validated",
+          "elapsedMs": 2111.5,
+          "result": {
+            "planId": "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2",
+            "version": 1,
+            "action": "continue",
+            "targets": [],
+            "quote": "",
+            "question": "",
+            "clarificationScope": null,
+            "changes": [],
+            "additions": [
+              {
+                "capability": "owned_look",
+                "quote": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘.",
+                "explanationQuote": "이 룩 순서의 이유도 설명해줘.",
+                "sharedQuotes": [],
+                "productOperation": null
+              }
+            ]
+          }
+        },
+        "newTaskIds": [
+          "task-2a62421af4a94ab780744dec17ee228d"
+        ],
+        "selectedTaskIds": [
+          "task-2a62421af4a94ab780744dec17ee228d"
+        ]
+      }
+    ],
+    "parent": {
+      "schemaVersion": 1,
+      "planId": "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2",
+      "version": 3,
+      "tasks": [
+        {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-2a62421af4a94ab780744dec17ee228d",
+          "attempts": 0,
+          "reason": "preserved_completed_result",
+          "toolTraceIds": [],
+          "goal": "owned_look",
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘.",
+          "explanationQuote": "이 룩 순서의 이유도 설명해줘.",
+          "status": "waiting_user",
+          "version": 3,
+          "dependsOn": [],
+          "inputRefs": [
+            "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2:2:task-2a62421af4a94ab780744dec17ee228d"
+          ],
+          "referenceDigest": null,
+          "resultRefs": [
+            "oy-a000000162667"
+          ],
+          "limitations": [],
+          "displayResult": {
+            "ownedLookOptions": {
+              "selections": [
+                {
+                  "productId": "oy-a000000162667",
+                  "shadeId": null,
+                  "optionId": "A000000162667-012",
+                  "productName": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                  "brand": "삐아",
+                  "shadeName": "[단품] 07 웜 베이지"
+                }
+              ],
+              "batches": [
+                {
+                  "schemaVersion": 1,
+                  "limitations": [
+                    "rights_unverified"
+                  ],
+                  "effectiveRequest": {
+                    "query": "",
+                    "category": null,
+                    "productIds": [
+                      "oy-a000000162667"
+                    ],
+                    "optionScope": [
+                      {
+                        "productId": "oy-a000000162667",
+                        "shadeId": null,
+                        "optionId": "A000000162667-012"
+                      }
+                    ],
+                    "texture": null,
+                    "maxPriceKRW": null,
+                    "priceBasis": "collected_snapshot",
+                    "ingredientConditions": [],
+                    "fragranceFree": false,
+                    "moisturizing": false,
+                    "unsupportedConditions": []
+                  },
+                  "checkedAt": "2026-11-27T14:24:27.485334Z",
+                  "status": "SUCCESS",
+                  "items": [
+                    {
+                      "productId": "oy-a000000162667",
+                      "shadeId": null,
+                      "optionId": "A000000162667-012",
+                      "optionName": "[단품] 07 웜 베이지",
+                      "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                      "group": "ELIGIBLE",
+                      "checks": [
+                        {
+                          "condition": "identity",
+                          "verdict": "MATCH",
+                          "reason": "verified_option",
+                          "ingredientName": null,
+                          "operator": null,
+                          "evidenceId": null,
+                          "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                          "sourceRef": null,
+                          "reviewRef": null,
+                          "observedAt": null,
+                          "reviewedAt": null,
+                          "ingredientCoverage": null,
+                          "normalizationStatus": null,
+                          "reviewStatus": null,
+                          "limitations": [],
+                          "textureBasis": null,
+                          "textureCode": null
+                        }
+                      ],
+                      "price": null,
+                      "synthetic": false,
+                      "ingredientEntryCount": null,
+                      "ingredientIdentityCount": null
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "oy-a000000162667",
+                      "brand": "삐아",
+                      "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                      "nameKo": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                      "category": "eye",
+                      "makeupZone": null,
+                      "texture": "satin",
+                      "priceKRW": 17000,
+                      "priceEvidence": null,
+                      "description": "",
+                      "keyIngredients": [],
+                      "tags": [
+                        "oliveyoung",
+                        "아이섀도우"
+                      ],
+                      "shades": []
+                    }
+                  ],
+                  "checkedScope": {
+                    "candidateProducts": 1,
+                    "candidateOptions": 1,
+                    "checkedOptions": 1,
+                    "unidentifiedOptions": 0,
+                    "exhaustive": true,
+                    "stoppedReason": "COMPLETE",
+                    "errors": 0
+                  },
+                  "excludedCount": 0,
+                  "omittedCount": 0
+                }
+              ],
+              "failedProductIds": []
+            },
+            "styleStatus": "ready",
+            "styleRecipe": {
+              "lookId": "AG03mUj4vnY",
+              "sourceLookId": "AG03mUj4vnY",
+              "kind": "video",
+              "recipeId": "video:AG03mUj4vnY",
+              "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+              "title": "사진발 윤곽 보정 메이크업",
+              "basis": "video_metadata",
+              "reviewStatus": "unreviewed",
+              "productUsageTrusted": true,
+              "productQuestion": false,
+              "videoAnalyzed": false,
+              "synthetic": false,
+              "source": "https://www.youtube.com/watch?v=AG03mUj4vnY",
+              "evidenceId": null,
+              "features": [
+                "사진발 윤곽 보정 메이크업",
+                "보정·맞춤",
+                "#사진발윤곽보정"
+              ],
+              "steps": [
+                {
+                  "order": 1,
+                  "zone": "foundation",
+                  "title": "베이스",
+                  "description": null,
+                  "guideKey": "foundation"
+                },
+                {
+                  "order": 2,
+                  "zone": "brow",
+                  "title": "눈썹",
+                  "description": null,
+                  "guideKey": "brow"
+                },
+                {
+                  "order": 3,
+                  "zone": "eyeshadow",
+                  "title": "아이섀도",
+                  "description": null,
+                  "guideKey": "eyeshadow"
+                },
+                {
+                  "order": 4,
+                  "zone": "eyeliner",
+                  "title": "아이라인",
+                  "description": null,
+                  "guideKey": "eyeliner"
+                },
+                {
+                  "order": 5,
+                  "zone": "blush",
+                  "title": "블러셔",
+                  "description": null,
+                  "guideKey": "blush"
+                },
+                {
+                  "order": 6,
+                  "zone": "contour",
+                  "title": "윤곽",
+                  "description": null,
+                  "guideKey": "contour"
+                },
+                {
+                  "order": 7,
+                  "zone": "lip",
+                  "title": "립",
+                  "description": null,
+                  "guideKey": "lip"
+                }
+              ],
+              "currentStep": 0,
+              "products": [
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "투쿨포스쿨 아트클래스 스튜디오 드 땅뜨 픽싱 커버 쿠션 [SPF45/PA++]",
+                  "zone": "unknown",
+                  "productId": "yt-62b72149813801678ed2",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": "A000000201055-002",
+                  "optionName": "02그레이쿨",
+                  "optionSource": "raw_oy_product_option:A000000201055-002",
+                  "consultationZone": "contour",
+                  "label": "롬앤 롬앤 베러 댄 컨투어",
+                  "zone": "unknown",
+                  "productId": "oy-a000000201055",
+                  "shadeId": "A000000201055-002",
+                  "mappingStatus": "verified",
+                  "catalogValid": true,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "eyeshadow",
+                  "label": "에뛰드 팡팡 헤어 섀도우",
+                  "zone": "eyeshadow",
+                  "productId": "yt-03780f4dc0b8e1e52231",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "헤브블루 (HEVEBLUE) 펜타베리 판테놀 리페어 컨실러 [SPF35/PA++] [13호 아이보리]",
+                  "zone": "unknown",
+                  "productId": "yt-584c5fb6595c6b9deca7",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "어바웃톤 블러 파우더 팩트",
+                  "zone": "unknown",
+                  "productId": "yt-470737ee388970d0df9a",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "blush",
+                  "label": "페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크",
+                  "zone": "blush",
+                  "productId": "yt-f42b1e24a7e4b43561a5",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": "A000000162667-012",
+                  "optionName": "07웜베이지",
+                  "optionSource": "raw_oy_product_option:A000000162667-012",
+                  "consultationZone": "eyeshadow",
+                  "label": "삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                  "zone": "eyeshadow",
+                  "productId": "oy-a000000162667",
+                  "shadeId": null,
+                  "mappingStatus": "verified",
+                  "catalogValid": true,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "eyeliner",
+                  "label": "컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운]",
+                  "zone": "eyeliner",
+                  "productId": "yt-68de8ac8806017480318",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "brow",
+                  "label": "에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙]",
+                  "zone": "brow",
+                  "productId": "yt-b43b3e3646347ca7f26a",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "brow",
+                  "label": "키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color)",
+                  "zone": "brow",
+                  "productId": "oy-a000000137019",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "루미르 멜팅 핏 샤인밤",
+                  "zone": "unknown",
+                  "productId": "yt-a9654105af9351ae7f3c",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "밀크터치 스케치 립 펜슬 소프트 모카",
+                  "zone": "lip",
+                  "productId": null,
+                  "shadeId": null,
+                  "mappingStatus": "unknown",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "lip",
+                  "label": "클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치]",
+                  "zone": "lip",
+                  "productId": "yt-28606e8bcb5aa9552720",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "세잔느 세잔느 펄 글로우 하이라이트 4colors",
+                  "zone": "unknown",
+                  "productId": "oy-a000000216419",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                }
+              ],
+              "arEligible": false,
+              "reason": "video_not_analyzed",
+              "makeup": null
+            },
+            "answer": "추가로 구매할 제품으로 삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) (07웜베이지) 제품을 추천해요.\n\n이 룩에 연결된 상품 중 없다고 알려주신 제품이에요.\n\n베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color) 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 팡팡 헤어 섀도우 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n밀크터치 스케치 립 펜슬 소프트 모카 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n같은 부위의 제품을 모두 함께 써야 하는지, 서로 대체할 수 있는지는 아직 확인되지 않았어요.\n\n일반적인 메이크업 순서로 안내할게요. 영상의 실제 사용 순서는 확인되지 않았어요.\n\n1. None\n\n2. None\n\n3. None\n\n4. None\n\n5. None\n\n6. None\n\n7. None\n\n롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?",
+            "products": [
+              {
+                "id": "oy-a000000162667",
+                "brand": "삐아",
+                "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                "category": "eye"
+              }
+            ],
+            "resultType": "recommendations"
+          },
+          "scopeDigest": "8f95eca8cce0829e3c863139a5d93dcba784627d2dba32eae5cbbd2cad4756fb"
+        },
+        {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-f28aa057948f4fa1931a0f7487cd7761",
+          "attempts": 1,
+          "reason": null,
+          "toolTraceIds": [
+            "7da76bf0-d7db-4cc7-b8e5-7afe0e7d02d2:3:task-f28aa057948f4fa1931a0f7487cd7761:1"
+          ],
+          "goal": "knowledge",
+          "objective": "이 룩 순서의 이유도 설명해줘.",
+          "explanationQuote": "",
+          "status": "partial",
+          "version": 3,
+          "dependsOn": [
+            "task-2a62421af4a94ab780744dec17ee228d"
+          ],
+          "inputRefs": [],
+          "referenceDigest": null,
+          "resultRefs": [],
+          "limitations": [],
+          "displayResult": {
+            "knowledge": {
+              "status": "partial",
+              "claims": [
+                {
+                  "claim": "베이스를 먼저 하고 블러셔를 사용할 때, 파우더 블러셔라면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있어요.",
+                  "citations": [
+                    "E3"
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "id": "E3",
+                  "documentId": 1569,
+                  "chunkId": "b4d6a17a91b6041564416f4333950991ce6d38847050f1efc61df594480bfcc7",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 211,
+                  "startUtf16": 0,
+                  "endUtf16": 36,
+                  "sourceLocator": {
+                    "end": 5840,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 5803,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 211
+                  },
+                  "quote": "파우더 블러셔 사용 시: 파운데이션 픽싱 후 '브러시 톡톡' 기법",
+                  "relevance": "support"
+                }
+              ],
+              "findings": [
+                {
+                  "index": 2,
+                  "label": "UNSUPPORTED",
+                  "reason": "질문 일치 판정 IRRELEVANT. 섀딩 방법은 순서의 이유를 설명하지 않아요."
+                }
+              ],
+              "limitations": "제공된 근거만으로는 이 룩에서 눈썹·아이섀도·아이라인·블러셔·윤곽·립을 해당 순서로 배치한 이유는 확인할 수 없어요."
+            },
+            "answer": "베이스를 먼저 하고 블러셔를 사용할 때, 파우더 블러셔라면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있어요. [E3]\n\n제공된 근거만으로는 이 룩에서 눈썹·아이섀도·아이라인·블러셔·윤곽·립을 해당 순서로 배치한 이유는 확인할 수 없어요.",
+            "products": []
+          },
+          "scopeDigest": "8f95eca8cce0829e3c863139a5d93dcba784627d2dba32eae5cbbd2cad4756fb"
+        }
+      ],
+      "question": {
+        "comparisonPriceBasis": null,
+        "comparisonBaseId": null,
+        "comparisonChoices": [],
+        "taskId": "task-2a62421af4a94ab780744dec17ee228d",
+        "goal": "owned_look",
+        "version": 3,
+        "text": "롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?",
+        "inputKey": "ownership",
+        "zone": "contour",
+        "needId": "330f5a0e6533f9ebc4b642bd209b328e04c649e9cbaeafeda20e6b1eeffa5980",
+        "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+        "ownershipScope": "option"
+      },
+      "look": {
+        "kind": "video",
+        "lookId": "AG03mUj4vnY",
+        "recipeId": null,
+        "recipeVersion": null,
+        "currentStep": 0
+      },
+      "executionState": "active"
+    },
+    "evidence": "common-entry-cooperation-live-result-pg-initial.xml"
+  },
+  {
+    "question": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘.",
+    "events": [
+      {
+        "host": "127.0.0.1",
+        "path": "/api/style-looks",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/style-looks",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/chat/completions",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/style-looks",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-62b72149813801678ed2",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000201055",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-03780f4dc0b8e1e52231",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-584c5fb6595c6b9deca7",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-470737ee388970d0df9a",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-f42b1e24a7e4b43561a5",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000162667",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-68de8ac8806017480318",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-b43b3e3646347ca7f26a",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000137019",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-a9654105af9351ae7f3c",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/yt-28606e8bcb5aa9552720",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products/oy-a000000216419",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/products",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/catalog/options/search",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/internal/knowledge/search",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/responses",
+        "status": 200
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/internal/knowledge/context",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/responses",
+        "status": 200
+      },
+      {
+        "host": "api.openai.com",
+        "path": "/v1/responses",
+        "status": 200
+      }
+    ],
+    "modelConfiguredMode": "live",
+    "actualModelHttpCalls": 4,
+    "auth": "mock",
+    "pg": "live",
+    "catalog": "live",
+    "g5": "live",
+    "answer": "추가로 구매할 제품으로 삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) (07웜베이지) 제품을 추천해요.\n\n이 룩에 연결된 상품 중 없다고 알려주신 제품이에요.\n\n베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color) 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 팡팡 헤어 섀도우 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n밀크터치 스케치 립 펜슬 소프트 모카 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n같은 부위의 제품을 모두 함께 써야 하는지, 서로 대체할 수 있는지는 아직 확인되지 않았어요.\n\n롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?\n\n베이스를 먼저 정리한 뒤 색조를 표현하면 피부색과 결을 조절하고 색조 메이크업을 돋보이게 하는 데 도움이 됩니다. [E1]\n\n파우더 블러셔를 쓴다면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있습니다. [E2]\n\n제공된 근거만으로는 이 룩에서 눈썹부터 립까지 각 단계를 제시된 순서로 배치한 이유를 확인할 수 없습니다.",
+    "trace": [
+      {
+        "planId": "49c2e499-2437-4919-b307-792de7d19ad2",
+        "planVersion": 2,
+        "task": {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-a04beb53d41241c0b5645de7de3738f1",
+          "attempts": 1,
+          "reason": null,
+          "toolTraceIds": [
+            "49c2e499-2437-4919-b307-792de7d19ad2:2:task-a04beb53d41241c0b5645de7de3738f1:1"
+          ],
+          "goal": "owned_look",
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어.",
+          "explanationQuote": "이 룩 순서의 이유도 설명해줘.",
+          "status": "waiting_user",
+          "version": 2,
+          "dependsOn": [],
+          "inputRefs": [],
+          "referenceDigest": null,
+          "resultRefs": [
+            "oy-a000000162667"
+          ],
+          "limitations": [],
+          "displayResult": null,
+          "scopeDigest": null
+        },
+        "input": {
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘."
+        },
+        "result": {
+          "ownedLookOptions": {
+            "selections": [
+              {
+                "productId": "oy-a000000162667",
+                "shadeId": null,
+                "optionId": "A000000162667-012",
+                "productName": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                "brand": "삐아",
+                "shadeName": "[단품] 07 웜 베이지"
+              }
+            ],
+            "batches": [
+              {
+                "schemaVersion": 1,
+                "limitations": [
+                  "rights_unverified"
+                ],
+                "effectiveRequest": {
+                  "query": "",
+                  "category": null,
+                  "productIds": [
+                    "oy-a000000162667"
+                  ],
+                  "optionScope": [
+                    {
+                      "productId": "oy-a000000162667",
+                      "shadeId": null,
+                      "optionId": "A000000162667-012"
+                    }
+                  ],
+                  "texture": null,
+                  "maxPriceKRW": null,
+                  "priceBasis": "collected_snapshot",
+                  "ingredientConditions": [],
+                  "fragranceFree": false,
+                  "moisturizing": false,
+                  "unsupportedConditions": []
+                },
+                "checkedAt": "2026-11-27T14:25:42.918425Z",
+                "status": "SUCCESS",
+                "items": [
+                  {
+                    "productId": "oy-a000000162667",
+                    "shadeId": null,
+                    "optionId": "A000000162667-012",
+                    "optionName": "[단품] 07 웜 베이지",
+                    "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                    "group": "ELIGIBLE",
+                    "checks": [
+                      {
+                        "condition": "identity",
+                        "verdict": "MATCH",
+                        "reason": "verified_option",
+                        "ingredientName": null,
+                        "operator": null,
+                        "evidenceId": null,
+                        "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                        "sourceRef": null,
+                        "reviewRef": null,
+                        "observedAt": null,
+                        "reviewedAt": null,
+                        "ingredientCoverage": null,
+                        "normalizationStatus": null,
+                        "reviewStatus": null,
+                        "limitations": [],
+                        "textureBasis": null,
+                        "textureCode": null
+                      }
+                    ],
+                    "price": null,
+                    "synthetic": false,
+                    "ingredientEntryCount": null,
+                    "ingredientIdentityCount": null
+                  }
+                ],
+                "products": [
+                  {
+                    "id": "oy-a000000162667",
+                    "brand": "삐아",
+                    "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                    "nameKo": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                    "category": "eye",
+                    "makeupZone": null,
+                    "texture": "satin",
+                    "priceKRW": 17000,
+                    "priceEvidence": null,
+                    "description": "",
+                    "keyIngredients": [],
+                    "tags": [
+                      "oliveyoung",
+                      "아이섀도우"
+                    ],
+                    "shades": []
+                  }
+                ],
+                "checkedScope": {
+                  "candidateProducts": 1,
+                  "candidateOptions": 1,
+                  "checkedOptions": 1,
+                  "unidentifiedOptions": 0,
+                  "exhaustive": true,
+                  "stoppedReason": "COMPLETE",
+                  "errors": 0
+                },
+                "excludedCount": 0,
+                "omittedCount": 0
+              }
+            ],
+            "failedProductIds": []
+          },
+          "styleStatus": "ready",
+          "styleRecipe": {
+            "lookId": "AG03mUj4vnY",
+            "sourceLookId": "AG03mUj4vnY",
+            "kind": "video",
+            "recipeId": "video:AG03mUj4vnY",
+            "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+            "title": "사진발 윤곽 보정 메이크업",
+            "basis": "video_metadata",
+            "reviewStatus": "unreviewed",
+            "productUsageTrusted": true,
+            "productQuestion": false,
+            "videoAnalyzed": false,
+            "synthetic": false,
+            "source": "https://www.youtube.com/watch?v=AG03mUj4vnY",
+            "evidenceId": null,
+            "features": [
+              "사진발 윤곽 보정 메이크업",
+              "보정·맞춤",
+              "#사진발윤곽보정"
+            ],
+            "steps": [
+              {
+                "order": 1,
+                "zone": "foundation",
+                "title": "베이스",
+                "description": null,
+                "guideKey": "foundation"
+              },
+              {
+                "order": 2,
+                "zone": "brow",
+                "title": "눈썹",
+                "description": null,
+                "guideKey": "brow"
+              },
+              {
+                "order": 3,
+                "zone": "eyeshadow",
+                "title": "아이섀도",
+                "description": null,
+                "guideKey": "eyeshadow"
+              },
+              {
+                "order": 4,
+                "zone": "eyeliner",
+                "title": "아이라인",
+                "description": null,
+                "guideKey": "eyeliner"
+              },
+              {
+                "order": 5,
+                "zone": "blush",
+                "title": "블러셔",
+                "description": null,
+                "guideKey": "blush"
+              },
+              {
+                "order": 6,
+                "zone": "contour",
+                "title": "윤곽",
+                "description": null,
+                "guideKey": "contour"
+              },
+              {
+                "order": 7,
+                "zone": "lip",
+                "title": "립",
+                "description": null,
+                "guideKey": "lip"
+              }
+            ],
+            "currentStep": 0,
+            "products": [
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "투쿨포스쿨 아트클래스 스튜디오 드 땅뜨 픽싱 커버 쿠션 [SPF45/PA++]",
+                "zone": "unknown",
+                "productId": "yt-62b72149813801678ed2",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": "A000000201055-002",
+                "optionName": "02그레이쿨",
+                "optionSource": "raw_oy_product_option:A000000201055-002",
+                "consultationZone": "contour",
+                "label": "롬앤 롬앤 베러 댄 컨투어",
+                "zone": "unknown",
+                "productId": "oy-a000000201055",
+                "shadeId": "A000000201055-002",
+                "mappingStatus": "verified",
+                "catalogValid": true,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "eyeshadow",
+                "label": "에뛰드 팡팡 헤어 섀도우",
+                "zone": "eyeshadow",
+                "productId": "yt-03780f4dc0b8e1e52231",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "헤브블루 (HEVEBLUE) 펜타베리 판테놀 리페어 컨실러 [SPF35/PA++] [13호 아이보리]",
+                "zone": "unknown",
+                "productId": "yt-584c5fb6595c6b9deca7",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "어바웃톤 블러 파우더 팩트",
+                "zone": "unknown",
+                "productId": "yt-470737ee388970d0df9a",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "blush",
+                "label": "페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크",
+                "zone": "blush",
+                "productId": "yt-f42b1e24a7e4b43561a5",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": "A000000162667-012",
+                "optionName": "07웜베이지",
+                "optionSource": "raw_oy_product_option:A000000162667-012",
+                "consultationZone": "eyeshadow",
+                "label": "삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                "zone": "eyeshadow",
+                "productId": "oy-a000000162667",
+                "shadeId": null,
+                "mappingStatus": "verified",
+                "catalogValid": true,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "eyeliner",
+                "label": "컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운]",
+                "zone": "eyeliner",
+                "productId": "yt-68de8ac8806017480318",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "brow",
+                "label": "에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙]",
+                "zone": "brow",
+                "productId": "yt-b43b3e3646347ca7f26a",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "brow",
+                "label": "키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color)",
+                "zone": "brow",
+                "productId": "oy-a000000137019",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "루미르 멜팅 핏 샤인밤",
+                "zone": "unknown",
+                "productId": "yt-a9654105af9351ae7f3c",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "밀크터치 스케치 립 펜슬 소프트 모카",
+                "zone": "lip",
+                "productId": null,
+                "shadeId": null,
+                "mappingStatus": "unknown",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": "lip",
+                "label": "클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치]",
+                "zone": "lip",
+                "productId": "yt-28606e8bcb5aa9552720",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              },
+              {
+                "optionId": null,
+                "optionName": null,
+                "optionSource": null,
+                "consultationZone": null,
+                "label": "세잔느 세잔느 펄 글로우 하이라이트 4colors",
+                "zone": "unknown",
+                "productId": "oy-a000000216419",
+                "shadeId": null,
+                "mappingStatus": "product_only",
+                "catalogValid": false,
+                "arEligible": false
+              }
+            ],
+            "arEligible": false,
+            "reason": "video_not_analyzed",
+            "makeup": null
+          },
+          "styleContext": {
+            "kind": "video",
+            "lookId": "AG03mUj4vnY",
+            "recipeId": "video:AG03mUj4vnY",
+            "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+            "currentStep": 0
+          },
+          "answer": "추가로 구매할 제품으로 삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) (07웜베이지) 제품을 추천해요.\n\n이 룩에 연결된 상품 중 없다고 알려주신 제품이에요.\n\n베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color) 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 팡팡 헤어 섀도우 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n밀크터치 스케치 립 펜슬 소프트 모카 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n같은 부위의 제품을 모두 함께 써야 하는지, 서로 대체할 수 있는지는 아직 확인되지 않았어요.\n\n롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?",
+          "products": [
+            {
+              "id": "oy-a000000162667",
+              "brand": "삐아",
+              "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+              "category": "eye"
+            }
+          ],
+          "resultType": "recommendations"
+        }
+      },
+      {
+        "continuation": "accepted",
+        "sourceTaskId": "task-a04beb53d41241c0b5645de7de3738f1",
+        "taskId": "task-2fe5437622074dc6bf4562469ba9e373",
+        "sourceFingerprint": "b7e41e5ddb1ad3b90fd79d643ebdf9c0e5c5cfcd59b0413d6b1773af239f86ff"
+      },
+      {
+        "planId": "49c2e499-2437-4919-b307-792de7d19ad2",
+        "planVersion": 3,
+        "task": {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-2fe5437622074dc6bf4562469ba9e373",
+          "attempts": 1,
+          "reason": null,
+          "toolTraceIds": [
+            "49c2e499-2437-4919-b307-792de7d19ad2:3:task-2fe5437622074dc6bf4562469ba9e373:1"
+          ],
+          "goal": "knowledge",
+          "objective": "이 룩 순서의 이유도 설명해줘.",
+          "explanationQuote": "",
+          "status": "partial",
+          "version": 3,
+          "dependsOn": [
+            "task-a04beb53d41241c0b5645de7de3738f1"
+          ],
+          "inputRefs": [],
+          "referenceDigest": null,
+          "resultRefs": [],
+          "limitations": [],
+          "displayResult": null,
+          "scopeDigest": null
+        },
+        "input": {
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어. 이 룩 순서의 이유도 설명해줘."
+        },
+        "result": {
+          "knowledge": {
+            "status": "partial",
+            "claims": [
+              {
+                "claim": "베이스를 먼저 정리한 뒤 색조를 표현하면 피부색과 결을 조절하고 색조 메이크업을 돋보이게 하는 데 도움이 됩니다.",
+                "citations": [
+                  "E1"
+                ]
+              },
+              {
+                "claim": "파우더 블러셔를 쓴다면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있습니다.",
+                "citations": [
+                  "E4"
+                ]
+              }
+            ],
+            "evidence": [
+              {
+                "id": "E1",
+                "documentId": 1646,
+                "chunkId": "855506a72608d9b8b6db9611f191880774736b083ac28ebd84d3e4a572b141af",
+                "title": "베이스 메이크업 디자인에 관한 연구",
+                "sourceFileId": 698,
+                "sourceVersion": "84f8f9296a11881260b319e3e1caf15e256187356464ddcf0a8b572540891961",
+                "blockOrder": 71,
+                "startUtf16": 0,
+                "endUtf16": 76,
+                "sourceLocator": {
+                  "end": 196,
+                  "row": -1,
+                  "cell": -1,
+                  "part": "/word/document.xml",
+                  "path": [
+                    71
+                  ],
+                  "unit": "utf16",
+                  "start": 0,
+                  "table": -1,
+                  "format": "ooxml",
+                  "paragraph": -1
+                },
+                "quote": "피부결과 피부색을 조절하고, 피부의 결점을 커버한다. 또한 얼굴의 골격이나 윤곽을 수정하여 입체감을 주어 색조 메이크업을 돋보이게 한다.",
+                "relevance": "support"
+              },
+              {
+                "id": "E4",
+                "documentId": 1569,
+                "chunkId": "b4d6a17a91b6041564416f4333950991ce6d38847050f1efc61df594480bfcc7",
+                "title": "강의노트02",
+                "sourceFileId": 1771,
+                "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                "blockOrder": 211,
+                "startUtf16": 0,
+                "endUtf16": 36,
+                "sourceLocator": {
+                  "end": 5840,
+                  "row": -1,
+                  "cell": -1,
+                  "part": "main",
+                  "path": [],
+                  "unit": "utf16",
+                  "start": 5803,
+                  "table": -1,
+                  "format": "ole",
+                  "paragraph": 211
+                },
+                "quote": "파우더 블러셔 사용 시: 파운데이션 픽싱 후 '브러시 톡톡' 기법",
+                "relevance": "support"
+              }
+            ],
+            "findings": [],
+            "limitations": "제공된 근거만으로는 이 룩에서 눈썹부터 립까지 각 단계를 제시된 순서로 배치한 이유를 확인할 수 없습니다."
+          },
+          "answer": "베이스를 먼저 정리한 뒤 색조를 표현하면 피부색과 결을 조절하고 색조 메이크업을 돋보이게 하는 데 도움이 됩니다. [E1]\n\n파우더 블러셔를 쓴다면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있습니다. [E4]\n\n제공된 근거만으로는 이 룩에서 눈썹부터 립까지 각 단계를 제시된 순서로 배치한 이유를 확인할 수 없습니다.",
+          "products": []
+        }
+      },
+      {
+        "parentIntent": {
+          "configured": true,
+          "invocations": 1,
+          "planVersion": 1,
+          "status": "validated",
+          "elapsedMs": 2091.6,
+          "result": {
+            "planId": "49c2e499-2437-4919-b307-792de7d19ad2",
+            "version": 1,
+            "action": "continue",
+            "targets": [],
+            "quote": "",
+            "question": "",
+            "clarificationScope": null,
+            "changes": [],
+            "additions": [
+              {
+                "capability": "owned_look",
+                "quote": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어.",
+                "explanationQuote": "이 룩 순서의 이유도 설명해줘.",
+                "sharedQuotes": [],
+                "productOperation": null
+              }
+            ]
+          }
+        },
+        "newTaskIds": [
+          "task-a04beb53d41241c0b5645de7de3738f1"
+        ],
+        "selectedTaskIds": [
+          "task-a04beb53d41241c0b5645de7de3738f1"
+        ]
+      }
+    ],
+    "parent": {
+      "schemaVersion": 1,
+      "planId": "49c2e499-2437-4919-b307-792de7d19ad2",
+      "version": 3,
+      "tasks": [
+        {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-a04beb53d41241c0b5645de7de3738f1",
+          "attempts": 0,
+          "reason": "preserved_completed_result",
+          "toolTraceIds": [],
+          "goal": "owned_look",
+          "objective": "내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어.",
+          "explanationQuote": "이 룩 순서의 이유도 설명해줘.",
+          "status": "waiting_user",
+          "version": 3,
+          "dependsOn": [],
+          "inputRefs": [
+            "49c2e499-2437-4919-b307-792de7d19ad2:2:task-a04beb53d41241c0b5645de7de3738f1"
+          ],
+          "referenceDigest": null,
+          "resultRefs": [
+            "oy-a000000162667"
+          ],
+          "limitations": [],
+          "displayResult": {
+            "ownedLookOptions": {
+              "selections": [
+                {
+                  "productId": "oy-a000000162667",
+                  "shadeId": null,
+                  "optionId": "A000000162667-012",
+                  "productName": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                  "brand": "삐아",
+                  "shadeName": "[단품] 07 웜 베이지"
+                }
+              ],
+              "batches": [
+                {
+                  "schemaVersion": 1,
+                  "limitations": [
+                    "rights_unverified"
+                  ],
+                  "effectiveRequest": {
+                    "query": "",
+                    "category": null,
+                    "productIds": [
+                      "oy-a000000162667"
+                    ],
+                    "optionScope": [
+                      {
+                        "productId": "oy-a000000162667",
+                        "shadeId": null,
+                        "optionId": "A000000162667-012"
+                      }
+                    ],
+                    "texture": null,
+                    "maxPriceKRW": null,
+                    "priceBasis": "collected_snapshot",
+                    "ingredientConditions": [],
+                    "fragranceFree": false,
+                    "moisturizing": false,
+                    "unsupportedConditions": []
+                  },
+                  "checkedAt": "2026-11-27T14:25:42.918425Z",
+                  "status": "SUCCESS",
+                  "items": [
+                    {
+                      "productId": "oy-a000000162667",
+                      "shadeId": null,
+                      "optionId": "A000000162667-012",
+                      "optionName": "[단품] 07 웜 베이지",
+                      "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                      "group": "ELIGIBLE",
+                      "checks": [
+                        {
+                          "condition": "identity",
+                          "verdict": "MATCH",
+                          "reason": "verified_option",
+                          "ingredientName": null,
+                          "operator": null,
+                          "evidenceId": null,
+                          "sourceVersion": "4573b99efc8b3be138658a2952c026cd4072c94229947e081483720ca99202b6",
+                          "sourceRef": null,
+                          "reviewRef": null,
+                          "observedAt": null,
+                          "reviewedAt": null,
+                          "ingredientCoverage": null,
+                          "normalizationStatus": null,
+                          "reviewStatus": null,
+                          "limitations": [],
+                          "textureBasis": null,
+                          "textureCode": null
+                        }
+                      ],
+                      "price": null,
+                      "synthetic": false,
+                      "ingredientEntryCount": null,
+                      "ingredientIdentityCount": null
+                    }
+                  ],
+                  "products": [
+                    {
+                      "id": "oy-a000000162667",
+                      "brand": "삐아",
+                      "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                      "nameKo": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                      "category": "eye",
+                      "makeupZone": null,
+                      "texture": "satin",
+                      "priceKRW": 17000,
+                      "priceEvidence": null,
+                      "description": "",
+                      "keyIngredients": [],
+                      "tags": [
+                        "oliveyoung",
+                        "아이섀도우"
+                      ],
+                      "shades": []
+                    }
+                  ],
+                  "checkedScope": {
+                    "candidateProducts": 1,
+                    "candidateOptions": 1,
+                    "checkedOptions": 1,
+                    "unidentifiedOptions": 0,
+                    "exhaustive": true,
+                    "stoppedReason": "COMPLETE",
+                    "errors": 0
+                  },
+                  "excludedCount": 0,
+                  "omittedCount": 0
+                }
+              ],
+              "failedProductIds": []
+            },
+            "styleStatus": "ready",
+            "styleRecipe": {
+              "lookId": "AG03mUj4vnY",
+              "sourceLookId": "AG03mUj4vnY",
+              "kind": "video",
+              "recipeId": "video:AG03mUj4vnY",
+              "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+              "title": "사진발 윤곽 보정 메이크업",
+              "basis": "video_metadata",
+              "reviewStatus": "unreviewed",
+              "productUsageTrusted": true,
+              "productQuestion": false,
+              "videoAnalyzed": false,
+              "synthetic": false,
+              "source": "https://www.youtube.com/watch?v=AG03mUj4vnY",
+              "evidenceId": null,
+              "features": [
+                "사진발 윤곽 보정 메이크업",
+                "보정·맞춤",
+                "#사진발윤곽보정"
+              ],
+              "steps": [
+                {
+                  "order": 1,
+                  "zone": "foundation",
+                  "title": "베이스",
+                  "description": null,
+                  "guideKey": "foundation"
+                },
+                {
+                  "order": 2,
+                  "zone": "brow",
+                  "title": "눈썹",
+                  "description": null,
+                  "guideKey": "brow"
+                },
+                {
+                  "order": 3,
+                  "zone": "eyeshadow",
+                  "title": "아이섀도",
+                  "description": null,
+                  "guideKey": "eyeshadow"
+                },
+                {
+                  "order": 4,
+                  "zone": "eyeliner",
+                  "title": "아이라인",
+                  "description": null,
+                  "guideKey": "eyeliner"
+                },
+                {
+                  "order": 5,
+                  "zone": "blush",
+                  "title": "블러셔",
+                  "description": null,
+                  "guideKey": "blush"
+                },
+                {
+                  "order": 6,
+                  "zone": "contour",
+                  "title": "윤곽",
+                  "description": null,
+                  "guideKey": "contour"
+                },
+                {
+                  "order": 7,
+                  "zone": "lip",
+                  "title": "립",
+                  "description": null,
+                  "guideKey": "lip"
+                }
+              ],
+              "currentStep": 0,
+              "products": [
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "투쿨포스쿨 아트클래스 스튜디오 드 땅뜨 픽싱 커버 쿠션 [SPF45/PA++]",
+                  "zone": "unknown",
+                  "productId": "yt-62b72149813801678ed2",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": "A000000201055-002",
+                  "optionName": "02그레이쿨",
+                  "optionSource": "raw_oy_product_option:A000000201055-002",
+                  "consultationZone": "contour",
+                  "label": "롬앤 롬앤 베러 댄 컨투어",
+                  "zone": "unknown",
+                  "productId": "oy-a000000201055",
+                  "shadeId": "A000000201055-002",
+                  "mappingStatus": "verified",
+                  "catalogValid": true,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "eyeshadow",
+                  "label": "에뛰드 팡팡 헤어 섀도우",
+                  "zone": "eyeshadow",
+                  "productId": "yt-03780f4dc0b8e1e52231",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "헤브블루 (HEVEBLUE) 펜타베리 판테놀 리페어 컨실러 [SPF35/PA++] [13호 아이보리]",
+                  "zone": "unknown",
+                  "productId": "yt-584c5fb6595c6b9deca7",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "어바웃톤 블러 파우더 팩트",
+                  "zone": "unknown",
+                  "productId": "yt-470737ee388970d0df9a",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "blush",
+                  "label": "페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크",
+                  "zone": "blush",
+                  "productId": "yt-f42b1e24a7e4b43561a5",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": "A000000162667-012",
+                  "optionName": "07웜베이지",
+                  "optionSource": "raw_oy_product_option:A000000162667-012",
+                  "consultationZone": "eyeshadow",
+                  "label": "삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                  "zone": "eyeshadow",
+                  "productId": "oy-a000000162667",
+                  "shadeId": null,
+                  "mappingStatus": "verified",
+                  "catalogValid": true,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "eyeliner",
+                  "label": "컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운]",
+                  "zone": "eyeliner",
+                  "productId": "yt-68de8ac8806017480318",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "brow",
+                  "label": "에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙]",
+                  "zone": "brow",
+                  "productId": "yt-b43b3e3646347ca7f26a",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "brow",
+                  "label": "키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color)",
+                  "zone": "brow",
+                  "productId": "oy-a000000137019",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "루미르 멜팅 핏 샤인밤",
+                  "zone": "unknown",
+                  "productId": "yt-a9654105af9351ae7f3c",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "밀크터치 스케치 립 펜슬 소프트 모카",
+                  "zone": "lip",
+                  "productId": null,
+                  "shadeId": null,
+                  "mappingStatus": "unknown",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": "lip",
+                  "label": "클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치]",
+                  "zone": "lip",
+                  "productId": "yt-28606e8bcb5aa9552720",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                },
+                {
+                  "optionId": null,
+                  "optionName": null,
+                  "optionSource": null,
+                  "consultationZone": null,
+                  "label": "세잔느 세잔느 펄 글로우 하이라이트 4colors",
+                  "zone": "unknown",
+                  "productId": "oy-a000000216419",
+                  "shadeId": null,
+                  "mappingStatus": "product_only",
+                  "catalogValid": false,
+                  "arEligible": false
+                }
+              ],
+              "arEligible": false,
+              "reason": "video_not_analyzed",
+              "makeup": null
+            },
+            "answer": "추가로 구매할 제품으로 삐아 [6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품) (07웜베이지) 제품을 추천해요.\n\n이 룩에 연결된 상품 중 없다고 알려주신 제품이에요.\n\n베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 에디션 컬 픽스 마스카라 [블랙] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n키스미 [초슬림 브로우] 키스미 헤비로테이션 아이브로우 펜슬  (6 color) 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 팡팡 헤어 섀도우 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n컬러그램 (colorgram) 음영 창조 라이너 [07 30%로즈브라운] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n페리페라 (나잇 페리 프렌즈 컬렉션) 맑게 물든 커스텀 치크 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n밀크터치 스케치 립 펜슬 소프트 모카 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n클리오 (CLIO) 허그 블러 틴트 [006 베스트버디피치] 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n같은 부위의 제품을 모두 함께 써야 하는지, 서로 대체할 수 있는지는 아직 확인되지 않았어요.\n\n롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?",
+            "products": [
+              {
+                "id": "oy-a000000162667",
+                "brand": "삐아",
+                "name": "[6구 팔레트] 삐아 레디 투 웨어 아이 팔레트 5g 10종 (기획/단품)",
+                "category": "eye"
+              }
+            ],
+            "resultType": "recommendations"
+          },
+          "scopeDigest": "8f95eca8cce0829e3c863139a5d93dcba784627d2dba32eae5cbbd2cad4756fb"
+        },
+        {
+          "productOperation": null,
+          "productRequirement": null,
+          "productAssessment": null,
+          "productContext": null,
+          "taskId": "task-2fe5437622074dc6bf4562469ba9e373",
+          "attempts": 1,
+          "reason": null,
+          "toolTraceIds": [
+            "49c2e499-2437-4919-b307-792de7d19ad2:3:task-2fe5437622074dc6bf4562469ba9e373:1"
+          ],
+          "goal": "knowledge",
+          "objective": "이 룩 순서의 이유도 설명해줘.",
+          "explanationQuote": "",
+          "status": "partial",
+          "version": 3,
+          "dependsOn": [
+            "task-a04beb53d41241c0b5645de7de3738f1"
+          ],
+          "inputRefs": [],
+          "referenceDigest": null,
+          "resultRefs": [],
+          "limitations": [],
+          "displayResult": {
+            "knowledge": {
+              "status": "partial",
+              "claims": [
+                {
+                  "claim": "베이스를 먼저 정리한 뒤 색조를 표현하면 피부색과 결을 조절하고 색조 메이크업을 돋보이게 하는 데 도움이 됩니다.",
+                  "citations": [
+                    "E1"
+                  ]
+                },
+                {
+                  "claim": "파우더 블러셔를 쓴다면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있습니다.",
+                  "citations": [
+                    "E4"
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "id": "E1",
+                  "documentId": 1646,
+                  "chunkId": "855506a72608d9b8b6db9611f191880774736b083ac28ebd84d3e4a572b141af",
+                  "title": "베이스 메이크업 디자인에 관한 연구",
+                  "sourceFileId": 698,
+                  "sourceVersion": "84f8f9296a11881260b319e3e1caf15e256187356464ddcf0a8b572540891961",
+                  "blockOrder": 71,
+                  "startUtf16": 0,
+                  "endUtf16": 76,
+                  "sourceLocator": {
+                    "end": 196,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "/word/document.xml",
+                    "path": [
+                      71
+                    ],
+                    "unit": "utf16",
+                    "start": 0,
+                    "table": -1,
+                    "format": "ooxml",
+                    "paragraph": -1
+                  },
+                  "quote": "피부결과 피부색을 조절하고, 피부의 결점을 커버한다. 또한 얼굴의 골격이나 윤곽을 수정하여 입체감을 주어 색조 메이크업을 돋보이게 한다.",
+                  "relevance": "support"
+                },
+                {
+                  "id": "E4",
+                  "documentId": 1569,
+                  "chunkId": "b4d6a17a91b6041564416f4333950991ce6d38847050f1efc61df594480bfcc7",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 211,
+                  "startUtf16": 0,
+                  "endUtf16": 36,
+                  "sourceLocator": {
+                    "end": 5840,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 5803,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 211
+                  },
+                  "quote": "파우더 블러셔 사용 시: 파운데이션 픽싱 후 '브러시 톡톡' 기법",
+                  "relevance": "support"
+                }
+              ],
+              "findings": [],
+              "limitations": "제공된 근거만으로는 이 룩에서 눈썹부터 립까지 각 단계를 제시된 순서로 배치한 이유를 확인할 수 없습니다."
+            },
+            "answer": "베이스를 먼저 정리한 뒤 색조를 표현하면 피부색과 결을 조절하고 색조 메이크업을 돋보이게 하는 데 도움이 됩니다. [E1]\n\n파우더 블러셔를 쓴다면 파운데이션을 픽싱한 뒤 브러시로 톡톡 바르는 방법이 있습니다. [E4]\n\n제공된 근거만으로는 이 룩에서 눈썹부터 립까지 각 단계를 제시된 순서로 배치한 이유를 확인할 수 없습니다.",
+            "products": []
+          },
+          "scopeDigest": "8f95eca8cce0829e3c863139a5d93dcba784627d2dba32eae5cbbd2cad4756fb"
+        }
+      ],
+      "question": {
+        "comparisonPriceBasis": null,
+        "comparisonBaseId": null,
+        "comparisonChoices": [],
+        "taskId": "task-a04beb53d41241c0b5645de7de3738f1",
+        "goal": "owned_look",
+        "version": 3,
+        "text": "롬앤 롬앤 베러 댄 컨투어 (02그레이쿨) 제품을 가지고 있나요?",
+        "inputKey": "ownership",
+        "zone": "contour",
+        "needId": "330f5a0e6533f9ebc4b642bd209b328e04c649e9cbaeafeda20e6b1eeffa5980",
+        "recipeVersion": "guide-v1:f6d66e800a68ec880c6b08e9",
+        "ownershipScope": "option"
+      },
+      "look": {
+        "kind": "video",
+        "lookId": "AG03mUj4vnY",
+        "recipeId": null,
+        "recipeVersion": null,
+        "currentStep": 0
+      },
+      "executionState": "active"
+    },
+    "evidence": "common-entry-cooperation-live-result-pg.xml"
+  }
+]

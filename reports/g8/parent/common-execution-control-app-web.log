@@ -1,0 +1,67 @@
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:19836
+
+Logs for your project will appear below.
+| (node:20976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:20976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:20976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:20976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:20976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:20976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+λ Bundled 22636ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1776 modules)
+Web Bundled 6897ms node_modules\expo-router\entry.js (831 modules)
+λ Bundled 796ms app\chat.tsx (66 modules)
+Web Bundled 7995ms node_modules\expo-router\entry.js (831 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 2956ms app\_layout.tsx (1004 modules)
+λ Bundled 99ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 45ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 19ms app\chat.tsx (1 module)
+Web Bundled 37ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 76ms app\_layout.tsx (1 module)
+Web Bundled 784ms app\(tabs)\_layout.tsx (898 modules)
+Web Bundled 4705ms app\chat.tsx (1015 modules)
+Web Bundled 5560ms app\(tabs)\index.tsx (1415 modules)
+λ Bundled 132ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 35ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 4ms app\chat.tsx (1 module)
+Web Bundled 36ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 60ms app\_layout.tsx (1 module)
+Web Bundled 28ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 69ms app\(tabs)\index.tsx (1 module)
+Web Bundled 87ms app\chat.tsx (1 module)
+λ Bundled 136ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 30ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 3ms app\chat.tsx (1 module)
+Web Bundled 43ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 65ms app\_layout.tsx (1 module)
+Web Bundled 43ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 92ms app\(tabs)\index.tsx (1 module)
+Web Bundled 73ms app\chat.tsx (1 module)
+λ Bundled 216ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 100ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 5ms app\chat.tsx (1 module)
+Web Bundled 49ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 67ms app\_layout.tsx (1 module)
+Web Bundled 37ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 80ms app\(tabs)\index.tsx (1 module)
+Web Bundled 103ms app\chat.tsx (1 module)

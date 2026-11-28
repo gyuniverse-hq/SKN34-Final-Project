@@ -1,0 +1,17 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/chat]
+- link "(tabs), back" [ref=e1]
+- heading "뷰티 AI" [level=1]
+- button "기억 관리" [ref=e3]: ""
+- button "최근 상담" [ref=e4]: ""
+- button "새 상담" [ref=e5]: ""
+- text: "오늘은 어떤 뷰티 고민이 있으세요?제품 추천부터 성분, 메이크업 스타일까지 물어보세요.뷰티 고민을 자유롭게 이야기해 주세요"
+- button "지금 쓰는 립이 너무 건조해" [ref=e16]: "지금 쓰는 립이 너무 건조해"
+- button "이 제품에 향료 들어 있어?" [ref=e17]: "이 제품에 향료 들어 있어?"
+- button "그라데이션 립 어떻게 해?" [ref=e18]: "그라데이션 립 어떻게 해?"
+- button "어떤 메이크업을 해야 할지 모르겠어" [ref=e19]: "어떤 메이크업을 해야 할지 모르겠어"
+- text: "질문을 누르면 입력창에 채워져요. 예시 질문에 맞춰 상담 종류가 설정돼요."
+- alert: "답변을 중단했어요. 내용을 바꿔 다시 질문할 수 있어요."
+- button "새 검색 시작" [ref=e20]
+- textbox "궁금한 점을 입력하세요" [ref=e10] [placeholder="궁금한 점을 입력하세요"]: "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘"
+- button "보내기" [ref=e11]: ""

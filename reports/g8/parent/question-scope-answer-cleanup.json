@@ -1,0 +1,19 @@
+{
+  "at": "2026-11-27T19:01:33.387209+00:00",
+  "stopped": [
+    {
+      "role": "chat",
+      "pid": 21532
+    },
+    {
+      "role": "g5",
+      "pid": 12876
+    },
+    {
+      "role": "web",
+      "pid": 46308
+    }
+  ],
+  "retained": "pre-existing Catalog19834, PostgreSQL15434, Redis/Neo4j; no data deleted",
+  "relay": "separate WSL exec session closed after verification"
+}

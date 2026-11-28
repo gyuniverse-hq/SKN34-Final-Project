@@ -1,0 +1,37 @@
+{
+  "mode": "actual Catalog HTTP",
+  "cases": [
+    {
+      "category": "lip",
+      "status": "PARTIAL",
+      "items": 21,
+      "products": 2,
+      "checkedAt": "2026-11-27 16:02:07.600228+00:00",
+      "scope": {
+        "candidateProducts": 1059,
+        "candidateOptions": 691,
+        "checkedOptions": 21,
+        "unidentifiedOptions": 0,
+        "exhaustive": false,
+        "stoppedReason": "WORK_LIMIT",
+        "errors": 0
+      }
+    },
+    {
+      "category": "base",
+      "status": "PARTIAL",
+      "items": 5,
+      "products": 0,
+      "checkedAt": "2026-11-27 16:02:12.063077+00:00",
+      "scope": {
+        "candidateProducts": 895,
+        "candidateOptions": 414,
+        "checkedOptions": 21,
+        "unidentifiedOptions": 16,
+        "exhaustive": false,
+        "stoppedReason": "WORK_LIMIT",
+        "errors": 0
+      }
+    }
+  ]
+}

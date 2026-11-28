@@ -1,0 +1,878 @@
+{
+  "mode": "mixed",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "at": "2026-11-27T11:17:15.577172+00:00",
+  "uncommitted": true,
+  "parentSeed": "synthetic completed style task; not restored from PG",
+  "catalog": "live HTTP 19834",
+  "modelConfiguredMode": "live",
+  "pg": "NOT_RUN",
+  "loginApp": "NOT_RUN",
+  "turns": [
+    {
+      "question": "세안 후 보습 순서를 설명해줘. 보습용 크림도 찾아줘.",
+      "response": {
+        "knowledge": {
+          "status": "partial",
+          "claims": [
+            {
+              "claim": "세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다.",
+              "citations": [
+                "E1",
+                "E2"
+              ]
+            }
+          ],
+          "evidence": [
+            {
+              "id": "E1",
+              "documentId": 1569,
+              "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+              "title": "강의노트02",
+              "sourceFileId": 1771,
+              "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+              "blockOrder": 7813,
+              "startUtf16": 0,
+              "endUtf16": 29,
+              "sourceLocator": {
+                "end": 206999,
+                "row": -1,
+                "cell": -1,
+                "part": "main",
+                "path": [],
+                "unit": "utf16",
+                "start": 206969,
+                "table": -1,
+                "format": "ole",
+                "paragraph": 7813
+              },
+              "quote": "✔ Step 1) 물기를 수건으로 완전히 닦지 않는다",
+              "relevance": "essential"
+            },
+            {
+              "id": "E2",
+              "documentId": 1569,
+              "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+              "title": "강의노트02",
+              "sourceFileId": 1771,
+              "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+              "blockOrder": 7814,
+              "startUtf16": 0,
+              "endUtf16": 48,
+              "sourceLocator": {
+                "end": 207047,
+                "row": -1,
+                "cell": -1,
+                "part": "main",
+                "path": [],
+                "unit": "utf16",
+                "start": 206999,
+                "table": -1,
+                "format": "ole",
+                "paragraph": 7814
+              },
+              "quote": "물기를 30~40%만 제거하는 수준에서 멈춘다.\u000b(흔히 말하는 “물기 머금은 상태”)\r",
+              "relevance": "support"
+            }
+          ],
+          "findings": [],
+          "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다."
+        },
+        "answer": "세안 후 보습 순서를 설명해줘.\n세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다. [E1] [E2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다.\n\n보습용 크림도 찾아줘.\n현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요. 촉촉함 선호는 상품 설명·태그를 참고한 정렬이며 실제 보습 효과를 보장하지 않습니다.",
+        "products": [
+          {
+            "id": "oy-a000000004434",
+            "brand": "바이오더마",
+            "name": "바이오더마 하이드라비오 토너 250ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000010048",
+            "brand": "눅스",
+            "name": "[꿀보습클렌징]눅스 레브드미엘 원스텝 클렌징 젤 200ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000010507",
+            "brand": "아벤느",
+            "name": "[1+1/1등 미스트]아벤느 오 떼르말 수분 미스트 150ml 2입 기획",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000011596",
+            "brand": "메디힐",
+            "name": "메디힐 W.H.P 미백수분 블랙 마스크 EX 10매",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000012609",
+            "brand": "아이소이",
+            "name": "아이소이 에센셜 마스크팩 1매 3종 택 1 (잡티 / 진정 / 수분)",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000012809",
+            "brand": "피지오겔",
+            "name": "피지오겔 DMT 데일리 보습 페이셜 로션 200ml",
+            "category": "skincare"
+          }
+        ]
+      },
+      "parent": {
+        "schemaVersion": 1,
+        "planId": "fb200897-6f07-4e0a-8649-6474e7a4e0f0",
+        "version": 2,
+        "tasks": [
+          {
+            "taskId": "style",
+            "attempts": 0,
+            "reason": null,
+            "toolTraceIds": [],
+            "goal": "style",
+            "objective": "기존 룩 검색",
+            "status": "completed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": null,
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          {
+            "taskId": "task-64251b34604e4227a22a7ac6fd809387",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "fb200897-6f07-4e0a-8649-6474e7a4e0f0:2:task-64251b34604e4227a22a7ac6fd809387:1"
+            ],
+            "goal": "knowledge",
+            "objective": "세안 후 보습 순서를 설명해줘.",
+            "status": "partial",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "knowledge": {
+                "status": "partial",
+                "claims": [
+                  {
+                    "claim": "세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다.",
+                    "citations": [
+                      "E2",
+                      "E2.2"
+                    ]
+                  }
+                ],
+                "evidence": [
+                  {
+                    "id": "E2",
+                    "documentId": 1569,
+                    "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                    "title": "강의노트02",
+                    "sourceFileId": 1771,
+                    "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                    "blockOrder": 7813,
+                    "startUtf16": 0,
+                    "endUtf16": 29,
+                    "sourceLocator": {
+                      "end": 206999,
+                      "row": -1,
+                      "cell": -1,
+                      "part": "main",
+                      "path": [],
+                      "unit": "utf16",
+                      "start": 206969,
+                      "table": -1,
+                      "format": "ole",
+                      "paragraph": 7813
+                    },
+                    "quote": "✔ Step 1) 물기를 수건으로 완전히 닦지 않는다",
+                    "relevance": "essential"
+                  },
+                  {
+                    "id": "E2.2",
+                    "documentId": 1569,
+                    "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                    "title": "강의노트02",
+                    "sourceFileId": 1771,
+                    "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                    "blockOrder": 7814,
+                    "startUtf16": 0,
+                    "endUtf16": 48,
+                    "sourceLocator": {
+                      "end": 207047,
+                      "row": -1,
+                      "cell": -1,
+                      "part": "main",
+                      "path": [],
+                      "unit": "utf16",
+                      "start": 206999,
+                      "table": -1,
+                      "format": "ole",
+                      "paragraph": 7814
+                    },
+                    "quote": "물기를 30~40%만 제거하는 수준에서 멈춘다.\u000b(흔히 말하는 “물기 머금은 상태”)\r",
+                    "relevance": "support"
+                  }
+                ],
+                "findings": [
+                  {
+                    "index": 2,
+                    "label": "UNSUPPORTED",
+                    "reason": "적용 조건 판정 UNVERIFIED. 해당 순서는 메이크업 루틴에서 제시되어 일반 세안 후 적용은 확인되지 않습니다."
+                  },
+                  {
+                    "index": 3,
+                    "label": "UNSUPPORTED",
+                    "reason": "적용 조건 판정 CONFLICT. 크림 사용 순서와 국소 도포는 메이크업을 고려한 루틴에 한정됩니다."
+                  }
+                ],
+                "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다."
+              },
+              "answer": "세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다. [E2] [E2.2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다.",
+              "products": []
+            },
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          {
+            "taskId": "task-60c84ea25bc14f2892c2d6fc1a694798",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "fb200897-6f07-4e0a-8649-6474e7a4e0f0:2:task-60c84ea25bc14f2892c2d6fc1a694798:1"
+            ],
+            "goal": "product",
+            "objective": "보습용 크림도 찾아줘.",
+            "status": "completed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [
+              "oy-a000000004434",
+              "oy-a000000010048",
+              "oy-a000000010507",
+              "oy-a000000011596",
+              "oy-a000000012609",
+              "oy-a000000012809"
+            ],
+            "limitations": [],
+            "displayResult": {
+              "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요. 촉촉함 선호는 상품 설명·태그를 참고한 정렬이며 실제 보습 효과를 보장하지 않습니다.",
+              "products": [
+                {
+                  "id": "oy-a000000004434",
+                  "brand": "바이오더마",
+                  "name": "바이오더마 하이드라비오 토너 250ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000010048",
+                  "brand": "눅스",
+                  "name": "[꿀보습클렌징]눅스 레브드미엘 원스텝 클렌징 젤 200ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000010507",
+                  "brand": "아벤느",
+                  "name": "[1+1/1등 미스트]아벤느 오 떼르말 수분 미스트 150ml 2입 기획",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000011596",
+                  "brand": "메디힐",
+                  "name": "메디힐 W.H.P 미백수분 블랙 마스크 EX 10매",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000012609",
+                  "brand": "아이소이",
+                  "name": "아이소이 에센셜 마스크팩 1매 3종 택 1 (잡티 / 진정 / 수분)",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000012809",
+                  "brand": "피지오겔",
+                  "name": "피지오겔 DMT 데일리 보습 페이셜 로션 200ml",
+                  "category": "skincare"
+                }
+              ],
+              "resultType": "recommendations",
+              "evidence": [
+                {
+                  "productId": "oy-a000000004434",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000010048",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000010507",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000011596",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000012609",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000012809",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                }
+              ]
+            },
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          }
+        ],
+        "question": null,
+        "look": null,
+        "executionState": "active"
+      },
+      "taskResults": [
+        {
+          "plan_id": "fb200897-6f07-4e0a-8649-6474e7a4e0f0",
+          "plan_version": 2,
+          "task_id": "style",
+          "family": "independent",
+          "capability": "style",
+          "status": "completed",
+          "attempt": 0,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "기존 룩 검색",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          "input_fingerprint": "a510c098d3b6ea33651ffcb3806c79c4ff1566d7314777b31a4ed4c39bc893b6",
+          "source_fingerprint": null,
+          "payload": null,
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        },
+        {
+          "plan_id": "fb200897-6f07-4e0a-8649-6474e7a4e0f0",
+          "plan_version": 2,
+          "task_id": "task-64251b34604e4227a22a7ac6fd809387",
+          "family": "independent",
+          "capability": "knowledge",
+          "status": "partial",
+          "attempt": 1,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "세안 후 보습 순서를 설명해줘.",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7",
+            "referenceContext": {}
+          },
+          "input_fingerprint": "f9c73361814e6bfc46c648bfaadfa666537811e8babc9a6329851124ca57419e",
+          "source_fingerprint": null,
+          "payload": {
+            "knowledge": {
+              "status": "partial",
+              "claims": [
+                {
+                  "claim": "세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다.",
+                  "citations": [
+                    "E2",
+                    "E2.2"
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "id": "E2",
+                  "documentId": 1569,
+                  "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 7813,
+                  "startUtf16": 0,
+                  "endUtf16": 29,
+                  "sourceLocator": {
+                    "end": 206999,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 206969,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 7813
+                  },
+                  "quote": "✔ Step 1) 물기를 수건으로 완전히 닦지 않는다",
+                  "relevance": "essential"
+                },
+                {
+                  "id": "E2.2",
+                  "documentId": 1569,
+                  "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 7814,
+                  "startUtf16": 0,
+                  "endUtf16": 48,
+                  "sourceLocator": {
+                    "end": 207047,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 206999,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 7814
+                  },
+                  "quote": "물기를 30~40%만 제거하는 수준에서 멈춘다.\u000b(흔히 말하는 “물기 머금은 상태”)\r",
+                  "relevance": "support"
+                }
+              ],
+              "findings": [
+                {
+                  "index": 2,
+                  "label": "UNSUPPORTED",
+                  "reason": "적용 조건 판정 UNVERIFIED. 해당 순서는 메이크업 루틴에서 제시되어 일반 세안 후 적용은 확인되지 않습니다."
+                },
+                {
+                  "index": 3,
+                  "label": "UNSUPPORTED",
+                  "reason": "적용 조건 판정 CONFLICT. 크림 사용 순서와 국소 도포는 메이크업을 고려한 루틴에 한정됩니다."
+                }
+              ],
+              "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다."
+            },
+            "answer": "세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다. [E2] [E2.2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다.",
+            "products": []
+          },
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        },
+        {
+          "plan_id": "fb200897-6f07-4e0a-8649-6474e7a4e0f0",
+          "plan_version": 2,
+          "task_id": "task-60c84ea25bc14f2892c2d6fc1a694798",
+          "family": "independent",
+          "capability": "product",
+          "status": "completed",
+          "attempt": 1,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "보습용 크림도 찾아줘.",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          "input_fingerprint": "51470027a67e7de829465ef8514d251e8f715d22b8ce1cca98b9c8c8afa709ef",
+          "source_fingerprint": null,
+          "payload": {
+            "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요. 촉촉함 선호는 상품 설명·태그를 참고한 정렬이며 실제 보습 효과를 보장하지 않습니다.",
+            "products": [
+              {
+                "id": "oy-a000000004434",
+                "brand": "바이오더마",
+                "name": "바이오더마 하이드라비오 토너 250ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000010048",
+                "brand": "눅스",
+                "name": "[꿀보습클렌징]눅스 레브드미엘 원스텝 클렌징 젤 200ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000010507",
+                "brand": "아벤느",
+                "name": "[1+1/1등 미스트]아벤느 오 떼르말 수분 미스트 150ml 2입 기획",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000011596",
+                "brand": "메디힐",
+                "name": "메디힐 W.H.P 미백수분 블랙 마스크 EX 10매",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000012609",
+                "brand": "아이소이",
+                "name": "아이소이 에센셜 마스크팩 1매 3종 택 1 (잡티 / 진정 / 수분)",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000012809",
+                "brand": "피지오겔",
+                "name": "피지오겔 DMT 데일리 보습 페이셜 로션 200ml",
+                "category": "skincare"
+              }
+            ],
+            "chatContext": {
+              "version": 1,
+              "issuedAt": 1795778262,
+              "filters": {
+                "category": "skincare",
+                "maxPriceKRW": null,
+                "fragranceFree": false,
+                "moisturizing": true,
+                "query": "",
+                "ingredientConditions": []
+              },
+              "candidateIds": [
+                "oy-a000000004434",
+                "oy-a000000010048",
+                "oy-a000000010507",
+                "oy-a000000011596",
+                "oy-a000000012609",
+                "oy-a000000012809"
+              ],
+              "scopeIds": [
+                "oy-a000000004434",
+                "oy-a000000010048",
+                "oy-a000000010507",
+                "oy-a000000011596",
+                "oy-a000000012609",
+                "oy-a000000012809"
+              ],
+              "selectedProductId": null,
+              "selectedOptionId": null
+            },
+            "resultType": "recommendations",
+            "evidence": [
+              {
+                "productId": "oy-a000000004434",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000010048",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000010507",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000011596",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000012609",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000012809",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              }
+            ]
+          },
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        }
+      ],
+      "events": [
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "at": "2026-11-27T11:17:15.963461+00:00",
+          "model": "gpt-6-luna",
+          "tools": [
+            "interpret_consultation_change"
+          ],
+          "stage": null,
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "POST",
+          "host": "127.0.0.1",
+          "path": "/internal/knowledge/search",
+          "at": "2026-11-27T11:17:17.893468+00:00",
+          "query": "",
+          "input": {
+            "question": "세안 후 보습 순서를 설명해줘.",
+            "strategy": "large",
+            "limit": 20
+          },
+          "status": 200,
+          "responseSha256": "ee3bf1c3daee99cbed2058fd4f631cf4346908c57a786f1d602ab8bf4feb2e77",
+          "responseKeys": [
+            "candidates",
+            "embeddingInputTokens",
+            "embeddingMs",
+            "lookupMs"
+          ],
+          "productCount": 0,
+          "candidateCount": 20,
+          "embeddingInputTokens": 16
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:17:19.180464+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_select",
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "POST",
+          "host": "127.0.0.1",
+          "path": "/internal/knowledge/context",
+          "at": "2026-11-27T11:17:29.801191+00:00",
+          "query": "",
+          "input": {
+            "evidence": [
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 14191,
+                "chunkId": "98ee10b91bbe7170c70f04edfc8f021c23057576e6357acf1ac3d47b0db2ed2d",
+                "startUtf16": 2,
+                "endUtf16": 28
+              },
+              {
+                "documentId": 1569,
+                "extractionId": 1765,
+                "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                "blockOrder": 7813,
+                "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                "startUtf16": 0,
+                "endUtf16": 29
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 14122,
+                "chunkId": "98ee10b91bbe7170c70f04edfc8f021c23057576e6357acf1ac3d47b0db2ed2d",
+                "startUtf16": 0,
+                "endUtf16": 21
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7433,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 24
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7434,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 12
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7435,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 8
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7436,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 29
+              },
+              {
+                "documentId": 2201,
+                "extractionId": 1767,
+                "sourceVersion": "b4581b9e5f8377f952393f548a03c38fdb32876c1c2b6a5f04421a070ad98067",
+                "blockOrder": 3963,
+                "chunkId": "5856c4fc5d4ffeaff9f908ddce425472359e9186fcf720bf4bc69b3eb108329f",
+                "startUtf16": 0,
+                "endUtf16": 57
+              }
+            ]
+          },
+          "status": 200,
+          "responseSha256": "6921cc62118bfeb8dfe475163f84dc50ede822b65e00045fab5e9cb0f00aa54f",
+          "responseKeys": []
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:17:29.862994+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_answer",
+          "status": 200
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:17:33.685200+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_detect",
+          "status": 200
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "at": "2026-11-27T11:17:40.140824+00:00",
+          "model": "gpt-6-luna",
+          "tools": [],
+          "stage": null,
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "GET",
+          "host": "127.0.0.1",
+          "path": "/api/products",
+          "at": "2026-11-27T11:17:42.447339+00:00",
+          "query": "category=skincare",
+          "input": null,
+          "status": 200,
+          "responseSha256": "b5dbbd247630ce1b5e81489b31ccd44864733590f6ea2d49920b730fa0f7ea6f",
+          "responseKeys": [
+            "products"
+          ],
+          "productCount": 4991,
+          "candidateCount": 0
+        }
+      ],
+      "dispatches": [
+        {
+          "capability": "knowledge",
+          "inputMessage": "세안 후 보습 순서를 설명해줘.",
+          "answer": "세안 후 수건으로 물기를 완전히 닦지 말고, 30~40%만 제거한 물기 머금은 상태로 둡니다. [E2] [E2.2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 설명(일반 상황)입니다.",
+          "products": [],
+          "knowledgeStatus": "partial"
+        },
+        {
+          "capability": "product",
+          "inputMessage": "보습용 크림도 찾아줘.",
+          "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요. 촉촉함 선호는 상품 설명·태그를 참고한 정렬이며 실제 보습 효과를 보장하지 않습니다.",
+          "products": [
+            {
+              "id": "oy-a000000004434",
+              "brand": "바이오더마",
+              "name": "바이오더마 하이드라비오 토너 250ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000010048",
+              "brand": "눅스",
+              "name": "[꿀보습클렌징]눅스 레브드미엘 원스텝 클렌징 젤 200ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000010507",
+              "brand": "아벤느",
+              "name": "[1+1/1등 미스트]아벤느 오 떼르말 수분 미스트 150ml 2입 기획",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000011596",
+              "brand": "메디힐",
+              "name": "메디힐 W.H.P 미백수분 블랙 마스크 EX 10매",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000012609",
+              "brand": "아이소이",
+              "name": "아이소이 에센셜 마스크팩 1매 3종 택 1 (잡티 / 진정 / 수분)",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000012809",
+              "brand": "피지오겔",
+              "name": "피지오겔 DMT 데일리 보습 페이셜 로션 200ml",
+              "category": "skincare"
+            }
+          ],
+          "knowledgeStatus": null
+        }
+      ],
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1791.6,
+        "result": {
+          "planId": "fb200897-6f07-4e0a-8649-6474e7a4e0f0",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "changes": [],
+          "additions": [
+            {
+              "capability": "knowledge",
+              "quote": "세안 후 보습 순서를 설명해줘.",
+              "sharedQuotes": []
+            },
+            {
+              "capability": "product",
+              "quote": "보습용 크림도 찾아줘.",
+              "sharedQuotes": []
+            }
+          ]
+        }
+      },
+      "actualRemoteHttpCalls": 5,
+      "embeddingCallsInApi": "not instrumented; search telemetry only"
+    }
+  ]
+}

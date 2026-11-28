@@ -1,0 +1,152 @@
+{
+  "at": "2026-11-27T09:35:57.066420+00:00",
+  "database": "vishue_g8_browser",
+  "readOnly": true,
+  "auth": "real_supabase",
+  "modelConfiguredMode": "live",
+  "model": "gpt-6-luna",
+  "actualCallsPerTurn": [
+    1,
+    1,
+    1,
+    2
+  ],
+  "finalSourceTurnIndexes": [
+    2,
+    3
+  ],
+  "intermediateTurnsPreserved": 2,
+  "checks": {
+    "answersPersisted": true,
+    "styleCardsPersisted": true,
+    "selectedProductPreserved": true,
+    "productTaskNotRepeated": true,
+    "failedTaskRecovered": true
+  },
+  "context": {
+    "product": {
+      "filters": {
+        "query": "",
+        "moisturizing": false,
+        "fragranceFree": false,
+        "ingredientConditions": []
+      },
+      "selectedProductId": "oy-a000000162092",
+      "historicalCandidateRefs": []
+    },
+    "parent": {
+      "tasks": [
+        {
+          "goal": "product",
+          "reason": "preserved_completed_result",
+          "status": "completed",
+          "version": 2,
+          "attempts": 0,
+          "dependsOn": [],
+          "inputRefs": [
+            "31cfaf98-98bc-4f85-ba9c-74267da6abb8:1:product"
+          ],
+          "objective": "이 상품과 \"[얼그레이에디션/10월 올영픽] 퓌 3D 볼류밍 글로스 (기획/단품)\"를 비교하고 출근 룩도 찾아줘.",
+          "resultRefs": [],
+          "limitations": [],
+          "toolTraceIds": []
+        },
+        {
+          "goal": "style",
+          "status": "completed",
+          "version": 2,
+          "attempts": 1,
+          "dependsOn": [],
+          "inputRefs": [],
+          "objective": "이 상품과 \"[얼그레이에디션/10월 올영픽] 퓌 3D 볼류밍 글로스 (기획/단품)\"를 비교하고 출근 룩도 찾아줘.",
+          "resultRefs": [
+            "video:-sEFzOlm5xg"
+          ],
+          "limitations": [],
+          "toolTraceIds": [
+            "31cfaf98-98bc-4f85-ba9c-74267da6abb8:2:style:1"
+          ]
+        }
+      ],
+      "planId": "31cfaf98-98bc-4f85-ba9c-74267da6abb8",
+      "version": 2,
+      "schemaVersion": 1
+    },
+    "productStyle": {
+      "failed": [],
+      "objective": "이 상품과 \"[얼그레이에디션/10월 올영픽] 퓌 3D 볼류밍 글로스 (기획/단품)\"를 비교하고 출근 룩도 찾아줘.",
+      "scopeDigest": "c8dd8c32da4b1467333d7a6f25307844d37b3c04b4d0528b5afa8c1a01c36444",
+      "styleResult": {
+        "answer": "출근 상황을 기준으로 비교해 보고 싶으시군요.\n말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+        "products": [],
+        "styleStatus": "ready",
+        "styleCandidates": [
+          {
+            "kind": "video",
+            "tags": [
+              "시즌·데일리",
+              "#가을출근스피드"
+            ],
+            "match": "출근",
+            "title": "가을 출근 스피드 메이크업",
+            "lookId": "-sEFzOlm5xg"
+          }
+        ],
+        "styleConditions": [
+          {
+            "slot": "occasion",
+            "value": "출근"
+          }
+        ]
+      },
+      "productResult": {
+        "answer": "토리든 [립케어 1등/1+1] 토리든 솔리드인 세라마이드 립 에센스 11ml 더블기획/단품\nCatalog 기준가격: 5,900원.\n오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. 가격 원본 출처와 검수 상태는 미확인입니다.\n\n퓌 [얼그레이에디션/10월 올영픽] 퓌 3D 볼류밍 글로스 (기획/단품)\nCatalog 기준가격: 12,900원.\n오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. 가격 원본 출처와 검수 상태는 미확인입니다.",
+        "evidence": [],
+        "products": [],
+        "resultType": "product_detail"
+      }
+    }
+  },
+  "turns": [
+    {
+      "operation": "state_update",
+      "status": "COMMITTED",
+      "version": 1
+    },
+    {
+      "operation": "chat",
+      "status": "COMMITTED",
+      "version": 2
+    },
+    {
+      "operation": "state_update",
+      "status": "COMMITTED",
+      "version": 3
+    },
+    {
+      "operation": "chat",
+      "status": "COMMITTED",
+      "version": 4
+    },
+    {
+      "operation": "state_update",
+      "status": "COMMITTED",
+      "version": 5
+    },
+    {
+      "operation": "chat",
+      "status": "COMMITTED",
+      "version": 6
+    },
+    {
+      "operation": "state_update",
+      "status": "COMMITTED",
+      "version": 7
+    },
+    {
+      "operation": "chat",
+      "status": "COMMITTED",
+      "version": 8
+    }
+  ]
+}

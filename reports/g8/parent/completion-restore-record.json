@@ -1,0 +1,372 @@
+{
+  "at": "2026-11-27T16:16:58.662242+00:00",
+  "case": "completion-restore-20261128",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "branch": "feat/compound-consultation",
+  "uncommitted": true,
+  "stage": "5/7 bundles5+6; stage5 exit INCOMPLETE",
+  "sourceSha256": [
+    {
+      "path": "__tests__/chatConversationStore.test.ts",
+      "sha256": "e8af3efbc7fc4482bc4d24a49656c417aed6ee67f77727f674df889c07fe7e90"
+    },
+    {
+      "path": "__tests__/chatScreen.test.ts",
+      "sha256": "629d7894a14475ac258a3ee25f1d190b72eb9659eecbd7534abe81313585c7ad"
+    },
+    {
+      "path": "__tests__/useChatConversations.test.tsx",
+      "sha256": "0257040825a06ae6914811eff6a5dab638026397fc1bda59de05448e2281da2e"
+    },
+    {
+      "path": "app/chat.tsx",
+      "sha256": "9f7b262c86804905bea839dd9b00e734d26159c2f96693e5f8f40c4b1c61832d"
+    },
+    {
+      "path": "backend/chatbot/app/repositories/conversation_repository.py",
+      "sha256": "30aecf9d6191bde4f4967e12aa06e1ad3411494fbe5366a47ce19a6b0d421274"
+    },
+    {
+      "path": "backend/chatbot/app/routers/conversations.py",
+      "sha256": "3308e1a73dd87ee80a595e710b4ee094339571169fd3f579b3a8bb93a5678939"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "0b142dd8c863501d3f39a34c848caf1a167afed6fc69028c4e3e8426d559a1e5"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/compound_consultation.py",
+      "sha256": "82cc6f1208b342e92df07ee25c41e8463f7db1c64c7584317b5f718473bee52b"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_answer.py",
+      "sha256": "d6c5d4c446546d41ee789cec2b780d3048869d3d03a87732140d6ed141f4c454"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "d3593d16e4665ae9e5098885dabffe23bb01a7d175dcfee6151b91405d949f57"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_task.py",
+      "sha256": "52c13098a9576195e95dfaa1f611c731d8d5e3ef27bb26bd61feff1c8e58560b"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/conversation.py",
+      "sha256": "07663b7140bd3cf05cb0b9e50ad2e341c422a3da4e6fa406cee50947f012aa22"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "143a804bcfeb15d72cf64337eb340d9d57339cb15294a312db7c9649dda04e4a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_intent.py",
+      "sha256": "5b33dd75f9dd13fc3fa86b1fff4fda2b901faef4c4c22056308ffff50a4e530c"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/product_style_consultation.py",
+      "sha256": "bb18ba0b87fc0d938017bff3b9cbd85f48bef2474334e1166130c1d94a31d4ac"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/supervisor.py",
+      "sha256": "c02ef2f4512a12eed90fb7dd5b25e406094f1a0091adf00be8c43731c9448ca8"
+    },
+    {
+      "path": "backend/chatbot/app/services/beauty_consultation_service.py",
+      "sha256": "9f290ee572ab81306691d53d0cce576e3a42e8466f6e78b5a7bf2a3bd032dd32"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "627dbfe395cb8172cf66b42a495b15d1f5f8c4db609b8636e5055da6a8472110"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_graph.py",
+      "sha256": "3ba5cc5ce92459c84b62afe649f37048cc304b317752099ff5cf11ec6cfe5bd9"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_service.py",
+      "sha256": "aaa8d8ad40fca849aeb9328e45bb3c694c3be7618b84705695ff1439f0d5213f"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_answer_service.py",
+      "sha256": "a449d3ddbcb0d3012e4a5e857aced9bb0a13b6e1ddeb2b305b08c53b73810e74"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_intent_service.py",
+      "sha256": "76606f96e26a46cc7fb18026db96d352621173af41d52671a89ed1b729277746"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "69174d15e9220914f58dffb7ea3e5169f27dfc4af3a93f458f444233ebb709e7"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_result_service.py",
+      "sha256": "eb060eae21d1eff7f7c3fc2267932faa78dcc9b4ee8c124b987eff7639b4770e"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_task_adapter.py",
+      "sha256": "5b309c337bc138e50260861e604e7e1b44e379dc2df18898e9fb12cdf84a0660"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "34ac7edc7ee7bb3ee53fcaacc71df25dd78b4ca299d95f2015303d0f5905b43c"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_service.py",
+      "sha256": "f660a0255f3843aa4aa0c1476a49288e0af3c955efd8d3e838cf365c9bac5571"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "40fbbf00765b194e78dbdd3b51a545578dc74a00c2a8a6b2322f25764a1ae73e"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_interpreter.py",
+      "sha256": "8676b1d753ad9363a26a1c0c0a519d53c3f164de854ade089e7dee9a56f51121"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_search_contract.py",
+      "sha256": "61973262f58ff719915e5f50e02e6edeea8e5b194f4da689d6c6a16084b60a68"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_style_consultation_service.py",
+      "sha256": "d44d7fa6e22db41eee5dd4a76ea54cc945ff8bdd864d2472503e2d9be0af1584"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+      "sha256": "1bb909228fbb6cb706b579900357628eb081803f7c365e1cc25bf3b7cb436efc"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "01ba1f065fe45f844e827a77b0119b1f9d78f60e3c3fb077235bee55c240041b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_compound_consultation.py",
+      "sha256": "3462a0d8ef20859e251a6070db9af7d4a4b960190c1c7a0ae73b2f3de8ff631d"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_answer.py",
+      "sha256": "fa88a665eea9c0f0a2422c76760ba2b4c63666c90e5ab17f8cb23487e926f576"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_intent.py",
+      "sha256": "8cc629ed12db9404413de9aa31d5e0b9e93bf288400f47a402f76502f5817228"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "486812e1d51840ebdbf428f993c57d9684f86ee49e35e11c4a34b23dab2ead2c"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "530970ff99872a033765e03babd3b728ff28227060a771b00f94a0b88eb56fb7"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+      "sha256": "fc07cd6a0a1ff6299bd42732d239fd640de42decd59e1be1e77ffeb4c3deefa9"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_partial_success.py",
+      "sha256": "51840e1f2a2606bac990935a1dd86401502dfdeb324d72aacf04ec495ec49ad9"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_task_contract.py",
+      "sha256": "751f1df81d2baf40e2077aac8a5bc49de2f68fd268a66c9eabc9400ecadc5eb6"
+    },
+    {
+      "path": "backend/chatbot/tests/test_product_search_contract.py",
+      "sha256": "c42438941428c2fa8ff45e24d2df3dee85a97acb0d97f4ed8c9872eb29a022fb"
+    },
+    {
+      "path": "docs/ai-design/G8-IMPLEMENTATION-SPEC.md",
+      "sha256": "25f328c67f3c24cce265dfd0938341f522399f60d6343a1122d8f61980e2ac26"
+    },
+    {
+      "path": "docs/ai-design/G8-WORKLOG.md",
+      "sha256": "48f206a8bf8493d15fd4e7d75054e05bcb5ee054568df8a55e657ebd9503874d"
+    },
+    {
+      "path": "hooks/useChatConversations.ts",
+      "sha256": "6462c0a4672a26b764b8a8d07f65370f55bfab1bc1839c9dbf707538cb94dfe7"
+    },
+    {
+      "path": "lib/i18n/en.ts",
+      "sha256": "ec7a573499b567ac4f9af476f7ea50e59e8ce8747d9019a6c4a9555d8e2d4b95"
+    },
+    {
+      "path": "lib/i18n/ja.ts",
+      "sha256": "a7df00d4518b91b8fc418ab2d24f4a1175bdf2bfd0488981644790a85151b8bc"
+    },
+    {
+      "path": "lib/i18n/ko.ts",
+      "sha256": "8ff633ee52a2a23978c9a5190ff074ec04c276fe31e284f3a88e5c00390f304e"
+    },
+    {
+      "path": "lib/i18n/zh.ts",
+      "sha256": "c68e057392436dc6d8e2d3e99415d7823e4c808786573485a2a83237e0ff0125"
+    },
+    {
+      "path": "store/chatConversationStore.ts",
+      "sha256": "e9118660baf96fdb370ddf3faf676ebfcb991c45cb902f1e301236293fd7cfdd"
+    },
+    {
+      "path": "types/chatConversation.ts",
+      "sha256": "1e29465dbffdc551409c487bb95140cd8536a4bcbd572f6095654d1d6b7a6128"
+    },
+    {
+      "path": "types/index.ts",
+      "sha256": "d4e2a3a3138daa33e5b18dcd2f988bd4e007bb1a45df3c583313fd1aae62c34a"
+    }
+  ],
+  "sourceDiff": "reports/g8/parent/completion-restore-source.diff",
+  "untrackedSources": "reports/g8/parent/completion-restore-new-sources.json",
+  "modelConfiguredMode": "live; no replay or mock in seven app turns",
+  "actualModelHttpStarted": 19,
+  "turns": [
+    {
+      "index": 1,
+      "at": "2026-11-27T15:56:10.705148+00:00",
+      "mode": "live",
+      "modelHttpStarted": 5,
+      "catalogHttpStarted": 46,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      }
+    },
+    {
+      "index": 2,
+      "at": "2026-11-27T15:57:45.366813+00:00",
+      "mode": "live",
+      "modelHttpStarted": 4,
+      "catalogHttpStarted": 2,
+      "summary": {
+        "status": "failed",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      }
+    },
+    {
+      "index": 3,
+      "at": "2026-11-27T16:00:15.647422+00:00",
+      "mode": "live",
+      "modelHttpStarted": 3,
+      "catalogHttpStarted": 2,
+      "summary": {
+        "status": "completed",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      }
+    },
+    {
+      "index": 4,
+      "at": "2026-11-27T16:00:48.045997+00:00",
+      "mode": "live",
+      "modelHttpStarted": 1,
+      "catalogHttpStarted": 0,
+      "summary": {
+        "status": "completed",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      }
+    },
+    {
+      "index": 5,
+      "at": "2026-11-27T16:02:28.172093+00:00",
+      "mode": "live",
+      "modelHttpStarted": 3,
+      "catalogHttpStarted": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      }
+    },
+    {
+      "index": 6,
+      "at": "2026-11-27T16:03:09.206778+00:00",
+      "mode": "live",
+      "modelHttpStarted": 2,
+      "catalogHttpStarted": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-761f7c783eac40d5931b3a03abdaff23",
+            "label": "3만원 이하 베이스 상품 판매 옵션도 찾아줘"
+          },
+          {
+            "taskId": "task-7f50785ba7ab465191a0b044b5252133",
+            "label": "2만원 이하 립 상품 판매 옵션 찾아줘"
+          }
+        ]
+      }
+    },
+    {
+      "index": 7,
+      "at": "2026-11-27T16:03:44.850530+00:00",
+      "mode": "live",
+      "modelHttpStarted": 1,
+      "catalogHttpStarted": 0,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": [
+          {
+            "taskId": "task-761f7c783eac40d5931b3a03abdaff23",
+            "label": "3만원 이하 베이스 상품 판매 옵션도 찾아줘"
+          },
+          {
+            "taskId": "task-7f50785ba7ab465191a0b044b5252133",
+            "label": "2만원 이하 립 상품 판매 옵션 찾아줘"
+          }
+        ],
+        "selectedTaskId": "task-7f50785ba7ab465191a0b044b5252133"
+      }
+    }
+  ],
+  "counting": "HTTP send entry, not success-status or provider-billed-call count; no G5 used",
+  "validation": {
+    "unit": "80 PASS synthetic model/specialists; real scheduler",
+    "pg": "1 PASS actual PG/mock model + 22 PASS/4 SKIP/2 deselected regression",
+    "backend": "1690 PASS/130 SKIP final product backend; before last PG fixture null comparison",
+    "app": "1352 PASS/108 suites final product frontend",
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "ruff": "PASS",
+    "imports": "3 KEPT",
+    "actualApp": "completed dual search; show without catalog; failed/partial scope; retry sibling preservation; number selection; PG restore; unique exact option detail PASS"
+  },
+  "data": {
+    "mappingArtifact": "pr233-reviewed-mapping.json",
+    "mappingSha256": "3f10755e88e78ee46f6c38b3337b34fe02c4abc6abe7edffbb1c60c9247a4a1f",
+    "globalDbSnapshot": "not pinned",
+    "optionEvidenceVersions": "per-task option payloads",
+    "catalogSource": "current worktree API after restart and mapping environment correction"
+  },
+  "failures": [
+    "first fragrance run mapping absent, broad fallback/kind context not accepted as pass",
+    "second options run mapping absent: both failed",
+    "after mapping lip initially failed, explicit retry recovered; no fake success",
+    "PG raw JSON null serialization differences corrected/typed roundtrip checked",
+    "validation helper column/path errors fixed; no product changes for helper faults",
+    "initial restored detail lacked optionId; final callback and app retest PASS"
+  ],
+  "sourceBoundaries": "live backend equals final product backend; final frontend restore/detail after unique-option and failure-empty-state fixes; previous UI attempts retained",
+  "matrix": "reports/g8/parent/completion-restore-exit-matrix.json",
+  "remaining": [
+    "original fragrance/kind case not rerun after config correction",
+    "live multiple specialist questions",
+    "latest summary+cancel all-live E2E",
+    "live budget change this run",
+    "stage6 original N01/N02/E01/B01 integration/holdout/native/performance/human review"
+  ],
+  "commitPushPr": "NOT_RUN",
+  "security": "Gitleaks8.30.1 empty ignore before immutable trace append"
+}

@@ -1,13 +1,727 @@
 # G8 진행 기록
 
+## 최신 실행 — 네 결함 보완, 앱 복원 실패 보존 (2026-11-28)
+
+전체 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 기존 종료 기준 보완 → ⑥ 표적 재검증 중 → ⑦ PR 인계 대기**. **F1~F4 수정·재검증은 확인했지만 최근 상담 앱 복원 로딩이 남아 ⑤ 전체 종료는 보류**한다. 기존 6묶음·14능력/12시나리오를 유지한다. 이번에는 새 기능으로 범위를 늘리지 않았다.
+
+시작 기준 `feat/compound-consultation` / `3a8ee1c5d44214623487e5f07717500368259900`, develop 로컬 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`(이번 최신 원격 develop 조회 아님). 사용자 승인17개 파일+별도 승인한 test_g8_compound_consultation.py의 미사용 import1줄이 수정 범위다. 신규 증빙은 `reports/g8/parent/stage6-remediation-*`. 초기 baseline의 승인 밖 소스 변경0건, 이전 WIP·실패 기록 보존. 개발 하위 에이전트·앱 제품 코드 추가 수정 없음. 사용자의 최신 이동 전 게시 요청에 따라 누적 구현·테스트와 문서·증빙을 두 커밋으로 나누어 기존 원격 브랜치에 게시한다. PR·병합·배포는 하지 않는다. 게시 SHA/최종 검사 결과는 `stage6-remediation-publication.json`에 기록한다.
+
+| 보완 | 구현·실제 확인 |
+|---|---|
+| F1 질문 소유권/답변+조건 | 유일한 구버전 소유자만 복원하고 새 질문 taskId/큐 저장. 같은 소유자의 질문 답변+원문 조건을 한 update로 검증. 구조화 목표가 없을 때 원래 목표+상황 답변을 전달하고, 목표 저장 뒤에는 현재 변경만 전달. 실제 원래 N01·N02 후속 통과 |
+| F2 일반 순서 None | Style/N02가 일반 가이드 함수를 공유. 검수 설명과 일반 팁 분리, 빈 내용은 제목만 표시. 실제7단계 None 없음. 검수된 영상 기법으로 승격하지 않음 |
+| F3 최초·위임·B01 | 지원 읽기는 단일 목표도 typed 계획으로 위임. 피부 작업은 설명+추천을 소유하고 화면 맥락과 분리. 실제 피부/단독 립펜슬 검색 성공. AR+기억 요청은 관련 안내와 기존 실행 방어 유지 |
+| F4 중단·교체 | 실제 durable PG 재현에서 `Checkpoint thread is busy`/교체503 확인 후 실행 잠금shared·삭제exclusive로 분리. active/final commit 검사는 유지. 수정 후 실제PG+제어된 전문대역2건 PASS, 로그인 앱도 실행 중 중단200→즉시 새 검색200/늦은 구버전409 |
+
+**실제 원문:** `stage6-remediation-dialogue.txt`(19개 실행,18개 답변/중단1개). `app-turns.jsonl`에 전문 계획·실제 Tool입력/결과·각 runtime sourceSnapshot을 보존한다. live 설정과 턴별 실제 호출 수를 구별했으며 generation HTTP51회, replay/mock 답변0개다. G5 API generation 관측은 중복 집계하지 않는다. embedding 수·모델/데이터 범위·파일 해시는 최종 record 참조. 모델 alias gpt-6-luna/gpt-6.1-terra/text-embedding-3-large, 고정 provider snapshot/전역 Catalog snapshot은 수집하지 않았다.
+
+- **원래 N01 row14~16(최종 runtime):** “오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘” → 당김·각질/유분·뭉침과 사용 기초·베이스 질문. “오후에 볼이 당기고 각질이 떠. 건성이고 촉촉한 쿠션을 써. 2만 원 이하 보습 제품을 찾아줘.” → 실제 G5 건성 수분 증발·과세안 자제·쿠션 전 수분 공급/과량 크림 주의 설명+정확 옵션4개(메디필16,490/비욘드15,550/오브제18,900/클라뷰18,600원). 예산1만8천원 후속은 앞2개, 실제 모델2회/옵션배치2회/G5재호출0회. 설명coverage는 partial이며 특정 개인 원인·효과 확인으로 승격하지 않는다.
+- **N02 row6~7:** 보유 립 룩 상담→일반 순서와 보유 질문. “그 팔레트는 없어. 나머지 보유 질문은 그대로 두고, 필요한 팔레트만 2만 원 이하로 추천해줘.” → 삐아 A000000162667-012/07웜베이지/17,000원, 롬앤 보유 질문 보존. 새 카드→실제 상세 optionId/옵션명/가격·기준일/옵션결제 제한 확인. 전체 보유 립 대체 적용 완료는 아님. 이 실행 이후 skin 입력/지침만 추가 보완했으며 이전 runtime을 최종 소스로 바꿔 기록하지 않는다.
+- **B01 row8:** “지금 바로 얼굴에 발라주고 내 기억에도 저장해” → “AR은 뷰티미러에서 상품과 호수를 확인한 뒤 적용해 주세요. 지금 얼굴에 적용한 상태는 아니에요.” 및 저장할 내용을 확인하며 아직 저장하지 않았다는 안내. 모델0/Catalog0/실제AR·기억쓰기0건. 동일requestId 웹재전송은 NOT_RUN.
+- **E01 row9~11:** 실제 상품 비교+검증용 Style UpstreamError 주입. 비교 가격·결과 유지, 주입 해제 후 룩만 재조회(style-looks/looks). 정직한 no-match이며 자연발생HTTP503/양성 룩 추천으로 표현하지 않는다.
+- **중단 row17~18:** 건조함·모공/향료 제외 요청의 G5 실행 중 중단→“립펜슬을 1만5천 원 이하에서 찾아줘”. 실제 query=립펜슬/maxPriceKRW15000, 향료 조건 없음. 새 결과 먼저 완료, 늦은 구버전 request_interrupted409. 내부 HTTP는 끝날 수 있으나 답변 확정은 차단. PG에는 새 검색 메시지2개만 남음.
+
+row2의 불필요한 G5 반복, row12~13의 피부 상황 답변/별도 상품 작업 분리 실패는 중간 소스로 보존한다. 최종 runtime 재검증 성공으로 기존 실패를 지우지 않는다. 개인 효과 미입증 고정 문구를 자동 추가하지 않았다.
+
+**검증 구분:** 최종 소스 전체 챗봇 **1,761 PASS/137 SKIP(48.85초)**, `backend-sealed.xml/log`. 실제PG+모의 모델/인증 **29 PASS/5 SKIP(22.79초)**, `pg-owner.xml/log`; durable 잠금/삭제 경계2건 PASS(1.69초), `checkpoint-after.xml`. 실제 로그인 앱+PG의8개 방 원문 답변/typed 부모 대조 PASS, 기억 행·기억쓰기 추가0, 중단committedVersion없음(`pg-review.json`). Ruff전체PASS/import-linter3KEPT/앱typecheck·lintPASS. 게시 전 npm run check 결과는 publish-app-check.log. 각 JUnit은 실제 명령/시각·원본 결과로 보존하며 모의를 실제모델 통과로 합산하지 않는다.
+
+**남은 FAIL:** 최신 교체 상담 선택, 새 페이지 진입 후 현 N02 상담 선택 모두 “상담을 불러오는 중이에요.”가 지속됐다. 해당 detail GET은 Chat서버에서 관측되지 않았다. 정확한 인증/선택 대기 지점은 이번에 계측해 확정하지 못했다. Aside 단발attach snapshot은 로딩 전 상태도 보였으므로 활성 버튼만으로 복원 성공을 추정하지 않는다. **PG저장PASS와 UI복원FAIL은 별개이며 복원된 카드 상세는 NOT_RUN**. 승인 밖 앱 파일을 추가 수정하지 않았다.
+
+6묶음 현재: **1** typed 최초/위임 결함 보완, **2** 실제 N01/N02 결과→다음입력 확인(전체성분양성 통합은 이번미실행), **3** 질문ID·조건·형제질문 보존 확인, **4** 실제중단·교체/확정 경계 확인, **5** 실제판정·새카드상세·PG보존 확인/**최근상담 앱복원 실패로 종료차단**, **6** 소스별 실제·모의·실패증거 보존. 다음은 묶음5의 기존 복원 대기 경로 한정 조사/정확한 앱수정 범위 제시, 이후⑥ 원래 평가행렬의 잔여 항목이다. 실기기/음성/전체성분양성/동일requestId 웹재전송/성능평가는 미실행 상태를 유지한다.
+
+초기 baseline에서 빠진 Style/Checkpoint app값은 이전 실제 runtime manifest로 보충했다. test_style_recipe/test_supervisor의 초기bytes는 별도 캡처하지 못했으므로 보존했다고 주장하지 않는다. 최종15개 코드·테스트 원문 capsule과 관련source hash/HEADdiff를 기록한다. 자동 일괄 포맷은 범위초과 사유로 거절돼 실행하지 않았고 승인 파일의 지적된 줄만 직접 수정했다. sandbox uv캐시 오류로 시작 못한 테스트는 같은 명령을 권한 검토 후 실행했다.
+
+최종 보안은 Gitleaks8.30.1/빈ignore/redact와 실제credential·owner식별자 대조 후 trace1행 append. 기존50행bytes 보존, 공용보안정책·이력변경 없음. 최종파일수/검사결과/격리서버 종료는 record/security/cleanup 증빙을 따른다. 한국어 웹 의미검토는 사용자 결정에 따라 메인에이전트가 수행했으며 독립 사람검토·실기기 인증으로 쓰지 않는다. 게시 시 제품·관리문서 whitespace 검사는 통과했지만 누적 원본 diff/log에는 공백 경고가 있으며 원본 증거 보존을 위해 일괄 정규화하지 않았다.
+
+## 최신 실행 — ⑥ 실제 로그인 웹 평가, ⑤ 종료 판정 정정 (2026-11-28)
+
+전체 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 협력 완성의 기존 기준 보완 필요 → ⑥ 1차 통합 평가 미통과 → ⑦ PR 인계 대기**. 앞선 ⑤ 종료는 이번 실제 실행에서 질문/진입/중단 후속/답변 결함이 확인돼 정정한다. 기존 골격·정상 결과를 폐기하거나 14능력/12시나리오를 축소하지 않는다. 개발 하위 에이전트·제품 소스 수정·commit/push/PR/배포 없음.
+
+사용자가 승인한 범위: 이 두 관리 문서, parent trace 신규 1행, `reports/g8/parent/stage6-web-eval-*` 실행/원문/평가/PG/보안 증빙. 사람 검토는 최신 명시 지시에 따라 메인 에이전트의 실제 웹 실행 평가로 대체했다. 독립 사람 승인이나 실기기 검증으로 바꾸어 기록하지 않는다.
+
+기준: `feat/compound-consultation` / HEAD `3a8ee1c5d44214623487e5f07717500368259900`. develop 로컬 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`, 원격 최신 조회 없음. 시작 baseline의 제품·관련 테스트/앱·G5 API **256개 exact-byte 해시를 유지**했고, 관리 문서 2개는 승인대로 갱신했다. 이전 WIP와 stage5 증빙을 보존한다. baseline/실제 서버 immutable sourceSnapshot, source diff 및 이전 stage5의 일치 소스 capsule로 미커밋 코드를 식별한다. 실제 Catalog는 기존 로컬 19834, PG `vishue_g8_browser`, Redis/Neo4j 기존 구성, G5는 현 API/챗봇 소스와 기존 허용 integration DB다. Catalog 전역 snapshot 및 provider 모델 고정 snapshot ID는 수집하지 않았다. V4 응답 버전과 개별 옵션/근거 버전은 실제 turn payload를 따른다.
+
+### 실제 질문·답변 및 평가
+
+16개 실제 ChatService 실행(그중 UI 룩 진입 자동 발화 2개), 정상 답변 반환 14개/예외 2개. generation HTTP **34회**(gpt-6-luna/gpt-6.1-terra), embedding HTTP **2회**(text-embedding-3-large). 앱 턴은 모두 live 설정/실제 호출이며 replay/mock 답변으로 대체하지 않았다. 호출 34회 모두 턴에 귀속되며 G5 API 쪽 generation을 다시 더하지 않는다. 모든 원문은 `stage6-web-eval-dialogue.txt`, 입력/계획/Tool/결과는 app-turns.jsonl, 축별 판정·원래 14/12 매핑은 review.json이다. 부분 문장을 재구성한 예시 답변을 실행 원문으로 쓰지 않는다.
+
+| 실제 사례 | 관측과 판정 |
+|---|---|
+| 원래 N01 질문→상황 답변 | 첫 질문은 당김/각질·유분/뭉침과 사용 제품을 확인해 적절. 상황/예산을 답하자 `어떤 상담 작업을 변경할지 다시 알려주세요.`. 모델 해석은 있었지만 invalid_question_reference, 이후 조회 0회. **FAIL** |
+| 완결형 피부 변형 | G5의 건조·각질 일반 조언과 V4/정확 옵션 6+4 배치. 2만 원 이내 옵션 4개/예산 제외 6개. 표시 설명·가격 근거는 일치하나 쿠션 위 오후 관리 coverage는 partial. HA 조언이 있어도 실제 성분 조건 목록은 비어 있어 네 상품의 HA 충족을 확인했다고 하지 않음. **PARTIAL**, 원래 N01 실패를 대신하지 않음 |
+| 원래 N02 | 실제 사진발 윤곽 보정 룩과 상품 14개 조회. 보유품을 창작하지 않고 팔레트 보유 질문. 그러나 일반 순서가 `1. None`~`7. None`으로 표시되고 보유 답변도 같은 참조 오류로 거절. **FAIL** |
+| E01 | Style 읽기 UpstreamError를 도구 래퍼에 두 번 주입. 실제 HTTP 503을 받은 것처럼 쓰지 않음. 비교 대상 질문 후 실제 삐아 17,000/롬앤 20,900원 비교와 룩 실패 안내. 주입 해제 후 룩만 재시도는 style-looks/looks만 읽고 상품 비교 보존. 실제 룩 결과는 정직한 no-match이며 양성 룩 추천은 아님. **해당 부분 성공·선택 재시도 의미 PASS** |
+| B01 | 정확한 요청 두 번(서로 다른 새 UI 요청). 실제 AR·기억 쓰기/확정 0건. 하지만 매트 제형·가격 조건 안내로 잘못 답함. **실행 방어 PASS / 답변 FAIL**. 같은 requestId 재전송은 실제 로그인 웹에서 NOT_RUN, 별도 PG 모의 인증/모델 회귀로 구별 |
+| 진입/위임 변형 | 상품 화면의 피부 복합 요청, 일반 화면의 립펜슬+1만5천원 검색 모두 delegate 뒤 미지원 안내·실제 Catalog 0회. active-parent 검색 통과를 최초/위임 경로로 확대할 수 없음. **FAIL** |
+| 실제 중단→새 요청 | 긴 피부 요청의 실제 모델/G5 실행 중 중단 POST 200. 구버전 턴은 request_interrupted/HTTP409로 확정 차단. 직후 새 립펜슬 요청은 OSError/HTTP503. 기존 호출 종료 후 한 번 재전송해 503은 없었으나 의미 거절로 검색 0회. **중단 확정 방어 PASS / 즉시 교체 FAIL** |
+
+N01/N02 부모의 question.taskId=null과 모델 참조 skin/owned_look 불일치를 원문으로 확인했다. N02 `guidance=[f"{step.order}. {step.description}" ...]`의 빈 description 표시를 코드로 확인했다. 503은 E01 주입 오류와 별개인 실제 새 요청 실패다. checkpoint_repository의 기존 lock/active guard가 OSError를 발생시킬 수 있지만 정확한 stack은 이번 관측에 없으므로 잠금 경쟁을 확정 원인으로 쓰지 않는다. 룩 진입 1회에서 같은 자동 seed가 두 번 실행되고 각각 모델 1/조회 14회가 기록됐으며 requestId/정확한 UI 원인은 미확인으로 보존한다.
+
+### 실제 저장·복원·카드 및 모의 회귀
+
+- **현재 실행의 실제 로그인 웹+PG:** 8개 관련 방의 정확한 답변 저장·typed 부모와 최종 저장 응답 일치. 기억 행/기억 write 턴 추가 0. 중단 턴 committedVersion 없음. 실제 평가 대상에 대한 읽기 전용 SQL이며 원래 계정 식별자는 증빙에 넣지 않았다(`pg-review.json`).
+- **현재 실행 새 카드 복원:** 390×844 웹에서 최근 보습 상담의 4개 카드 복원, 메디필 상세 `oy-a000001002051?optionId=A000001002051-001&requireShade=1`로 이동. 옵션/16,490원/기준일 2026-11-02T09:28:29 일치, 이미지 없음과 옵션 결제 제한 표시. 장바구니/결제 쓰기 없음. 실제 휴대폰 터치/픽셀 품질 통과를 뜻하지 않는다.
+- **기존 저장 옵션 복원:** 이전 상담의 삐아 [단품] 07 웜 베이지와 A000000162667-012, 참고 가격 17,000원/2026-10-28T10:06:07을 현 웹 상세에서 확인. 현재 N02가 새로 양성 추천을 만들었다는 뜻이 아니다. screenshot 파일은 만들지 않았고 UI DOM/실제 응답/PG로 증빙했다.
+- **계약·모의:** 관련 기존 6개 G8 테스트 파일 273 PASS/7 SKIP, 14.71초. source 변경 없이 실행. 실제 모델/앱 통과로 합산하지 않음.
+- **실제 PG + 모의 모델/인증:** conversation 회귀 27 PASS/4 SKIP/2 DESELECTED, 24.87초. 별도 기억 동의·타인 소유권·재전송·N02 옵션·E01 복원 회귀 4 PASS/31 DESELECTED, 14.56초. Catalog는 테스트별 대역 또는 실제 연결을 XML 속성대로 구분하며 전체 live 모델로 부르지 않음.
+- **앱 검사:** typecheck/lint PASS. 프런트 제품 코드 변경 없음. 이전 전체 1749/135 검사는 당시 기록으로 보존하고 이번 새 전체 실행이라고 재기록하지 않음. 실행 명령은 승인된 run-pg.py/해당 log/XML, JUnit 실행 시각과 해시를 record에 연결한다.
+- **환경 정리:** 이번 Chat19833/G5API19838/Expo19836과 WSL 임시 DB relay19841만 종료. 기존 Catalog/DB/Redis/Neo4j/다른 작업 서버는 유지. Aside REPL 종료. cleanup.json과 실제 닫힌 소켓 확인을 구분한다. PowerShell 마지막 빈 포트 조회는 리스너가 없어서 exit1이었으며 서비스 종료 실패로 추정하지 않음.
+- **보안:** 최종 보안 결과·파일 수는 `stage6-web-eval-record.json` 및 security.log를 따른다. CI 고정 Gitleaks8.30.1/빈 ignore/redact와 런타임 비밀값·PG owner 식별자 대조 후 trace 1행만 append한다. 원래 49행 bytes를 보존한다. 공용 설정·이력·검사 범위 변경 없음.
+
+### 다음 작업과 경계
+
+새 기능을 추가하는 대신 **F1 질문 참조 / F2 N02 가이드 출력 / F3 최초·delegate 의미와 B01 안내 / F4 중단 직후 교체** 네 묶음으로 기존 ⑤ 완료 기준을 보완하고, 이번 실패 원문을 고정 회귀/실제 웹 재검증에 사용해야 한다. 검증 도구를 성공하도록 수정하거나 기존 실패를 지우지 않는다. 제품 파일 수정은 이번 평가 승인에 포함하지 않아 하지 않았다. 정확한 후속 구현 파일/범위는 이 실행 근거로 별도 제시한다.
+
+⑥ 전체 완료는 아직 아니다. 실제 로그인 동일 requestId 재전송·전체 성분 양성 후속·모바일 실기기/카메라/AR/음성·타 팀 공동 E2E·성능 SLO 평가·전역 데이터 snapshot은 미실행 또는 별도 책임 범위로 남긴다. 한국어 웹 검토는 실제 수행했고 독립 사람 검토로 가장하지 않는다. 새 정책 판단은 없음; PR은 생성하지 않는다.
+
+
+## 최신 실행 — 잔여 세 항목 마감 및 ⑤ 종료 판정 (2026-11-28)
+
+전체 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 협력 완성 종료 → ⑥ 통합 검증 착수 대기 → ⑦ PR 인계**. 이번 범위는 번호 선택, 답변 반복·모순, 명시 상품 종류 검색 연결의 세 항목으로 고정했다. 새 기능/시나리오를 추가하지 않았다. 사용자 승인 17개 기존 파일 중 제품·테스트 14개와 이 두 관리 문서·trace만 수정하며, 신규 증빙은 `reports/g8/parent/stage5-three-item-*`다. 이전 WIP/과거 실행·실패 trace를 보존한다. 개발 하위 에이전트/commit/push/PR/배포 없음.
+
+기준 HEAD `3a8ee1c5d44214623487e5f07717500368259900`, branch `feat/compound-consultation`. develop 로컬 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`; 원격 최신 조회를 했다는 뜻이 아니다. 미커밋 소스는 baseline/source diff, uncommitted-source, release-sources 및 각 실제 서버의 immutable sourceSnapshot으로 식별한다. 최종 record가 원본 경로/해시를 연결한다.
+
+### 세 항목의 결과
+
+1. **번호 선택:** 현재 선택지 위치를 서버가 실제 task ID로 바인딩한다. 구버전·범위 밖·번호/ID 불일치는 거절한다. 실제 앱의 `2번 결과 보여줘`는 재질문 없이 피부 결과·카드를 표시했고 Catalog 호출은 0회였다. 질문 소유권은 보존하며 다른 작업 질문을 결과에 끼워 넣지 않는다.
+2. **답변:** 원인·효능 미입증 고정 문구를 제거했다. 실제 G5 설명과 Catalog 판정을 나누고, 누락은 검증된 필수 설명 요구에서 생성하며 인용된 원문 적용 범위는 유지한다. 개인 진단/특정 상품 효능 입증을 일반 관리 상담의 새 필수 조건으로 요구하지 않는다. 이번 실제 결과에 특정 개인의 효능이 입증됐다고 기록하지 않는다.
+3. **종류·실행:** enum 피부 종류 외 명시한 상품명 종류를 name_term으로 보존한다. 상위 전체 인용과 위임 절이 달라도 종류 단어는 양쪽에 실제 존재해야 한다. 오래된 후보로 새 Catalog 읽기를 막지 않고 사용자 필터만 유지해 재조회한다. 동일 질문 소유자의 중복 표현은 정확히 동일한 경우만 정규화한다. 읽기 절이 미배정된 보존 전용 계획은 기존 deadline 안에서 1회만 재계획한다(설정·근거·초과 동작은 최신 SPEC). 실제 Catalog의 lip 후보를 상품명 근거로 판정해 립펜슬 6개를 표시했다. 피부·룩 결과와 정확한 판매 옵션은 PG에서 보존됐다.
+
+### 실제·모의 증거
+
+- **계약·모의 전체:** 최종 챗봇 1749 PASS / 135 SKIP (`backend.xml/log`), ruff PASS, 계층 3 KEPT. 최초 fixture/저장 결과 누락/저장 위치 문제와 중간 기존 카드 회귀 실패를 별도 XML/log에 보존했다. 정상 일반 상품 복수 카드 계약은 바꾸지 않았다. 앱 typecheck/lint PASS이며 앱/인증 소스는 수정하지 않았다.
+- **실제 PG + 주요 모델/인증 모의:** `vishue_chat_test`, 27 PASS / 4 SKIP / 2 DESELECTED (`pg.log/xml`). 로그인 앱 검증과 합산하지 않는다.
+- **실제 모델/합성 상태:** 최종 고정 3사례×3회 9/9 PASS. 단계별 원본/제안/거절/HTTP 수는 live*.json/log다. 최종 이전 실패와 통과를 하나의 성공률로 합산하지 않는다. 전체 독립 해석 검증 generation HTTP는 98회이며 단계 목록은 아래/record에 보존한다.
+- **실제 모델·G5·Catalog·PG·로그인 앱:** Aside 지속 REPL의 실제 기존 Supabase/G7 동의 세션. 신규 로그인/동의 변경 없음. 전체 21턴, generation HTTP 73회, G5 API embedding 10회. G5 generation은 chatbot events에 포함되므로 이중 합산하지 않는다. 모델 alias는 gpt-6-luna/gpt-6.1-terra, embedding text-embedding-3-large; provider 고정 snapshot ID는 수집하지 않았다. live 설정과 실제 호출은 턴별로 분리했다. replay/mock 앱 턴 없음. 저장 결과 show/후보 재사용을 새 모델 호출로 세지 않는다.
+- **최종 소스 연결:** 실제 종류 조회와 G5 설명 생성은 app-pg의 producerEvidence가 가리키는 sourceSnapshot에서 확인했다. 해당 Product/G5/계획 스키마·서비스 해시는 최종 소스와 같으며 마지막 차이는 부모의 동일 보존 안내 중복 제거다. 최종 sourceSnapshot과 일치하는 앱 턴 1개에서는 그 실제 결과를 번호로 재표시했다. 이를 최종 소스의 새 G5 생성 호출로 바꾸어 기록하지 않는다. PG의 typed parent가 실제 앱 최종 응답과 동일하고, 검색 전후 피부·룩 결과/판매 옵션이 같았다. `app-pg.json`, `dialogue.txt`, `app-turns.jsonl`이 원문이다. 조회 요청/전문 작업별 결과와 V4 버전 `local-20261104-conservative-v1-20261123T111457291156Z` 및 정확 옵션 근거를 보존했다. 전체 Catalog DB의 전역 snapshot은 고정하지 못했다.
+- **앱 복원·상세:** 최근 상담의 카드와 결과를 복원하고 상품 보기로 실제 상세에 이동했다. URL의 optionId와 화면 판매 옵션을 저장된 옵션과 대조했다(`ui-observations.json`). 판매 옵션 결제/장바구니 쓰기/AR 실행/기억 쓰기는 하지 않았다. 캡처가 실제 저장된 경우만 파일을 증빙으로 센다.
+- **보안:** Gitleaks 8.30.1 / 빈 ignore / redact, 실제 런타임 인증값·DB owner 식별자 비교 통과. 최종 파일 수/해시는 record.security 및 security.log를 따른다. 마지막 문서까지 재검사 후 trace에 한 행만 추가한다. 공용 보안 설정/이력/검사 범위는 변경하지 않는다.
+
+### 실패·한계 보존
+
+초기 uv 캐시 접근 실패, 테스트 임시 디렉터리/fixture 실패, 중간 카드 집계 회귀, 실제 모델의 인용/중복 표현 거절과 읽기 누락, 과거 후보 만료에 따른 조회 차단, G5 오류, 서버 시작 중 UI 네트워크 오류를 통과로 바꾸지 않았다. G5의 한 오류는 당시 상세 코드를 수집하지 못했고, 다른 오류는 invalid_requirements로 거절된 것을 trace에서 확인했다. 장시간 실행 중 401 뒤 정상 GET 200과 UI 재전송을 관측했으며 인증 소스를 수정하거나 SDK 결함으로 단정하지 않았다. 원문·실패 sourceSnapshot·재실행을 모두 남겼다. 최신 source/최종 통과만 종료 근거로 사용한다. 자연스러운 상담 표현의 광범위 안정성, G5 실패율/지연, 모바일 터치는 ⑥에서 평가한다.
+
+### 6묶음 종료표와 다음 단계
+
+| 묶음 | ⑤ 판정 근거 | ⑥에 남는 구분 |
+|---|---|---|
+| 1 공통 계획 진입 | 기존 최초/후속/작업 ID 구조 유지 + 실제 명시 종류 검색 실행, 누락 읽기 재계획 | 별도 표현·다른 데이터의 전체 평가 |
+| 2 결과 기반 협력 | 기존 결과 binding 유지 + 실제 G5/정확 옵션 입력·결과, 관련 전체 회귀 | 원래 N01/N02/E01/B01 연속 종단 전체 판정 |
+| 3 후속·질문 | 동일 owner 정규화·충돌 거절·형제 보존 + 실제 PG/앱 상태 비교 | 자유 지시어·생략 표현 안정성 |
+| 4 실행 제어 | 기존 실행 중 취소/교체/final commit 계약과 관련 회귀 유지; 이전 실제 증거는 당시 source로 구분 | 이번 중단 전체 종단은 재실행하지 않음. ⑥에서 최신 소스 연속 평가 |
+| 5 판정·답변·복원 | 실제 번호 표시·종류 카드·저장/복원/정확 옵션 상세, 완료·부분/질문/실패 회귀 | 원래 상황별 UX·휴대폰 터치·사람 검토 |
+| 6 증거 정합성 | 현재 source/diff, 실제·모의·실패·보안/원본 대조 | 전역 데이터 snapshot/성능/전체 평가 결과 |
+
+**⑤ 구조 구현 및 고정 세 항목의 마감 기준 충족으로 종료한다. G8 전체 완료가 아니다.** 다음은 ⑥의 원래 14능력/12시나리오와 N01/N02/E01/B01 지정 환경·별도 표현/데이터·로그인 앱 연속 종단·모바일·성능·사람 검토다. 이번에 그 범위를 실행했다고 주장하지 않는다. PR은 아직 생성하지 않는다. 현재 추가 사용자 정책 판단 없음.
+
+독립 실제 모델 실행 단계(성공률 합산 금지): `[{"phase": "live-initial", "cases": 9, "passed": 9, "http": 12}, {"phase": "live-before-pending-case", "cases": 9, "passed": 9, "http": 12}, {"phase": "live-pending-failure", "cases": 9, "passed": 7, "http": 10}, {"phase": "live-debug", "cases": 3, "passed": 2, "http": 5}, {"phase": "live-before-owner-normalize", "cases": 9, "passed": 9, "http": 12}, {"phase": "live-owner-normalize-failure", "cases": 9, "passed": 8, "http": 11}, {"phase": "live-before-omission-repair", "cases": 9, "passed": 9, "http": 12}, {"phase": "live-before-clause-anchor", "cases": 9, "passed": 9, "http": 12}, {"phase": "live", "cases": 9, "passed": 9, "http": 12}]`.
+
+
+## 최신 실행 — 질문 단위 보존·답변 정합성 (2026-11-28)
+
+전체 **① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → ⑤ 협력 완성 → ⑥ 통합 검증 → ⑦ PR 인계**. 현재 ⑤의 묶음 3·5 보완 및 6 증거 대조다. 기존 6개 종료 기준과 14능력/12시나리오/N01·N02·E01·B01 범위를 유지한다. ⑤ 종료 또는 G8 전체 완료를 선언하지 않는다.
+
+기준: `feat/compound-consultation` / HEAD `3a8ee1c5d44214623487e5f07717500368259900`. develop 로컬 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`이며 원격 최신 재조회는 하지 않았다. 기존 미커밋 변경과 과거 trace를 보존했다. 사용자 승인 28개 파일·`question-scope-answer-*` 증빙 범위에서 필요한 파일만 수정했다. 별도 승인 4개 앱 파일은 복원 추적에 사용했으며, 원인으로 입증되지 않은 인증 제한·추적 코드와 임시 테스트는 제거했다. lib/api.ts와 chatSessionApi.test.ts는 작업 시작 때의 계약을 유지한다. 개발 하위 에이전트·commit/push/PR/배포는 사용/실행하지 않았다.
+
+### 변경 내용과 근거
+
+1. 질문 단위 답변을 task 전체 update/preserve와 분리했다. 부모는 실제 대기 질문의 ID·버전·원문을 검증하고 하나의 소유 작업 update로 연결한다. 미응답 형제 질문은 서버가 보존한다. 같은 질문의 충돌·없는 질문·구버전·전체 작업 보존과의 충돌을 거절한다.
+2. 확정된 보유 질문의 전문 해석은 의미(present/missing/defer/clarify)만 제안한다. 상품·판매 옵션·scope는 서버가 바인딩한다. 실제 앱에서 부모가 맞게 선택해도 전문 모델이 option을 product로 다시 고르던 실패를 이 공통 계약으로 수정했다. 짧은 답변은 전문 모델 추가 호출 없이 처리한다. 잘못된 답변 거절 때 이전 입력 요구가 사라지던 실행기 경로도 보완했다.
+3. G5 설명 위임 범위를 생성·검증 지침과 실제 입력 기록에 명시하고 같은 resolve에서 요구별 coverage를 보존한다. Catalog 조회를 설명의 실패로 취급하지 않는다. 개인 원인·효능 미확인은 남기고, 상품 조건 확인과 구분한다. G5가 answered여도 개인 원인 관련 limitations가 남으면 피부 복합 작업은 partial이다.
+4. 반복된 N02 안내는 대상 이름을 유지해 묶고 상품 목록은 동일한 추천 문장을 반복하지 않는다. 보존된 작업은 짧은 안내/남은 질문만 표시한다. 이전 작업의 원본 답변·인용은 저장하고 새 메시지에 같은 근거 목록을 재첨부하지 않는다. 명시적 show에는 원본을 표시한다.
+5. 복수 표시 범위에서 최상위 compound가 비어도 피부 작업의 compoundContext를 작업 ID에 저장/복원한다. 실제 PG에서 G5 coverage와 후보가 저장됐고 다른 보유 질문을 처리한 뒤에도 피부 원본 결과와 조회 상태가 동일했다. DB migration·공개 필수 필드·동의/AR/기억 쓰기 권한 변경은 없다. 새 운영 제한값도 없다.
+
+### 실제·모의 검증과 원본 위치
+
+증빙은 모두 `reports/g8/parent/question-scope-answer-*`다. 최종 record에는 HEAD, exact-byte 소스 해시, 전체 미커밋 diff/미추적 소스, 실행 시각, 실제 모델 시작 이벤트, 턴별 Catalog 요청과 계획·결과, 실패와 소스 경계를 연결한다. 명령은 저장된 runner와 XML/log를 함께 읽는다. 준비한 명령을 통과 증거로 사용하지 않는다.
+
+- **계약/모의**: 실제 공통 실행기·합성 모델/Catalog로 ID 충돌·형제 보존·범위 밖 제안 거절·defer·짧은 답변·거절 시 큐 보존·claims 원래 index·scope 전달·partial 판정·원본 show를 검증했다. 전체 챗봇 최신 결과는 `backend-verified.xml/log`, ruff/imports는 `*-verified.log`를 기준으로 한다. 이전 실패 XML과 초기/중간 통과는 보존하고 최종 결과와 합산하지 않는다.
+- **실제 PG + 모의 주요 모델/인증**: 일회용 `vishue_chat_test`, 28 PASS/5 SKIP. 최신 실행 로그는 `pg-state.log`, XML은 runner가 사용한 `pg-final.xml`이다. 준비 단계의 상대 경로 오류로 runner 출력명 변경이 적용되지 않아 기존 XML 이름이 재사용됐으며, 이전 `pg-final.log`를 이 최신 XML과 같은 실행으로 묶지 않는다. 실제 로그인 앱 검증과 구분한다.
+- **실제 모델(합성 상태)**: 부모만 검증한 초기 5라운드 각 9회와 제안·거절을 모두 남겼다. 최종은 질문 선택과 전문 의미 해석까지 연결한 **9/9 PASS, 실제 HTTP 19회**(`model-pipeline-final.json`, events). 3개 문장을 3회씩 실행한 결과이며 무한 재시도/통과 표본 선별이 아니다. 중간 pipeline harness의 부위 fixture 오류는 부모 호출 후 결과 저장 전에 중단돼 HTTP 수를 확정하지 못했다. 이를 0회나 확정 호출 수로 계산하지 않는다. configured mode와 실제 호출 수를 분리한다.
+- **실제 모델·G5·Catalog·PG·로그인 앱**: Aside의 정상 UI로 원래 “오후에 화장이 뜨는데…”와 룩 상담을 함께 실행했다. 보유 2개+상황 1개 질문 → 피부 답변 뒤 보유 2개 유지 → 긴 삐아 답변으로 한 옵션만 missing/롬앤 유지 → PG·최근 상담 복원 → 짧은 ‘없어’로 롬앤만 missing을 확인했다. N02 보유 질문은 2→1→0이며 피부 compoundContext·원본 결과는 변경 전후 동일했다. 실제 가격/옵션 detail은 `oy-a000000162667 / A000000162667-012`, 07 웜 베이지, 참고 가격 17,000원이었다. 옵션 결제·AR 실행·기억 쓰기는 하지 않았다.
+- **실제 설명과 상품 답변**: G5는 문헌 기반 일반 설명을 반환했지만 개인 원인/효능의 한계는 남았다. Catalog의 정확한 옵션 후보 목록과 분리해 안내하고 피부 task는 partial로 저장했다. 실제 데이터 버전은 `local-20261104-conservative-v1-20261123T111457291156Z`다. 신규 독립 립펜슬 검색은 아래 별도 결함으로 기록했다. 모델 replay/mock 앱 턴은 없으며 G5 생성은 chatbot 이벤트, embedding은 G5 API 이벤트에서 별도로 센다.
+- **앱 환경/입력 조사**: 이전 G8 웹 PID 52764가 IPv6에 남아 새 서버가 EADDRINUSE로 실패한 사실을 확인하고 현재 소스로 다시 빌드했다. 일부 Aside mouse click은 선택 handler를 호출하지 않았다. 키보드 활성화에서 상세 조회/복원/복구/로딩 종료를 실제 추적했다. 인증 SDK 결함으로 확정하지 않는다. 조사 중 시도한 GET 인증 deadline은 실제 원인 수정으로 확인되지 않아 제거했다. 현재 기존 앱 API/AR 방어를 유지한다. 앱 typecheck/lint와 기존 복원·계정 회귀 44 PASS는 `*-final-clean.log`를 따른다. 마우스/휴대폰 터치 전체 검증은 별도다.
+- **화면 증빙 한계**: 임시 session artifacts 쓰기는 자동 승인 검토가 승인 prefix 밖이라는 이유로 거절했다. 승인된 절대 경로 screenshot도 Aside의 session filesystem 제한으로 저장되지 않았다. 범위 밖 파일은 만들지 않았고, 실제 관측의 수기 전사(`ui-observations.json`), HTTP·실제 응답·PG 증거를 사용한다. 이미지 캡처가 존재한다고 주장하지 않는다.
+
+### 현재 6묶음 상태와 남은 작업
+
+| 묶음 | 확인한 상태 | 남은 작업/완료 기준 |
+|---|---|---|
+| 1 공통 계획 진입 | 기존 최초/후속 ID 구조 유지, 실제 독립 목표 추가·기존 결과 보존 | 실제 립펜슬 신규 검색이 명시된 종류를 unknown으로 돌려 재질문한 결함. Catalog 조회가 실행되지 않았으므로 데이터 없음/불일치로 분류하지 않음 |
+| 2 결과 기반 협력 | G5 explanation→coverage·후보/정확한 옵션과 분리, 실제 다음 조회와 저장 확인 | 기존 N01/N02 양성·부분 실패 전체 표본과 다른 binding의 ⑥ 평가 |
+| 3 후속·질문 | 같은 작업 안의 질문 분리, 긴 답변·defer·형제 보존·복원 후 짧은 답변 확인 | 고정 9사례 외 자유 표현의 안정성 평가. 실제로 드러난 계약 결함은 ⑤에서 수정 후 종료 |
+| 4 실행 제어 | 기존 중단·교체 코드 유지, 관련 전체 회귀 | 이번 실제 중단 종단은 NOT_RUN. 이전 stage5-closeout 증거와 ⑥ 재실행을 구분 |
+| 5 판정·답변·복원 | 근거 한계/상품 판정 분리, partial·작업별 상태 저장·판매 옵션 detail·반복 표시 보완 | ‘2번 결과 보여줘’가 불필요하게 재질문한 실제 실패. 명명한 show는 동작. 번호 선택 계약과 위 신규 종류 결함은 ⑤ 잔여이며 ⑥으로 넘겨 완료 처리하지 않음 |
+| 6 종료 증거 | 이번 변경·실제/모의·실패·소스 경계 대조, 기존 기록 보존 | 최종 record/보안 결과 및 위 결함 해결 증거까지 고정해야 ⑤ 종료 가능 |
+
+다음 우선순위는 **명시한 신규 상품 종류의 해석·실행 연결과 구조화된 결과 선택 계약**이다. 새 문장마다 예외를 붙이지 않고 기존 상품 조건/작업 ID/표시 선택의 공용 계약을 대조한다. 이후 N01·N02·E01·B01 전체 통합, 모바일 조작·성능·필요한 사람 검토를 ⑥에서 종합한다. 이 원고의 실행 결과 최종 수치·보안 통과 여부는 마지막 record 및 아래 마감 기록을 따른다. 사용자 정책 추가 판단은 현재 없으며 PR은 생성하지 않는다.
+
+### 이번 실행 마감 수치
+
+- 최종 챗봇 전체 **1,720 PASS / 135 SKIP / 43.36초**, ruff PASS, import-linter **3 KEPT**. `question-scope-answer-backend-verified.xml/log`, `ruff-verified.log`, `imports-verified.log`. 중간의 1건 실패는 retry 응답에 보존된 두 출처를 모두 다시 표시하던 기대값이었다. 새 메시지에는 변경된 출처만 표시하고 기존 출처의 저장·명시적 show를 추가 검증한 뒤 전체를 재실행했다. 이전 XML은 `backend-earlier-final.xml` 등으로 보존했다.
+- 실제 PG 회귀 **28 PASS / 5 SKIP / 20.40초**(`pg-state.log` + 최신 `pg-final.xml`), 앱 모의 회귀 **44 PASS / 2 suites**, typecheck/lint PASS(`*-final-clean.log`). 실행 명령은 각 runner와 실제 로그/시간이 있는 XML을 따른다. 최초 경로 오류와 임시 인증 실험 결과를 최종 계약 통과로 계산하지 않는다.
+- 실제 합성 모델은 초기 부모 45회와 최종 부모·전문 연결 19회로 **확인한 generation HTTP 64회**다. 저장 전 중단된 harness 1건은 호출 수 미확정으로 별도 남겼다. 로그인 앱 **14턴**, 실제 chatbot generation HTTP **28회(gpt-6-luna 22, gpt-6.1-terra 6)**, G5 API embedding **2회(text-embedding-3-large)**. G5 generation 6회를 chatbot 28회와 중복 합산하지 않는다. 요청 모델 alias를 기록했으며 provider의 고정 snapshot ID는 수집하지 않아 확정하지 않는다.
+- 마지막 새 메시지에는 보존된 지식 출처를 재첨부하지 않았지만 피부 작업의 원본 근거·compoundContext는 PG에서 동일했다. N02 보유 질문은 0개이며 이후 별도로 추가한 상품 종류 확인 질문 1개와 구분한다. `question-scope-answer-pg-invariants.json`, `app-pg-final.json`.
+- 보안 사전 검사 **Gitleaks 8.30.1 / 빈 ignore / --redact**, 177개 입력·약 20.14MB **0건**. 런타임 인증값과 실제 DB owner 식별자의 비교도 통과했다. 마감 문서까지 포함한 최종 재검사 후에만 parent trace를 1행 append한다. 최종 상태·대상·해시는 `question-scope-answer-record.json`의 security와 `question-scope-answer-security.log`가 기준이다. 공용 보안 설정/검사 범위/이력은 변경하지 않는다.
+- 검증용 Chat/G5/현재 웹을 종료하고 임시 WSL relay19841도 닫힘을 실제 확인했다. 기존 Catalog/PG/Redis/Neo4j·데이터는 보존했다. 화면 캡처 파일은 없고 실제 관측·HTTP·응답·PG 자료를 사용한다. 새 commit/push/PR 없음.
+
+## 이전 실행 — ⑤ 잔여 성분·복수 질문·중단 요약 종단 (2026-11-28)
+
+전체 ① 설계→② 기준·계약→③ 실행 구조→④ 첫 복합 상담→**⑤ 협력 완성: 잔여 세 항목 구현 및 6번 종료 증거 대조**→⑥ 통합 검증→⑦ PR 인계. 기존 고정 6묶음과 원래 14능력/12시나리오/N01·N02·E01·B01을 유지한다. ⑥ 전체 통합 판정/G8 전체 완료를 선언하지 않는다.
+
+기준: feat/compound-consultation / HEAD 3a8ee1c5d44214623487e5f07717500368259900. origin/develop 로컬 참조 991dd634dba33b99ceeb1c03de4dd8d921ce07f9(최신 원격 재조회 아님). 기존 미커밋 변경 보존. 승인된 19개 파일·stage5-closeout 증빙 범위와 별도 추가 승인된 conversation_service.py/chat_service.py를 사용했다. 개발 하위 에이전트 사용, fetch/commit/push/PR/배포 없음. 앱 제품 소스는 이번에 수정하지 않았고 승인된 세 앱 테스트만 보완했다.
+
+### 구현과 실제 발견한 공통 결함
+
+1. 상품 종류 계약을 성분·가격 옵션 조회에도 적용했다. 모델이 optionSearch 힌트를 생략해도 부모 구조화 조건을 실제 옵션 요청으로 전달한다. 종류 검색어는 Tool 입력에서만 생성하며 사용자 query에 영구 저장하지 않는다. 실제 옵션의 상품명 근거로 종류를 재검사하고 불일치/미확인을 제외/참고로 구분한다. 성분·가격 근거를 승격하지 않으며 불완전한 빈 조회를 전체 no_match로 표시하지 않는다.
+2. TaskInputNeed/ParentTask.inputNeeds/pendingQuestions로 모든 전문 질문의 입력 종류·원문·정확한 needId/옵션 범위/부위/레시피 버전과 비교 선택지를 보존한다. 단일 question 호환 필드, 후속 변경/재표시/제어/저장 복원을 연결했다.
+3. 실제 앱에서 드러난 경계 결함을 같은 공통 구조에서 수정했다. 선택한 룩 화면이 피부 전문 진입을 막던 맥락을 분리했고, 피부 전문 계획기의 실제 상황 질문을 그대로 반환한다. 앱 requestType이 피부 답변 뒤 바뀌어도 서버의 활성 owned_look과 기존 동의/철회 검사를 통해 보유 기억을 읽는다. 형제의 표시 필터 변경을 전체 범위 변경으로 오인하지 않으며 실제 상품·옵션·룩 선택/기억 fence는 유지한다.
+4. 거절 후 저장된 빈 부모는 최초 계획으로 재진입한다. 작업 ID만 있는 continue는 기존 operation+현재 원문의 update로 정규화한다. 새 ID 부모의 짧은 보유 답변은 내부 문장으로 치환하지 않고 서버가 복원한 정확한 질문 메타데이터로 전달한다. 구형 단일 상담 부모가 복수 목표를 덮는 fallback을 막았다. 증상 원인+맞춤 추천을 skin workflow로 유지하도록 공통 최초 지침을 명확히 했다.
+5. 중단 후 교체 요약/늦은 요약 차단의 앱 store·hook·screen 회귀와 실제 PG 저장 검증을 추가했다. 이미 시작한 전문 내부 HTTP 강제 종료나 자동 checkpoint 재개를 새로 지원하지 않는다.
+
+### 실행 구분과 증거
+
+- 계약/모의: 실제 공통 실행기와 합성 모델/Catalog로 종류 조건·오류/미확인·질문 큐·형제 필터 분리·원래 질문·빈 계획 복구·짧은 답변 ID 경로를 확인했다. 최종 챗봇 전체 **1,703 PASS/135 SKIP/43.78초**, ruff PASS, import-linter 3 KEPT(stage5-closeout-backend-final-schema.xml/log, ruff-final-schema/imports-final-schema.log). 명령은 backend/chatbot에서 uv run --no-sync pytest -q --tb=short --basetemp=<미사용 UUID 임시 폴더> -o junit_family=legacy --junitxml=<final-schema.xml>. 기본 pytest-of-playdata2 폴더 권한 오류 실행은 1,679 PASS/135 SKIP/17 setup ERROR로 보존했고 최종 성공과 합치지 않았다.
+- 앱 모의: typecheck/lint PASS, 전체 **1,352 PASS/108 suites/108.535초**(stage5-closeout-typecheck/lint/app-tests.log). 실제 로그인 앱의 통과 수로 부르지 않는다. 새 테스트 fixture의 issuedAt 누락 실패와 수정 후 집중 98 PASS도 별도 로그에 남겼다.
+- 실제 PG: 일회용 vishue_chat_test에 uv run --project backend/chatbot --no-sync python reports/g8/parent/stage5-closeout-run-pg.py --all을 실행해 **28 PASS/5 SKIP/18.42초**. 인증·주요 모델은 대역이며 일부 선택적 실제 모델 검사는 skip했다. 실제 로그인 앱과 다른 검증이다. 전체 관련 파일을 한 번 실행한 수이며 이전 27 PASS 회귀/3 PASS 제어 결과와 중복 합산하지 않는다. 명령/시각은 helper와 pg-complete.xml/log를 따른다.
+- 실제 로그인 앱/모델/Catalog/G5/PG: Aside로 정상 앱을 조작했다. 합성 발화·실제 서버 응답을 app-turns.jsonl에 턴별 보존하고 startup source snapshot/실제 HTTP 모델 ID·상태·호출 수/실제 다음 Catalog 입력을 연결한다. 모델 configured mode=live, 실제 replay/mock 턴 0. G5 생성 호출은 챗봇 계측에 포함되고 API의 embedding 호출은 g5-models.jsonl에서 별도 합산한다. 재시도·계획 거절·중단·자동 룩 안내 호출도 비용 호출 수에서 빼지 않는다.
+- B 최종 경로: 룩 보유 질문 2개+피부 상황 질문 1개를 실제 생성했다. 피부 답변 후 보유 질문 2개와 원래 질문의 메타데이터가 남았다. 복합 보존 문구에서 모델이 같은 작업에 update/preserve를 중복 제안한 1회는 안전하게 거절했고 상태가 그대로 유지됐다. 짧은 ‘없어’로 한 옵션만 답하고 최근 상담 복원 후 다시 ‘없어’로 남은 옵션에 답하는 경로를 검증한다. 피부 결과의 원본 payload가 후속에서 동일한지는 record 생성기의 assert와 PG 원본 대조를 따른다. 거절 실행을 정상 해석으로 기록하지 않는다.
+- C 최초 실제 경로: gpt-6.1-terra 응답 대기 start를 실제 관측한 뒤 앱 중단→HTTP200→새 토너/크림 조회→최신 completed 요약/12카드→최근 상담 복원을 확인했다. 옛 요청은 request_interrupted로 거절, 다음 부모 작업/옛 답변 저장 없음. c-observation.json은 그때의 실제 tool 출력을 수기로 보존한 관측 기록이다. 모델 end 이벤트의 at가 시작 시각을 유지하는 계측 한계를 명시했다. 실행 요청 완료와 취소 시각은 별도 HTTP/turn 기록을 사용한다.
+
+### 6묶음 대조와 미실행 범위
+
+| 고정 묶음 | 이번 확인 | 별도 남은 검증 |
+|---|---|---|
+| 1 최초/후속 계획 | 빈 부모 복구·작업 ID continue·실제 복수 목표 분해 | 다른 표현의 분해 안정성; 계획 거절/분해 변동을 포함한 ⑥ 표본 |
+| 2 결과 기반 협력 | 기존 N01/N02 어댑터 유지; 실제 G5 설명/성분 제안→정확한 옵션 요청, 일부 미식별 조건 보류 관측 | 원래 N01과 다른 binding 전체 통합; 임의 binding 지원으로 확대하지 않음 |
+| 3 ID 후속/질문 | 복수 질문 생성·일부 답변·메타데이터 유지·짧은 답변·저장 복원 | 복합 보존 문구의 실제 모델 오해/재확인 1회가 남은 안정성 항목 |
+| 4 실행 중 제어 | 실제 모델 처리 중 취소/교체/최신 요약 저장 복원; 실제 PG·앱 회귀 | 이미 시작한 내부 HTTP 강제 취소/자동 복구 제외; 다중 worker/네트워크 경합은 ⑥ |
+| 5 판정·표시·복원 | completed/partial/질문을 분리; 피부/룩 결과 보존; 실제 PG 대조 | 미확인 성분/사용법/대체 적합성/AR를 충족 처리하지 않음; 모바일 별도 |
+| 6 증거 정합성 | source hash/diff/new sources와 턴별 live 계측, 실패 이력, 빈 ignore 보안 검사 후 trace append | 원래 4시나리오·14능력/12시나리오 전체 통합/성능/필요한 사람 검토는 ⑥ |
+
+중간 실제 A/C와 최종 B의 소스 차이는 record의 differentFinalAppSources로 공개한다. 현재 코드와 같은 것으로 조용히 승격하지 않는다. 실제 데이터 전역 snapshot/릴리스 버전은 고정하지 못했고 mapping artifact의 exact-byte hash와 각 옵션/성분/지식 원본 근거 버전을 사용한다. 실제 검수 레시피/DB 데이터/공용 보안 설정 변경 없음. 느린 최근 상담 복원, 서버 재시작 뒤 일시적인 기억 변경/새 검색 안내는 관측했으며 이 작업에서 고쳤다고 기록하지 않는다.
+
+최종 추가 확인: A에서 상품 검색을 skin 두 개로 오분류해 거절한 실제 실행 2회가 있었다. 최초 지침과 schema 역할 설명에서 상품 조건과 설명 요청을 구분한 뒤 product/search 두 개와 정확한 toner/cream 조건을 확인했다. 예산 변경은 실제 크림 옵션 요청만 maxPriceKRW=20000으로 바뀌었다. 성분 해제의 모델 JSON은 keep.quote=null 때문에 실패했고, 선택 인용의 null 허용/변경 원문 필수 검사를 분리한 뒤 최종 해제 요청은 실제 Catalog 1회로 크림 조건만 비웠다. 토너 향료 제외·크림 종류·예산은 PG에 유지됐다. null keep/set/clear 계약 3회귀 포함 집중 108 PASS, 최종 전체 1,703 PASS다. 조건 해제 재시도 성공과 최초 실패를 모두 보존한다.
+
+B는 최종 질문 수 3→2→2(상충 제안 거절, 상태 보존)→1→0을 확인했다. 원래 피부 payload와 두 작업은 유지됐다. B 실행 후 마지막 schema 역할 설명/부가 quote nullable 보완이 있었으므로 B를 모든 최종 소스 bytes의 재실행으로 표시하지 않는다. 차이는 턴별 manifest에 남긴다. 질문 큐·실행·저장 로직은 이 마지막 보완에서 변경하지 않았다.
+
+C 최종 재실행은 c-final-pending.json에 실제 gpt-6.1-terra 응답 대기 이벤트를 자동 보존한 뒤 취소했다. 취소된 전문 작업 내부 모델 호출은 총 7회까지 끝났으나 원래 요청은 request_interrupted로 거절됐다. 교체 요청은 실제 모델 3회/Catalog 2회로 completed·12카드를 반환했고 최근 상담에서 복원됐다. 실제 PG에는 INTERRUPTED/COMMITTED 및 교체 user/assistant 2메시지만 존재했다. 후속 부모 작업 차단의 별도 통제 증거는 PG/공통 실행기 회귀이며, 실제 내부 모든 세부 호출을 계측한 것처럼 주장하지 않는다.
+
+최종 관리 위치는 **⑤ 묶음 6 증거 대조**다. 이번 구조 보완과 대표 종단은 확보했지만 복합 보존 문구의 실제 모델 거절이 남아 있어 ⑤ 전체 종료를 선언하지 않는다. 바로 다음은 이 표현에서 ‘같은 작업 안의 다른 질문 유지’와 ‘다른 작업 전체 보존’을 구분하는 해석 계약/고정 반복 검증이다. 이를 닫은 뒤 ⑥ 원래 N01/N02/E01/B01 연속 종단·별도 표현·모바일·성능·사람 검토로 진행한다. 미지원 자동 복구/강제 HTTP 취소를 새 필수 과업으로 끼워 넣지 않는다.
+
+검증 전용 챗봇19833/G5 API19838과 승인된 WSL 임시 릴레이19841을 종료했다. 기존 Catalog19834/웹19836/PG15434와 데이터는 유지했다. 증빙은 stage5-closeout-* 및 기존 trace에 보안 검사 후 append한다. 최종 source hash/diff/new sources와 실제 호출 수는 record를 기준으로 하며 기존 trace 기록은 그대로 보존한다. PR은 만들지 않았다.
+
+## 이전 실행 — ⑤ 묶음 5 완료 판정·복수 결과 복원 / 6 종료표 대조 (2026-11-28)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 **5 공통 최종 판정·복수 표시/복원 구현과 대표 실제 연결, 6 최신 종료표 대조**. ⑤ 전체 종료는 보류한다. 기준 feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 변경 보존. 로컬 origin/develop 참조는 991dd634dba33b99ceeb1c03de4dd8d921ce07f9이며 최신 원격 조회를 했다는 뜻이 아니다. fetch/commit/push/PR 없음. 개발 하위 에이전트 사용 없음.
+
+### 변경
+- 승인된 24파일 중 공통 최종 판정 service 1개를 새로 만들고 나머지 23파일을 수정했다. 전문 결과의 구조화된 상태로 completed/partial/waiting_user/failed/cancelled/pending을 계산한다. 중단/철회를 성공에 합산하지 않으며 결과 선택 필요는 실행 완료와 별도다. 새로운 모델 호출이나 도메인별 재구현/DB migration/운영 한도는 추가하지 않았다.
+- 부모 resultSelection에 버전·선택지 ID·선택 결과를 저장한다. 여러 옵션/레시피 결과가 있어도 전문 보유 질문을 덮어쓰지 않는다. 기존 show 경로로 고른 결과만 재표시하고 현재 기억·선택 범위가 바뀌면 재사용을 거절한다. 선택 요약은 선택적 consultation 응답/표시 저장 필드로 전달한다. 구버전 필드 부재와 null 생략을 지원한다.
+- 앱은 공통 상태·입력 대기·표시 선택을 구분하고 복합 결과에 독립 검색 안내를 붙이지 않는다. 실패를 ‘조건에 맞는 상품 없음’으로 표시하지 않는다. 실제 검증에서 일반 옵션 카드 상세의 optionId 누락을 발견했다. 승인된 chat.tsx 콜백에서 결과의 상품+호수에 대응하는 옵션 ID가 유일할 때만 전달하도록 보완했으며 여러 옵션은 임의 선택하지 않는다. AR 실행·기억 쓰기·장바구니/결제 정책은 변경하지 않았다.
+
+### 모의·계약·실제 PG
+- 공통 부모/의도 회귀80 PASS(모델·전문 결과 synthetic, parent/ChatService 실제). 완료/부분/질문/실패/중단, 여러 조회 범위, 보유 질문 needId/레시피 범위 보존, 복원 후 show의 전문 호출0을 검증했다. baseline69 PASS 후 신규11건을 추가했다.
+- 실제 PG + 모의 모델·전문 조회: 신규 completion_restore 사례1 PASS. 서로 다른 두 조회 범위의 최초 저장→결과 선택→옵션 범위 복원→옛 요청 replay→다른 소유자404. 1·2차 실패는 신규 summary selectedTaskId:null과 기존 optionSearch 선택적 checkedAt/effectiveRequest:null의 JSON 생략 차이다. 신규 summary는 응답부터 생략하도록 맞췄고 기존 옵션은 타입 모델 복원 후 모든 필드를 비교했다. 원본 실패 로그는 pg.log/pg-retry.log, 최종은 pg-final.log. 기존 G7 실제 PG 광역 회귀22 PASS/4 SKIP/2 deselected(14.28초), execution_control 2건은 이 실행에서 제외했다.
+- 챗봇 전체1690 PASS/130 SKIP/45.25초. 최종 제품 백엔드 코드 기준이며 이후 PG fixture의 선택적 null 비교만 보완했다. Ruff PASS/import-linter3 KEPT. 신규 intent 테스트 import 정렬1건은 고친 후 검사했다. Windows uv 캐시 권한 오류는 승인된 일반 로컬 실행으로 우회했다.
+- 앱 관련168 PASS 후 옵션 상세 회귀/실패 안내 회귀 추가. 전체1349 PASS, 이어 옵션 보완까지1351 PASS. 마지막 빈 결과 안내 가드 포함 최종 typecheck/lint PASS, 순차 전체 **1352 PASS/108 suites/116.198초**(completion-restore-*-final2.log). 서로 다른 소스 실행을 한 결과로 합치지 않는다.
+
+### 실제 모델·Catalog·PG·로그인 앱
+- Aside의 기존 로그인·G7 동의 세션을 사용했다. 새 로그인/동의 변경 없음. OpenAI gpt-6-luna configured live, replay/mock 없이 합성 발화7턴. chatbot HTTP 송신 진입 관측은 턴별 **5/4/3/1/3/2/1 =19회**. HTTP200 횟수나 G5 내부 호출/embedding 횟수로 표현하지 않는다. 이번 성공 경로에 G5는 호출하지 않았다. 실제 Catalog 입력/결과와 부모 작업·최종 답변은 app-turns.jsonl, 원래 데이터 버전/옵션 근거는 해당 결과 payload에 보존한다. 전체 Catalog DB 스냅샷 버전 고정은 NOT_RUN.
+- 최초 ‘향료 제외 조건으로 토너 찾아줘. 같은 조건으로 크림도 찾아줘’는 성분 조회 오류와 한 작업 실패/한 작업 입력 대기로 종료됐다(5회). 다음 립/베이스 판매 옵션 요청은 둘 다 실패(4회). 양성 통과로 인정하지 않는다. 당시 웹/API가 이전 검증 프로세스였고, 런처에 기존 INGREDIENT_MAPPING_PATH가 전달되지 않았다. 현재 API/웹으로 재시작하고 기존 .env.local의 매핑 경로 존재를 확인해 API 환경에만 전달했다. 파일/데이터/검수 상태는 수정하지 않았다. 이 누락은 과거 WORKLOG에도 있었으며 이번 재발을 기록한다. API 재시작 첫 명령의 상대 경로 오류도 수정했다.
+- 현재 소스 앱의 ‘토너 찾아줘. 크림도 찾아줘’ → completed/카드12개(실제 모델3회/Catalog2회). ‘크림 검색 결과만 다시 보여줘’ → completed/크림6개, 실제 모델1회/Catalog0회. 기존 결과를 재조회한 것처럼 기록하지 않는다.
+- 매핑 설정 복구 후 ‘2만원 이하 립 상품 판매 옵션 찾아줘. 3만원 이하 베이스 상품 판매 옵션도 찾아줘’ → 립 실패/베이스 부분 성공으로 partial(모델3회/Catalog1회). ‘립 검색만 다시 시도해줘. 베이스 결과는 그대로 둬’ → 립만 실제 조회, 베이스 보존, 두 범위의 선택 안내(2회/1회). scoped results 삽입 순서상 이 실행의 1번은 베이스, 2번은 립이며 표시된 선택지와 저장 순서를 함께 보존한다. ‘2번 결과 보여줘’ → 립 옵션만 표시, status partial/선택 대기 해제/두 선택지 보존(1회/0회). 일부 조회 범위와 UNKNOWN은 완료로 승격하지 않았다.
+- 실제 PG 읽기 app-pg.py PASS: 위 완료·부분 완료 상담2건만 조회, 계정 ID 제외. 부모 작업2개/선택 ID/20000·30000 예산/옵션 조회 결과를 타입 복원 후 동일 비교. 검증 쿼리 첫 실행의 컬럼명 context 오류는 실제 context_json으로 고쳤다. 원문 JSON의 선택적 null 차이는 타입 계약으로 비교했으며 증거값을 변경하지 않았다.
+- 새 상담→최근 상담 복원, 이후 웹 재시작/페이지 진입→최근 상담 복원에서 상태·선택 안내·옵션 카드와 로딩 종료를 확인했다. 초기 상세는 shade만 전달해 누락을 발견했고, 보완 후 최종 복원 카드에서 /product/oy-a000000162092?shade=a000000162092-001&optionId=A000000162092-001로 이동했다. 옵션명 ‘솔리드인 립에센스 더블기획’/기준일2026-10-27T17:23:57/참고가격7600/옵션 결제 제한을 확인했다. 일반 대표가격5900과 옵션가격7600을 같은 현재가로 합치지 않는다. AR·장바구니 실행은 하지 않았다.
+- 브라우저 증빙은 접근성 트리다. 긴 상담은 Aside의16KiB 제한이 있어 최종 상세 트리를 별도 보존했다. 모바일 네이티브/터치·픽셀 검증으로 확대하지 않는다. 웹 재시작의 번들 준비 timeout/일시적 link 이름 불일치는 새 snapshot으로 재확인했다.
+
+### 6번 종료표 대조와 남은 범위
+최신 SPEC의 6행 종료표와 completion-restore-exit-matrix.json을 기준으로 코드/현재 테스트/이번 실제/과거 실제를 분리했다. 이번 신규 코드는 5번이며 1~4 전체를 재구현하거나 재검증하지 않았다. 과거 source manifest를 현재와 비교해 달라진 파일의 과거 PASS를 현재 소스 실제 PASS로 올리지 않는다.
+
+⑤ 종료 보류: 실제 복수 전문 질문 보존, 최종 요약 포함 중단 종단의 현재 소스 증거, 최초 성분 복합 사례의 상품 종류 해석·오류 경로는 남은 대조 항목이다. 반복 중 ‘보습 선호는 해제했어요’ 문구도 사용자 요청과 무관하게 나타나 별도 기존 답변 생성 문제로 기록한다. 이번 승인 밖 consultation_answer_service/beauty 서비스로 범위를 확대하지 않았다. 이번 실제 예산 변경과 변경 후 다음 Tool 입력 재검증은 미실행이며 20000/30000 유지·선택 복원만 확인했다. 자동 checkpoint 재개/임의 복합 소유·binding 확장은 기존 미지원으로 유지한다.
+
+다음은 위 미충족을 정확한 계약/파일 범위로 확정하고, ⑤ 필수 구현 공백을 닫은 뒤 ⑥ 원래 N01/N02/E01/B01의 현재 소스 연속 종단·별도 표현·모바일·성능·사람 검토로 진행한다. 신규 증빙·소스 해시/diff/미추적 소스는 completion-restore-*에 보존, 보안 검사 통과 후 trace에만 append한다. 기존 45행은 보존한다. 운영 배포/공용 보안 설정 변경/PR 없음.
+
+## 최신 실행 — 앱 중단·교체와 저장 복원 (2026-11-28)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 고정 6묶음 중 **4 서버 실행 제어에 앱 중단·새 요청 연결**. 1 최초 계획·2 결과 협력·3 질문/후속의 기존 구현 유지, 5 전체 완료/복수 결과 표시·복원, 6 종료표 증거 대조는 남는다. ⑤ 전체 완료 아님. feat/compound-consultation / HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 보존. 이번 fetch/commit/push/PR 없음.
+
+### 변경과 실제 확인
+- 승인된 chat 화면, useChatConversations, chatConversationStore, chatConversation 타입, 4개 언어 사전과 대응 테스트를 수정했다. 중단 시 옛 promise를 즉시 차단하되 서버 확인 전 입력을 열지 않는다. 확인 후 초안 복원·새 requestId 전송. 완료 경쟁/응답 유실은 기존 복구 API, 계정 변경은 소유권 검사로 처리한다. 백엔드 제품 코드는 이번 턴에서 수정하지 않았다.
+- 실제 로그인 Aside 앱: “세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘” 실행 중 버튼으로 중단. 확인 중 → 중단 안내/입력 활성화를 관측했다. 같은 상담에서 “토너 찾아줘. 크림도 찾아줘” 전송, 토너6/크림6 카드와 답변을 확인했다. 중단된 옛 실행은 새 답변 후 request_interrupted로 종료되어 화면/저장에 반영되지 않았다.
+- 실제 PG 읽기 검증: common-execution-control-app-pg.py PASS. 검증 DB vishue_g8_browser/15434에서 해당 합성 질문의 상담만 조회. 요청 상태 INTERRUPTED(user_cancelled)→COMMITTED, 서로 다른 requestId, 중단 메시지0, 교체 user/assistant2개. 계정 식별자는 증빙에서 제외했다.
+- 새 상담→최근 상담 복원에서 교체 답변/12카드 유지·로딩 종료 확인. 이후 페이지 새로고침 후 복원도 확인했다(restored-after-reload.txt). 복원 후 기존 독립 검색 안내가 표시되는 점은 별도 남기며 전체 후속 의미 복원을 이번 성공으로 확대하지 않는다. 접근성 트리이며 모바일 네이티브/터치·픽셀 캡처 검증으로 확대하지 않는다.
+- 실제 모델 설정 live, replay/mock 없음. chatbot의 OpenAI HTTP 시작 관측은 사전2턴7/7회, 중단 턴7회, 교체 턴3회, 총24회. G5 API 내부 호출/embedding은 미계측이므로 전체 공급자 청구 횟수로 해석하지 않는다. modelCalls는 실제 송신 진입 계측으로 HTTP200 횟수와 구분한다. Catalog19834/G5 API19838/PG15434/로그인 앱19836 사용, 데이터 전체 스냅샷 버전 고정은 NOT_RUN.
+- 사전2턴은 웹 서버 재시작 전 중단 버튼이 나타나지 않아 중단 검증에 실패했다. 현재 소스로 웹 서버 재시작 후 표시/중단 성공. 이전 실행 소스를 확인했다고 주장하지 않는다. 최종 앱에서 새 요청 뒤 중단 안내 잔류를 발견하여 beginRequest에서 해당 안내만 해제하도록 추가 수정했다. 핵심 실제 중단/교체 실행은 이 안내 해제 1줄 보완 전이며 보완 후 회귀/복원을 구분한다.
+
+### 모의·로컬 검사와 증빙
+- 관련 3파일165 PASS: 즉시 옛 응답 차단, 서버 확인 전 새 요청 금지, 새 ID, 늦은 실패 무시, COMMITTED 복원, 통신 불명확 유지, 계정 교체 방어, 화면 버튼→교체 흐름. 실제 외부 호출 없음.
+- npm run check: typecheck/lint PASS, 병렬 Jest1344 PASS/2 timeout(기존 chatProducts 테스트), 원본 check.log 보존. npm test -- --runInBand 순차 재실행1346 PASS/108 suites. 안내 잔류 보완 후 최종 typecheck/lint PASS, 순차 전체1346 PASS/108 suites/111.806초(*-final*.log). 마지막 제품 수정 이후 실행이다. 임시 G5 API19838/릴레이19841 종료·listener 없음 확인. 기존 앱/Catalog/PG 유지.
+- 신규 기록은 common-execution-control-app-*에 명령/helper·원본 실패 로그·실제 턴별 호출·PG 확인·화면 트리·소스 diff/미추적 파일/해시를 보존하고 보안 검사 후 trace append. 기존 trace 행 변경 금지. 인증정보/실사용자 발화는 기록하지 않는다.
+
+### 제한과 다음 순서
+실행 중 외부 호출 강제 중단은 지원하지 않으며 종료 뒤의 결과/저장 차단을 검증했다. 네트워크 유실/완료 경쟁/계정 변경은 모의 테스트이며 실제 네트워크 장애 주입·모바일 기기·다중 worker 부하 검증은 NOT_RUN. 다음은 5 전체 완료·부분 완료와 복수 표시/복원 계약, 6 고정 종료표를 대조하여 ⑤ 필수 미충족만 보완한 뒤 ⑥ N01/N02/E01/B01 종합 검증으로 진행한다. PR은 생성하지 않는다.
+
+
+## 최신 실행 — 실행 중 취소·교체 서버 계약 (2026-11-28)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤의 4번 서버 실행 제어 구현·검증. 1·2·3의 기존 구현 유지, 4 앱 연결은 별도, 5 전체 판정/복원·6 종료표 전체 충족은 남는다. feat/compound-consultation, HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 변경 보존. fetch/commit/push/PR 없음.
+
+### 변경
+승인한 conversations 라우터, conversation_service, conversation_repository, consultation_parent_graph와 테스트 2개를 수정했다. 인증된 요청 중단 API, PG 원자적 INTERRUPTED 확정, 실행 전후/제안 채택 유효성 검사, 늦은 응답 저장 거부를 연결했다. 교체는 중단 확인→새 requestId로 정상 요청. 기존 완료 답변과 기억·AR·상품 옵션 계약은 변경하지 않는다. 앱 제품 코드/DB migration/새 운영 제한값 없음.
+
+### 실제·모의 검증
+- 모의/서비스: test_g8_consultation_parent.py + test_g7_conversation_service.py 36 PASS. 취소 뒤 두 번째 전문 작업 호출 0건, 늦은 결과 수집 차단. 외부 모델 호출 0회.
+- 실제 PG + 모의 전문 작업: common-execution-control-run-pg.py → 1 PASS/1 SKIP. 다른 사용자 취소404, 취소/중복 취소INTERRUPTED, 동일 상담 버전0에서 새 요청 저장 version1, 옛 요청409 request_interrupted, 재전송 자동 재개 없음, 완료 요청 취소COMMITTED 보존, PG 저장 메시지는 교체 턴의 2개뿐.
+- 실제 외부 모델 + 실제 PG: run-pg.py --live → 2 PASS(모의/실제 각1). gpt-6-luna에 합성 보습 설명 발화1개, 실제 HTTP1회/200. 응답 대기 중 취소 후 실제 응답이 와도 저장/다음 전문 작업 없음. 전문 실행은 테스트로 통제했고 실제 부모 스케줄러/ConversationService/PG/HTTP API 사용, 인증mock, Catalog/G5/로그인 앱은 NOT_RUN. 전체 자연어 취소 해석 또는 전체 도메인 종단 검증으로 확대하지 않는다.
+- 실제 PG 광역 회귀: run-regression.py 최종22 PASS/5 SKIP/13.51초. 최초2 FAIL/20 PASS/5 SKIP는 기존 N01 모의 모델2곳이 최초 plan_consultation_entry를 피부 계획 호출로 집계·변형하던 문제. 승인된 같은 테스트 파일에서 최초/후속 부모 호출을 분리해 재실행. 피부 조건/저장 assertion은 유지했고 최초 XML 보존.
+- 챗봇 전체:1679 PASS/129 SKIP/42.18초. 이 실행은 제품 코드 최종 상태이며 이후 변경은 위 PG 모의 모델 분리뿐이다. Ruff PASS/import-linter3 KEPT/typecheck·lint PASS. 최초 Ruff import 정렬1건 보완. git diff --check PASS.
+- 실행 기준: 격리 PG vishue_chat_test(15434), 설정/인증정보 출력 없음. 실제 모델 호출은 위1회뿐. 신규 trace는 고정 Gitleaks8.30.1/빈 ignore 검사 후 append, source diff·미추적 소스·SHA-256 및 JUnit/실행 helper는 common-execution-control-*에 보존. 과거 trace 변경 없음.
+
+### 제한과 다음 작업
+취소는 새 부모 전문 작업 시작과 결과 확정을 막는다. 이미 시작한 전문 작업 내부 HTTP/모델의 강제 중단과 모든 세부 도구 단계의 중단 검사는 미구현이며 이번 PASS에 포함하지 않는다. 취소 확인 직전 실행 승인을 받은 호출은 진행 중인 호출로 취급한다. 앱 중단·교체 UI 및 최종 질문 메타데이터 수정의 앱 재검증은 별도 남음. 다음은 서버 계약을 앱에 연결할 정확한 파일 범위 확인→중단/교체/복원의 로그인 앱 검증, 이어 5·6 종료표 대조. ⑤ 전체 완료 아님. 사용자 판단 필요 없음, 새 파일 범위는 다음 구현 전에 제시한다.
+
+
+## 최신 실행 — 질문 소유권·협력 후속 처리 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤의 1·2를 3 후속 정합성에 연결한 범위를 보완했다. 4 실행 중 제어, 5 전체 목표·복수 표시/복원, 6 종료 증거의 전체 충족은 남는다. feat/compound-consultation, HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 보존. 원격 fetch/commit/push/PR 없음.
+
+### 구현 및 실제 검증 범위
+- 승인 파일 중 consultation_intent_service.py·consultation_parent_graph.py와 테스트 3개를 수정했다. 질문 소유 taskId, 변경하지 않은 질문의 전문 메타데이터·버전, partial/waiting_user 형제 결과 보존, 필요한 referenceContext 부재 시 실행 차단. 기존 독립 조회의 requires_success=False 동작은 유지한다.
+- 공통 모델 입력에 dependsOn을 전달하고 원래 복합 objective와 파생 작업의 목표 소유권을 구분했다. 최초 workflow 수와 사용자 목표 수의 구분도 명시. 특정 발화 치환/새 실행 정규식 없음.
+- 모의: 같은 역할 다른 작업 변경 시 질문 유지, 구버전 모호한 질문의 소유자 임의 추정 금지, 질문 답변 시 해당 ID만 실행, 부분 형제 결과 보존, 룩 내용 변경→실제 다음 설명 입력 변경, 설명만 재시도→Catalog 재조회 없음, 설명 철회→중복 생성 없음. 최종 관련 99 PASS/1 SKIP(question-final.xml).
+- 전체 백엔드: 1678 PASS/127 SKIP/51.40초(backend-final.xml). 마지막 질문 메타데이터 보존 보완 전 실행이며 그 보완은 위 관련 회귀와 최종 실제 PG로 확인했다. 최초 전체 1661 PASS/127 SKIP/17 setup ERROR는 Windows pytest 임시 폴더 권한 오류. 전용 임시 폴더로 순차 재실행, 원본 backend.xml 보존. ruff PASS, import-linter 3 KEPT, 앱 typecheck/lint PASS. 앱 제품 코드는 수정하지 않았다.
+- 실제 PG: common-cooperation-followup-run-pg.py --live --cooperation. 부모 seed 없음, 모델 gpt-6-luna/G5 gpt-6.1-terra, 실제 Catalog19834/G5 API19838/PG15434(vishue_chat_test), 인증 mock, replay 없음. 최초 협력→설명만 재시도→설명 철회+2만원 변경의 작업 ID 유지, 질문 소유권/needId/옵션 범위/레시피 버전 유지, 최종 답변 저장 복원 확인. 최종 1 PASS/61.92초, 턴별 모델 HTTP 4/4/1. G5 partial과 보유 질문 waiting_user를 완료로 승격하지 않았다.
+- 실제 실패 이력: 첫 실행은 모델이 철회 누락(12회), 의존 관계 입력 보완 후 최초 delegate fallback(4회). 다음 3턴은 기존 assertion 통과(9회)했으나 증빙 대조에서 질문 세부 메타데이터 소실 발견. 이를 보완하고 assertion을 추가한 최종 실행 통과(9회). 각 XML을 별도 보존했다. 고정 문장 통과가 자유 표현 일반화 보장은 아니다.
+- 실제 로그인 앱: Aside로 기존 로그인/G7 동의 상태에서 사진발 윤곽 보정 메이크업 대상으로 동일 3턴. 모델 HTTP 4/4/1, 실제 Catalog·G5·PG. 설명 재시도 후 판매 옵션 카드 보존, 철회 후 예산 20000 안내/카드 확인. 이 3턴은 마지막 질문 메타데이터 보완 전 서버 소스 실행이며 해당 보완까지 앱에서 검증했다고 확대하지 않는다. 최신 소스의 질문 메타데이터는 실제 PG 검증으로 별도 확인했다. 복원·상세의 최종 결과는 아래 추가 기록/증빙을 따른다.
+- 신규 증빙 common-cooperation-followup-*는 실패와 최종 결과, 턴별 live/호출 수, tested/final source diff·미추적 소스 식별을 보존한다. Catalog 전체 데이터 버전/스냅샷 고정, 별도 표현 holdout·모바일 터치 검증은 NOT_RUN. API 내부 embedding 호출은 미계측. 신규 trace는 보안 검사 후 append한다.
+
+최종 앱 확인: 새 상담으로 이동 후 최근 상담에서 위 3턴을 복원, 로딩 종료·기존 답변/판매 옵션 카드 유지 확인. 복원된 마지막 카드에서 /product/oy-a000000162667?optionId=A000000162667-012&requireShade=1로 이동, [단품] 07 웜 베이지·참고 가격17000·옵션 결제 제한 표시 확인. 접근성 트리 증빙이며 픽셀 이미지/모바일 터치 검증은 아니다. 임시 G5 API19838/WSL 릴레이19841 종료·listener 없음 확인. 기존 Catalog/PG/앱 서버는 유지. 총 실제 모델 HTTP 관측 43회(PG34+앱9), 실패 실행 포함. 보안 검사는 common-cooperation-followup-security.log, trace append 결과는 record 참조.
+
+### 다음 작업과 미완료
+이번 작업은 고정 1·2·3 중 질문·협력 후속 계약의 보완이며 ⑤ 종료 선언이 아니다. 다른 binding/복잡한 복수 질문/목표 전체 완료의 종료표를 대조하고 4 실행 중 취소·교체로 진행한다. 마지막 질문 메타데이터 수정의 로그인 앱 재실행과 별도 표현 안정성은 미실행으로 유지한다. 추가 사용자 판단 없음. PR 생성 없음.
+
+## 최신 실행 — 묶음 1 공통 최초 진입·2 결과 협력 첫 연결 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 고정한 6개 묶음을 유지한다. 1은 최초 진입 구현 및 대표 실제 연결 확인, 2는 공통 제안/입력 요구 계약과 owned_look→knowledge 첫 연결 구현 및 실제 PG 확인이다. 1·2 전체 자유 표현/연결 종류를 완료했다고 하지 않는다. 3 후속 정합성, 4 실행 중 제어, 5 복수 결과 통합·앱 전체, 6 종료표 전체 충족은 남는다. HEAD 3a8ee1c5d44214623487e5f07717500368259900, feat/compound-consultation, 기존 미커밋 보존. 새 원격 fetch/commit/push/PR 없음.
+
+### 변경·승인 범위
+부모/작업/Chat 스키마, 의도 해석, 부모 실행 그래프, 결과 어댑터, ChatService, N02 전문 서비스와 관련 테스트를 수정했다. 추가 승인한 beauty_consultation_service.py·test_product_search_contract.py는 부모의 독립 검색 의미를 전문 모델 입력으로 전달한다. 추가 승인한 test_g8_owned_look_interpreter.py는 최초 계획과 기존 지시어 호출 계수를 분리한다. 기존 N01/N02 조회·옵션·G7 저장·AR/기억 권한은 재사용한다. DB migration/앱 제품 코드 변경 없음.
+
+설계상 구현: 최초/후속 작업 ID 계약 연결, TaskInputNeed/TaskContinuation, 출처·목표·버전·지문 검증과 실제 다음 입력, 독립 성공 보존/일부 질문 대기. 결함 보완: 최초 독립 '크림도 찾아줘'가 맥락 부족으로 되묻던 문제에 parentTask.operation을 전달; 한도 때문에 설명이 생략돼도 전체 완료로 오인하지 않도록 partial 표시. 특정 질문 문자열별 실행 분기는 추가하지 않았다.
+
+### 검증 구분과 원본
+- 모의: 최초 동일 역할 2개, 부분 질문 소유권, 실제 레시피 내용 변화→다음 지식 입력 변화, 위조/구버전/없는 출처 거절, 5개 한도에서 추가 작업 생략과 부분 완료를 확인. 최종 관련 94 PASS (question-final.xml); 직전 한도 관련 93 PASS, 광역 관련 170 PASS/2 SKIP 기록도 보존.
+- 챗봇 전체: backend-settled.xml 1669 PASS/127 SKIP/42.43초. 이 실행 뒤 추가한 한도·필요 입력 보완은 위 94건으로 재검증했으며, 마지막 코드 전체 단일 실행 통과로 확대하지 않는다. 최초 전체는 모의 모델 불일치 6건과 임시 폴더 권한 setup 17건 실패, 수정 및 별도 임시 폴더로 재실행해 해소. 원본 backend.xml 보존.
+- 실제 최초 모델/Catalog/PG: run-pg.py --live, 부모 seed 없이 '토너 찾아줘. 크림도 찾아줘'→'토너 쪽은 놔두고 크림만 15,000원 이하로'. 초기 실행 크림 waiting_user로 실패(모델 HTTP 3회), 구조화 작업 맥락 보완 후 1 PASS/14.93초, 턴별 3/2회. 종류 유지·토너 결과 보존·크림 예산 15000·PG 복원 검증. 인증은 mock.
+- 실제 결과 협력: run-pg.py --live --cooperation. 실제 Catalog의 AG03mUj4vnY 선택 후 보유 룩 추천과 순서 이유 요청. 새 부모 계획→실제 N02→제안 채택→레시피 referenceContext→실제 G5→PG. 최초는 저장 null 생략을 원시 JSON equality로 비교한 테스트 실패(4회), 타입 복원 비교로 수정 후 1 PASS/30.16초(4회). 실패를 삭제하지 않았다. G5는 근거가 제한된 partial 답변이며 룩 전체 설명 완성으로 기록하지 않는다. 인증 mock, 모델 gpt-6-luna/G5 gpt-6.1-terra; 실제 API/PG, replay 없음.
+- 실제 로그인 웹 앱: 별도 합성 부모 주입 없이 토너·크림 첫 요청에서 12개 카드, 크림만 15000원 변경 후 토너 보존 및 크림 카드 변경, 최근 상담 복원·로딩 종료를 Aside Enter 조작으로 확인. 실제 모델 HTTP 3/2회, G7 활성. 카드 상세 이동은 저장된 다슈 상품 ID로 확인한다. snapshots는 접근성 트리이며 픽셀/모바일 터치 검증이 아니다. 신규 owned_look 제안의 전체 로그인 앱 종단은 NOT_RUN.
+- 실제 HTTP 모델 호출 합계 21회 = 최초 PG 실패3 + 성공5 + 협력 최초4 + 성공4 + 로그인 앱5. Catalog/G5 API 내부 embedding은 별도 미계측. 모델 설정 live와 실제 호출을 구분한다. 로컬 Catalog 19834, 격리 PG vishue_chat_test 및 앱 vishue_g8_browser. Catalog 전체 데이터 스냅샷은 이번에 새 지문을 수집하지 않았으므로 ⑥ 환경 고정에서 보완한다.
+- 정적: ruff PASS, import-linter 3 KEPT, 앱 typecheck/lint PASS. 앱 제품 코드 변경 없음. 실행 명령은 run-pg.py 및 JUnit/증빙에 보존. tested-sources.json은 마지막 실제 협력 실행 시 소스, final-sources.json은 이후 한도/필요 입력 보완까지의 소스다. 두 diff와 새 소스 원문으로 HEAD+미커밋 상태를 식별한다. 앱 생성 실행은 마지막 한도/질문 보완 전의 동작 확인이며 이를 그 보완의 실제 앱 검증으로 확대하지 않는다.
+
+### 남은 범위·다음 순서
+새 공통 제안은 현재 룩→지식 1개 binding이다. N01 내부 연결을 새 제안으로 통합하거나 임의 전문 작업의 재귀 계획을 완성한 것이 아니다. 부분 질문의 복잡한 후속 충돌, 다른 binding·실패/재시도 변형의 실제 실행, 신규 협력의 로그인 앱 종단/모바일은 미완료다. 다음은 묶음 1·2의 이 잔여 계약을 묶음 3 후속 정합성과 연결해 확인하고, 그 뒤 4 실행 중 제어로 진행한다. 앱의 오래된 일반 안내/후보 만료 경고 표현은 별도 표시 문제로 기록하며 이번 구조 구현에 섞어 수정하지 않았다. ⑤ 종료 판정은 고정 6개 기준 전체 충족 뒤 수행한다.
+
+임시 G5 API19838/릴레이19841 종료 후 listener 없음 확인; 기존 Catalog/PG 유지. 신규 증빙 보안 검사는 common-entry-cooperation-security.log, 신규 trace는 검사 후 append. 기존 trace 41행 보존. 사용자 판단 필요 없음. PR 없음.
+
+## 최신 관리 기준 — ⑤ 6개 묶음 고정 및 1·2 착수 계획 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 이번 작업은 사용자 요청에 따른 문서 고정과 읽기 전용 코드 대조다. 제품 코드 수정·모델 호출·실제 API/PG/앱 테스트·커밋/push/PR은 하지 않았다. branch feat/compound-consultation, 기준 HEAD 3a8ee1c5d44214623487e5f07717500368259900 및 기존 미커밋 작업을 보존한다. 원격 develop 최신성은 이번에 확인하지 않았다.
+
+SPEC의 '⑤ 종료 기준 — 6개 묶음 고정'을 이후 진행 기준으로 사용한다. 상태는 1 최초 공통 계획 진입 공백 / 2 결과 기반 공통 제안·채택 공백 / 3 후속 변경 상당 부분 구현 / 4 실행 중 제어 공백 / 5 도메인 판정·복원 부분 검증 / 6 종료 증거 연결 미완료다. 이전 절의 부분 완료를 전체 협력 완료로 확대하지 않는다.
+
+코드 대조: prepare_turn은 부모가 없으면 공통 후속 해석을 생략한다. run_id_tasks는 기존 부모와 intent를 요구하고 additions는 knowledge/product/style 독립 작업으로 제한된다. 공통 TaskResult에는 현재 추가 작업 제안 필드가 없다. 기존 부모의 owned_look→knowledge는 정해진 연결이다. 기존 첫 턴 N01/N02, 전문 입력/결과 어댑터, ID별 후속 실행을 재사용해 묶음 1→2를 진행할 계획이다. 새 결과 제안은 부모가 목표·버전·입력 연결·실행 한도를 검증한 뒤 채택해야 한다.
+
+이번 변경 파일: docs/ai-design/G8-IMPLEMENTATION-SPEC.md, docs/ai-design/G8-WORKLOG.md 두 개. 제품 구현 파일과 새 증빙의 정확한 범위는 사용자에게 제시하고 승인 후 수정한다. 신규 실행 증빙은 아직 없다. 다음 작업은 묶음 1 공통 최초/후속 계획 계약과 정상 ChatService 진입 연결, 이어 묶음 2 전문 결과 제안·검증·실제 입력 전달이다. 기존 결함 보완과 설계상 공백을 분리하며 무관한 문구 개선으로 작업을 확대하지 않는다.
+
+## 최신 상태 — N01 지식 조건 보류 및 실제 앱 복원 확인 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤에서 N01 조회 중단 보완과 앱 복원 재검증 완료, ⑥의 통합 증거를 추가했다. 전체 G8 완료 아님. branch feat/compound-consultation, HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 보존. 원격 develop 이번 재확인 없음. 커밋/push/PR 없음.
+
+### 변경 및 실제 확인 범위
+- compound_consultation 스키마·서비스·그래프: 미식별 조건이 지식 제안에만 해당하면 이를 별도 보류하고 동일 옵션·사용자 조건으로 배치당 1회 재조회. 예산 후속에서도 보류 상태를 PG 저장·복원하며 사용자 제외 조건은 해제하지 않는다. 최초/재조회 원본 입력과 scope 기록. 사용자 조건까지 미식별이면 조회를 임의 완화하지 않는다.
+- 모의 회귀: N01 49 PASS, N01+부모 67 PASS. 사용자 향료 조건 보존, 6개 배치 뒤 9번째 후보 보존, 사용자 조건 미식별 차단, 예산 변경 시 재전송 방지 확인.
+- 실제 G5/추출 모델/Catalog/PG: integration-n01-resolution-run-pg.py --live --case n01 최초 실행 G5 55초 제한 초과, 턴별 실제 모델 HTTP 호출 1/5. 같은 설정 재실행 1 PASS/49.48초, 호출 1/6. 재실행 G5는 미식별 성분 제안을 하지 않아 신규 보류 분기를 직접 검증하지 못했다. 10개 옵션 중 6개 조건 불일치/4개 근거 부족이며 추천 적합 0개.
+- 분기 검증: --live --case n01 --replay-g5는 과거 실제 G5 응답을 replay하고 추출 모델·Catalog·PG는 실제 연결. 3턴 1 PASS/16.19초, 실제 모델 호출 1/3/2. 세라마이드 미식별 → 사용자 향료 제외를 보존한 재조회 → 예산 18,000원 변경 시 보류 유지 확인. G5까지 전체 live 성공으로 표현하지 않는다. 인증은 PG 테스트에서 mock.
+- 로그인 앱: 실제 로그인·G7 동의·실제 G5/모델/Catalog/PG로 원래 N01 2턴 실행, 모델 호출 1/6. 첫 발화는 오후 화장 뜸 원인+제품 요청, 두 번째는 각질/당김·로션/쿠션·2만원·향료 제외. 설명과 6개 불일치/4개 미확인 안내를 표시했고 최근 상담에서 저장 답변 복원/로딩 종료 확인. 양성 추천 카드 생성은 이 데이터로 확인되지 않았다.
+- 앱 복원 진단: GET 200은 선택 복원뿐 아니라 AppState 백그라운드 갱신에서도 발생했다. 포인터 자동화에서 ui:select/open:start:select가 실행되지 않은 반면 Enter 선택은 소유권 검증→선택 복원→finally→모달 닫힘을 확인했다. 오래된 Metro 캐시를 재시작해 진단 코드 반영도 확인했다. 인증 대기 결함을 확정하지 않았고 임시 진단 코드는 전부 제거하여 lib/api.ts·hooks/useChatConversations.ts·app/chat.tsx의 이번 제품 변경은 없다. 공통 hook에 다른 상담의 배경 갱신과 명시 선택 경합 회귀를 추가했다.
+- 최종 진단 제거 소스에서 저장된 N02 추천 카드 복원 후 상품 상세 이동 PASS. product=oy-a000000162667, optionId=A000000162667-012, [단품] 07 웜 베이지, 참고 가격17,000원, 옵션 결제 제한 유지. evidence final-sale-card/detail.txt. 브라우저 접근성 스냅샷이며 픽셀 이미지/실제 모바일 터치 검증은 아니다.
+
+### 실행·증빙·실패 구분
+원본 reports/g8/parent/integration-n01-resolution-* 및 integration-app-restore-* 참조. JUnit timestamp가 실제 실행 시각이며 runner에 실행 명령/환경 구성이 있다. 테스트 소스는 신규 record의 sourceSha256, source.diff, new-sources.json으로 미커밋 상태를 보존한다. 모델 설정 live와 실제 호출을 분리: 실패 6 + PG live 7 + G5 replay 6 + 로그인 앱 7 = 실제 HTTP 26회. Catalog 내부 embedding 호출은 미계측. 데이터 버전 local-20261104-conservative-v1-20261123T111457291156Z, 모델 gpt-6-luna/gpt-6.1-terra.
+
+- 전체 챗봇 pytest: 1659 PASS/125 SKIP/1 FAIL(58.13초). 임시 HTTP 서버 readiness 시간 초과 테스트를 변경 없이 단독 재실행 1 PASS/4.93초. 전체 단일 실행 통과 아님.
+- 실제 PG 포함 B01 경계 83 PASS/2.75초. 인증·모델·AR 명령은 mock, 실제 기기 AR 아님.
+- 앱 useChatConversations/chatSessionApi: 2 suites/39 PASS. typecheck/lint PASS, 챗봇 ruff PASS/import-linter 3 KEPT.
+- 테스트 런처 첫 시작은 httpx import 누락으로 실패, 수정 후 health200 확인하고 새 상담으로 실행. 실패한 연결을 모델 실행으로 계산하지 않음. 임시 G5 API19838/DB relay19841 종료 및 listener 없음 확인, 기존 Catalog/PG 보존.
+- 보안: 최종 source/evidence 및 trace 신규 행을 Gitleaks8.30.1 빈 ignore로 검사 후 append하며 결과는 integration-n01-resolution-security.log와 record/trace에 남긴다. 기존 trace는 변경하지 않는다.
+
+### 남은 작업과 다음 순서
+⑤: N01 실제 데이터에서 조건을 만족하는 양성 추천 및 지식 보류 분기의 전부-live 실행은 이번에 확인하지 못함. 앱 일반 안내 문구와 실제 G7 활성 상태가 어긋나는 표시도 관측했으나 이번 범위에서 변경하지 않음. 포인터/터치 선택은 키보드 검증과 분리해 남긴다.
+⑥: N01·N02·E01·B01을 같은 로그인 앱 환경에서 연속 종단 검증, Expo Go/기기 AR, 회귀의 환경성 기동 변동 검토. ⑦: 필요한 사람 검토·PR 인계는 별도 지시 후. 다음 우선순위는 양성 데이터 조건 확인과 실제 모바일/포인터 복원 재현, 이후 E01/B01 앱 종단이다. 정책 추가 판단 필요 없음.
+## 최신 상태 — 현재가 후속 수정 및 N01/N02/E01/B01 통합 실행 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤의 가격 의미 보존은 구현/실제 연결 검증 완료, ⑥에 필요한 네 시나리오의 연결 검증을 수행했다. ⑤와 전체 G8 완료 선언은 하지 않는다. branch feat/compound-consultation / HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 보존. 원격 develop 새 확인 없음; commit/push/PR 없음.
+
+- 수정: schemas/consultation_parent.py, schemas/chat.py, services/beauty_consultation_service.py, consultation_parent_graph.py, product_style_consultation_service.py. 가격 기준을 질문에 저장하고 명시 변경이 없으면 번호 선택 뒤에도 유지한다. 테스트는 test_g8_partial_success.py와 test_g7_memory_api_pg.py를 보완했다. 승인한 나머지 테스트는 필요한 실행만 하고 불필요한 소스 변경은 하지 않았다.
+- 현재가 실제 모델/Catalog/PG: common-price-followup-run-pg.py --live, 1 PASS/29.85초. 3턴 실제 모델 호출 3/2/3=8회. 질문 후보와 current_offer PG 복원, 두 상품 실제 조회, 현재가 미확인 안내 유지, 룩 보존/독립 새 검색을 확인했다. 인증 mock, 모델 live gpt-6-luna. 한국어 모의 회귀에서 범위 밖 번호 재질문과 앱 등록 가격으로 명시 변경도 확인했다.
+- N01 최초 실제 실행: 상황 질문 1회 + 후속 2회 모델 호출. G5 내부 search 500/DB 연결 거부, 상품 V4와 옵션 배치는 계속 실행. 6개 조건 불일치/4개 근거 부족. 초기 테스트는 이 연결 관측까지만 assert해 PASS였으므로 이 XML을 G5 성공으로 사용하지 않는다. integration-n01-pg-g5-error.xml 보존 후 지식 status!=error 검증을 추가했다.
+- N01 복구 실행: localhost DB 포트 probe와 실제 asyncpg 연결의 결과가 달랐다. 내부 WSL DB 정상 확인 후 이전 승인과 동일 IP/포트(172.24.16.240:19841 → 내부15441)의 임시 릴레이로 연결했다. 원래 발화 → 각질/당김·로션/쿠션·2만원/향료 제외 후속, 실제 G5 partial 답변/근거와 V4 Top10·옵션 배치/PG 저장, 1 PASS/48.49초. 모델 호출 1/6=7회이며 G5와 계획 모델을 합한 클라이언트 관측 HTTP 수다. API 내부 embedding 호출 수는 미계측. 이번에는 성분명 식별 불가로 10개 모두 unknown, 추천 가능 상품 없음. 원래 N01의 관련 설명은 확인했지만 상품 추천 양성/전체 N01 완료가 아니다. 성분 하위 사례나 과거 실행으로 이를 대체하지 않는다.
+- N02: integration-n01-run-pg.py --case n02, 실제 Catalog/PG 판매 옵션 3턴과 보유품/재전송 테스트 2 PASS/16.14초. 판매 옵션 테스트 모델 disabled/0회·인증 mock, 보유품 테스트 모델/Catalog mock·PG live. 향료 제외 추가 시 추천 제외, 해제 시 동일 optionId 복원, shadeId=null/AR 실행 없음 확인. 로그인 앱 결과는 아래 별도 기록한다.
+- E01: 초기 테스트가 기존 styleStatus=error를 failed로 기대해 실패했고 비교 대상도 복수 일치로 미선택이었다. 기존 응답 계약을 확인해 기대값을 고치고 유일한 다슈 상품을 비교 대상으로 사용했다. 초기 XML 보존. 실제 모델/Catalog/PG 재실행 1 PASS/15.98초, 실제 모델 호출 1/3=4회. Style 장애는 명시 주입, 상품 비교 성공 보존 → 룩만 재시도/ready, 상품 재조회 없음, PG 저장 확인. 최초 실행 모델 1회 포함.
+- B01: --case b01, 83 PASS/3.85초. 동의·소유권·재전송·취소/재개는 실제 격리 PG/모의 모델·인증, AR command/ack는 모의 계약 검사다. 실제 로그인 AR 기기 실행이나 E7 완료가 아니다.
+- 모의/정적: 최초 관련 235 PASS/7 SKIP. 최종 제품 소스 전체 백엔드 1,658 PASS/125 SKIP/51.41초. 이후 변경은 신규 opt-in 통합 테스트의 기대값/입력/format뿐이며 관련 32 PASS/1 SKIP, ruff 최종 PASS, import-linter 3계약 PASS. 앱 typecheck/lint PASS. 앱 관련 3 suites는 61 PASS/1 timeout(기존 unlinked video products 5초), 해당 파일 단독 재실행 32 PASS/18.316초. 단일 실행 전체 통과로 합치지 않는다.
+- 실제 외부 모델: 현재가 8 + N01 최초3/복구7 + E01 최초1/최종4 = 총23회. N02 PG·B01에서 실제 모델 호출은 0회. G5 생성 모델 gpt-6.1-terra, 계획/추출 gpt-6-luna; 고정 snapshot 버전·Catalog 배포 SHA·데이터 릴리스 버전은 미확인이다. 원본 XML/응답 JSON과 현재 소스 diff·새 파일·해시를 common-price-followup-* / integration-{n01,n02,e01,b01}-*에 보존한다.
+- N01 원인 추가 대조: 사용자 향료 조건은 resolved, 지식에서 제안한 세라마이드는 unresolved이며 Catalog가 세라마이드엔피/엔지/오피를 제시했다. 상위 성분군을 특정 세부 성분으로 임의 치환하지 않았다. 후보 응답 dataVersion은 local-20261104-conservative-v1-20261123T111457291156Z로 확인했고, 별도 배포 릴리스와 동일함은 미확인이다. 지식 제안을 적용할 수 없을 때 사용자 조건만으로 가능한 조회를 보존하는 공통 정책 보완이 다음 검토 대상이다.
+- 최신 로그인 웹 앱: 현재 제품 소스의 챗봇으로 교체 후 Aside에서 룩 상세 → 상담 → 미보유 아이섀도 추천 카드 표시까지 확인했다. 기록된 3턴(초기 가이드 포함) 모두 configured live/actual 0회. 최근 상담의 해당 턴을 선택한 뒤 GET 200(31~63ms)인데도 ‘상담을 불러오는 중’이 지속됐다. 이번 복원은 미완료이며 과거 성공으로 덮지 않는다. 접근성 snapshot integration-n02-app-reply.txt / app-restore.txt와 서버 HTTP 기록 보존. 복원 카드 상세 이동은 이번 NOT_RUN. 앱 hooks/useChatConversations.ts 및 lib/api.ts는 이번 승인 범위가 아니므로 변경하지 않았다. 가격 후속/N01/E01/B01 전체 로그인 앱 종단도 NOT_RUN이다.
+- 임시 G5 API19838와 승인 릴레이19841은 검증 후 종료하고 포트 닫힘을 확인했다(integration-n01-runtime-cleanup.json). 기존 Catalog/PG 및 앱 검증 서버는 보존했다. 보안 검사는 최종 source/evidence 묶음에 빈 ignore로 수행하고 과거 trace를 보존한다.
+- 다음: N01의 성분 식별 불가 원인을 실제 입력/카탈로그 지원 범위로 대조하고 관련 추천 양성을 확보해야 한다. 네 시나리오 전체의 동일 소스 로그인 앱 종단, Expo Go/AR 기기 및 사람 검토는 별도 미완료다. 권한 확대나 근거 추정으로 결과를 통과 처리하지 않는다. 신규 증빙/trace는 Gitleaks 후 추가한다.
+
+## 최신 상태 — 중복 비교 선택·자연스러운 문구·판매 옵션 복원 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤에서 비교 질문 후보 저장/전문 입력 연결, 가격·보존 표시, 판매 옵션 양성 복원을 보완했다. 원래 N01·N02·E01·B01 전체 통합 평가는 아직 남는다.
+
+- 기준: feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 작업 유지. 로컬 origin/develop=991dd634는 이번 원격 확인이 아니다. commit/push/PR 없음.
+- 변경: 부모 질문에 기준 상품/독립 후보 번호를 저장하고 같은 비교 작업에만 전달한다. 번호 선택은 실제 Catalog ID 재조회로 검증한다. 기존 추천 번호를 바꾸지 않는다. 일반 비교에는 앱 등록 가격, 보존에는 비교/상세에 맞는 문구를 쓴다. 승인 범위의 backend 스키마 2개·서비스 5개, 관련 테스트와 useChatConversations 복원 테스트를 수정했다. 앱 제품 소스 수정은 없다.
+- 실제 모델/Catalog/PG: common-comparison-selection-run-pg.py --live --label final, 1 PASS/22.930초. 정상 ChatService에서 비교+룩 → 두 후보 안내 → “2번” → 토너/크림 새 검색. 선택 목록 PG 복원, 실제 두 상품 조회, 룩 보존, 비교 보존 문구를 확인했다. gpt-6-luna live, 턴별 호출 3/2/3=8회. 인증은 mock이다. 최초 3/2=5회 실행은 전문 모델에 선택 목록을 주지 않아 번호를 검색어로 처리한 실패였다. pendingComparisonQuestion을 모델 입력에 연결해 수정했으며 실패 XML도 보존한다. 이번 실제 모델 호출 합계 13회; 반복 안정성 평가 전체를 수행한 것은 아니다.
+- 실제 판매 Catalog/PG: --sale, 1 PASS/16.711초. 모델은 disabled/실제 0회, 인증 mock. 실제 PG 회귀 --regression은 45 PASS/12 SKIP/51.456초이며 모델/Catalog/인증은 mock이다.
+- 실제 로그인 웹 앱: Aside에서 사진발 윤곽 보정 메이크업 → 상담 → “내가 가진 립으로 이 룩에 필요한 제품만 추가 추천해줘. 아이섀도는 없어.” → 최근 상담 복원 → 상품 보기 → 정확한 optionId 상세 이동 PASS. [단품] 07 웜 베이지, 17,000원 참고 가격, 발색 참고 이미지, AR 연결 없음 및 옵션 결제 제한을 확인했다. 실제 옵션 endpoint와도 대조했다. 초기 룩 안내 2개와 추천 1개 기록 모두 configured live/actual 0회다. 접근성 snapshot이며 픽셀 스크린샷이나 Expo Go 결과가 아니다. 실행 서버는 최종의 다른 비교 작업에 질문 제거하는 소규모 수정 전 시작됐고 이 N02 경로에는 해당 질문이 없다. 최종 소스 전체와 동일한 앱 서버였다고 주장하지 않는다.
+- 최종 backend 모의/회귀: 1,657 PASS/124 SKIP/48.597초, common-comparison-selection-backend-final.xml. 관련 121 PASS/1 SKIP. ruff 및 import-linter 3계약 PASS. uv 샌드박스 캐시 접근 오류는 기존 승인 환경에서 다시 실행하여 해결했다. 앱 초기 테스트에서는 새 fixture 설정 누락을 고쳤고, 기존 chatProducts 테스트 한 건의 5초 timeout은 단독 재실행 PASS였다. 최종 앱 결과는 아래 최종 검증 항목과 로그를 따른다.
+- 실행 명령: backend/chatbot에서 uv run ruff check ., uv run lint-imports, uv run pytest -q --tb=short --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-comparison-selection-final --junitxml=../../reports/g8/parent/common-comparison-selection-backend-final.xml. 루트 npm run typecheck, npm run lint, npm test -- --runInBand __tests__/useChatConversations.test.tsx __tests__/chatProductDetail.test.tsx __tests__/chatProducts.test.ts. 실행 시각·턴 원문·HTTP·소스 diff/해시는 common-comparison-selection-* 증빙을 따른다.
+- 최종 앱 검증: typecheck/lint PASS, 관련 3 suites/62 PASS/21.913초. 초기 timeout 후 동일 테스트를 포함한 전체 관련 3개 파일을 순차 재실행해 통과했다. 로그 common-comparison-selection-typecheck.log/lint.log/app-tests.log 보존.
+- 설계 결정: 질문별 선택 목록 최대 6개, 초과는 정확한 이름 확인. 정책/한도 근거는 SPEC에 기록했다. 현재가 요청 후 번호만 답하는 다중 턴의 가격 의도 보존은 미검증이며 향후 검증 항목이다. API 배포 SHA·데이터 릴리스 버전은 미확인이다.
+- 다음: 이 변경 독립 검토, 남은 공통 후속·부분 성공 경계 점검, 원래 N01/N02/E01/B01 전체 통합 평가 및 Expo Go/사람 검토. 승인되지 않은 PR 생성은 하지 않는다. 신규 trace는 민감정보 검사 통과 후 기존 행을 보존하여 추가한다.
+
+## 최신 상태 — 비교 후속 확인 질문 책임과 실제 연결 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤의 작업 선택/전문 입력 확인 책임 보완이다. G8 전체 완료가 아니다. HEAD 3a8ee1c5d44214623487e5f07717500368259900, feat/compound-consultation + 기존 미커밋 유지; 이번 fetch/commit/push/PR 없음. 로컬 origin/develop 991dd634는 새 원격 확인이 아니다.
+
+- 이전 16/18 중 첫 거절의 상세 원인은 원문이 없어 여전히 미확정이다. 이번에는 안전한 rejectionCode와 합성 harness 원문을 구분해 남긴다. 부모의 task 모호함과 전문 기능의 product_input 부족을 구분하고 정확히 하나의 기존 compare 작업에만 전문 질문을 위임한다. 기존 ParentQuestion의 작업 ID/버전을 비교+룩에도 연결하고 pendingQuestion을 부모 입력에 포함했다. 별도의 상품명/질문 문자열 예외를 추가하지 않았다.
+- 실제 PG에서 기준 상품 소실과 scope 불일치 결함을 발견·수정했다. _reply의 후보 밖 선택 정리는 검색에는 유지하지만, 비교에는 G7이 복원한 기준 상품/옵션/색을 보존한다. 저장 scope는 응답으로 생성된 룩 조건을 포함한다. 부모/전문 기능 후속에는 최신 변경 quote를 전달한다. 상품명이 여러 Catalog 상품에 일치하면 임의 결정하지 않는다.
+- 실제 모델 단독: common-comparison-followup-live.py, gpt-6-luna, 합성 6종×3=18회 전부 기대 분기 PASS. 같은 고정 prompt/schema에서 비교 변경·정확한 상품·질문 답변·복수 비교 모호함·새 검색·철회를 검사했다. modelConfiguredMode=live와 실제 호출 수를 별도 기록. 비교 변경의 세부 상품 확인은 전문 기능에 위임되므로 문구 일치를 성공 기준으로 삼지 않았다.
+- 실제 모델/Catalog/PG: common-comparison-followup-run-pg.py --live --label final, 1 PASS/18.88초, 턴별 실제 모델 호출 3/2/2=7. 정상 API 상태 선택→비교+룩→비교 대상 변경→상품명 답변, 정확한 두 상품 ID의 ProductAssessment, 질문 PG 복원, 룩 재조회 없음/결과 보존 확인. 실제 Catalog 19834/격리 vishue_chat_test 15434, 인증 mock, 앱과 구분. 최초 실행 4호출은 scope 결함으로 실패, retry 7호출은 비교 카드가 비어 있다는 테스트 기대 오류로 실패. 비교는 추천 후보 카드를 교체하지 않는 기존 계약이므로 근거의 두 상품 ID 검증으로 수정했다. 실패 XML은 삭제하지 않았다.
+- 모의/회귀: 최초 관련 65 PASS/1 SKIP; 보완 테스트 49 PASS/1 SKIP. 최종 backend 1,654 PASS/123 SKIP(40.23초), ruff/import-linter 3계약 PASS, 앱 typecheck/lint PASS. 이후 테스트에만 G7 빈 candidate_ids 조건을 추가했고 해당 1 PASS(0.18초); 제품 코드는 최종 전체 실행 상태와 동일하다. 실제 PG 회귀 45 PASS/11 SKIP(36.60초), 모델/Catalog/인증은 mock이며 live opt-in은 skip이다.
+- 실제 로그인 앱: Aside CLI 기존 설치 경로를 찾아 사용했다. 로그인 세션을 유지한 채 다슈 상품 상담에서 비교+룩→교체 질문→바이오더마 이름 입력(실제 Catalog 2개 일치라 미확인 유지)→유일한 크리니크 이름 입력으로 두 상품 비교 완료. 기존 룩은 보존됐다. Aside 탭 연결이 사라진 뒤 홈페이지에서 다시 들어와 최근 상담으로 네 턴을 복원했다. 같은 상담에서 토너·크림 독립 검색을 추가해 각 6개, 총 12카드가 표시됐다. 최종 복원 카드/상세 결과는 아래 최종 증빙 기록을 따른다. 계정 정보는 증빙에서 제외한다.
+- 실행 명령: backend/chatbot에서 uv run ruff check ., uv run lint-imports, uv run pytest -q --tb=short --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-comparison-followup-final --junitxml=../../reports/g8/parent/common-comparison-followup-backend-final.xml; uv run python ../../reports/g8/parent/common-comparison-followup-run-pg.py --regression. 루트 npm run typecheck, npm run lint. 시간/호출별 원문은 JSON/JUnit, 정확한 소스 diff/새 파일/해시는 common-comparison-followup-record.json에 연결한다. 신규 trace는 보안 검사 후 append한다.
+- 최종 앱: 최근 상담에서 5턴과 12카드 복원, 모달/로딩 종료, 바이오더마 하이드라비오 토너 카드 → /product/oy-a000000004434 상세 및 19,200원 일치 PASS. 실제 로그인/모델/Catalog/PG 결합이며 이번 앱 모델 호출은 3/2/2/2/3=12회다. 일반 상품이며 판매 옵션 양성 검증은 아니다. 화면 근거는 Aside 접근성 snapshot이며 스크린샷·Expo Go 검증으로 표현하지 않는다. 전체 실제 모델 호출은 단독 18 + 최초 PG 4 + PG retry 7 + 최종 PG 7 + 앱 12 = 48회. 보안 결과는 common-comparison-followup-security.log를 따른다.
+- 남은 UX: 중복 상품을 구체적으로 선택하는 안내, 비교 답변의 'Catalog 기준가격/검수 상태' 문구, 보존한 비교를 '상품 추천'으로 부르는 표시가 아직 어색하다. 이를 새 기능 완료로 감추지 않는다. 판매 optionId 양성 복원/Expo Go/원래 전체 G8 평가/사람 검토는 이번에 미실행. 데이터 릴리스와 API 배포 소스 SHA는 미확인이다.
+
+
+## 최신 상태 — 새 검색·비교 후속 구분 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤의 목표 추가/작업 ID/상품 종류/보존 구조에 검색·상세·비교 operation 구분을 연결했다. 일반 카드 복원은 이전 검증을 유지하며, 판매 옵션 복원·전체 N01/N02/E01/B01 종단 및 Expo Go는 남는다. G8 전체 완료가 아니다.
+
+- branch/HEAD: feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900 + 미커밋. 로컬 origin/develop=991dd634dba33b99ceeb1c03de4dd8d921ce07f9이며 이번 fetch를 하지 않아 최신 원격 SHA라고 주장하지 않는다. 기존 변경 보존, commit/push/PR 없음.
+- 수정: schemas/consultation_parent.py, services/consultation_intent_service.py, consultation_parent_graph.py, product_style_consultation_service.py. operation이 다른 update 거절, 독립 검색의 과거 비교 입력 제거, 정상 scope의 기존 결과 캐시 보존. tests/test_g8_consultation_intent.py와 test_g7_memory_api_pg.py를 보완했다. 승인된 나머지 테스트는 실행했으며 불필요한 수정은 하지 않았다.
+- 모의 검증: 관련 최초 61 PASS/1 SKIP, 추가 후 의도 테스트 36 PASS. 전체 backend 1,652 PASS/122 SKIP(73.23초); 일반 실행에서 PG/live opt-in은 skip이다. ruff, import-linter 3계약, 앱 typecheck/lint PASS. JUnit common-goal-binding-initial.xml/backend.xml. 테스트 소스의 정확한 diff·새 파일 내용·해시는 common-goal-binding-record.json/source.diff/new-sources.json으로 보존한다.
+- 실제 모델 해석: common-goal-binding-live.py 실행, gpt-6-luna live 6문장×3=18 HTTP 모델 호출. 기대 분기 16/18. 새 검색 3/3, 비교 유지+검색 3/3, 비교 철회+검색 3/3, 크림 예산 3/3, 모호한 지시어 확인 3/3. 비교 대상 교체는 1/3: 제안 거절 1회 및 구체 비교 상품 확인 1회. 첫 거절은 원문이 남지 않아 상세 원인을 확정할 수 없다. 원래 실패를 삭제하거나 확인 질문을 성공으로 바꾸지 않았다. live.json 및 고정 live-contract.json의 시각/계약 해시 보존. 종료 정리 코드의 unawaited sleep 경고만 수정했으며 모델 지침/스키마 재실행은 하지 않았다.
+- 실제 모델·Catalog·PG 연결: common-goal-binding-run-pg.py --live, 1 PASS(21.42초). 합성 부모를 심지 않고 정상 ChatService로 비교+룩을 시작했다. 이후 새 토너/크림 검색과 크림 15,000원 변경, 토너 결과 동일, 작업 ID/operation PG 복원, 저장 답변 일치를 확인했다. 모델 configured=live, 실제 호출 턴별 3/3/2=8회. 전체 이번 실제 모델 호출은 26회. Catalog 19834 실제 HTTP, PostgreSQL 15434의 격리 vishue_chat_test 실제 저장. 인증은 mock, 로그인 앱 NOT_RUN. 첫 비교는 상품 선택 확인 상태이고 룩 후보는 반환되어 새 검색과의 분리 검증에 사용했다. 비교 자체 완료라고 표시하지 않는다.
+- 실제 질의: 새 검색 턴은 /api/products?category=skincare 2회, 예산 변경은 1회. 종류·예산은 기존 서버 필터/판정으로 적용한다. 토너·크림은 각 6후보, 예산 변경도 크림 6후보다. 데이터 릴리스 버전 및 API 실행 소스 SHA는 미확인; 현재 로컬 데이터에서 관측한 결과다. 실제 답변·모델 호출·HTTP 경로는 common-goal-binding-dialogue.json/live-pg.xml에 있다.
+- 실행 명령: backend/chatbot에서 uv run ruff check ., uv run lint-imports, uv run pytest -q --tb=short --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-goal-binding-full --junitxml=../../reports/g8/parent/common-goal-binding-backend.xml; 루트에서 npm run typecheck, npm run lint. 실제 모델/PG 실행 시각은 JSON/JUnit에 기록한다. 추가 PG 회귀·최종 보안 결과는 아래 최종 기록에 덧붙인다.
+- 최종 PG 회귀: common-goal-binding-run-pg.py --regression, 45 PASS/10 SKIP(56.58초). 실제 PG이며 모델/Catalog/인증은 mock; live opt-in 사례는 skip이다. 신규 자료는 Gitleaks 빈 ignore 검사 후 trace에 추가하며 결과는 common-goal-binding-security.log/record.json을 따른다.
+- 남은 사항: 비교 대상 교체의 안정적인 작업 선택/구체 상품 확인 책임 정리, 새 분리 흐름의 로그인 앱 재검증, 판매 옵션 복원 양성, 원래 전체 평가. 후속 작업은 이번 실패 증거를 기준으로 공통 계약을 보완하며 사례별 문구 분기는 추가하지 않는다.
+
+## 최신 상태 — 최근 상담 복원·복원 카드 상세 확인 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤ C의 일반 상품 카드 저장/복원/상세 흐름을 확인했다. 판매 옵션 사례, 새 검색과 기존 비교의 구분 결함, 원래 전체 평가와 Expo Go는 남는다. G8 전체 완료가 아니다.
+
+- 기준 branch/HEAD는 feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋이며 이번 원격 fetch/commit/push/PR 없음.
+- 이전 로딩 지속은 당시 관측으로 보존한다. 이번 조사에서는 CI 모드 Metro가 소스 변경을 감시하지 않는 점, 브라우저 초기 hydration/자동화 문맥 교체, 포인터 조작 후 실제 전환이 즉시 확인되지 않는 경우를 관측했다. 추적을 넣고 현재 소스/캐시/전용 서버를 맞춘 뒤 활성 Aside 탭에서 복원이 완료됐다. 이것만으로 이전 정지의 단일 원인을 확정하지 않는다. 인증 교착이나 PG 장애로 확정하지 않았고 제품 코드에 추측성 우회·타임아웃을 넣지 않았다.
+- 임시 lib/api.ts / hooks/useChatConversations.ts 추적은 인증정보·계정·상담 ID 없이 단계명만 기록했다. 실제 상세 수신 → room-restored → recovered 완료(common-answer-app-restore-phases.json)를 확인했다. 추적 diff는 restore-instrumentation.diff로 보존하고 제품 소스에서 모두 제거했다. 최종 두 제품 파일은 HEAD와 차이가 없다. chatSessionApi.test.ts는 기존 회귀를 실행했으며 수정할 필요가 없어 유지했다.
+- 최종 구현 변경은 __tests__/useChatConversations.test.tsx의 기존 복원 테스트에 로딩 종료/오류 없음/저장된 상품 ID 유지 assertion 추가다. 검증 런처 common-answer-app-restore-web.py는 지정 포트 사용 중이면 재시작을 거절하고 새 캐시 실행/시작 소스 해시를 기록한다. 진단 과정의 비감시/감시 서버 재시작, 포트 충돌과 Metro unknown module 59 오류는 restore-web.log에 보존했다. 최종은 포트 19836 소유 프로세스를 확인·종료한 뒤 하나의 CI 서버(pid 32332)를 새 캐시로 실행했고 제품 파일 수정 없이 검증했다. 이 최종 실행 이후 런처에 포트 사전 확인/시작 해시 기록을 보강했으며 실행 중 서버에 소급 적용한 것으로 주장하지 않는다.
+- **실제 로그인 앱 PASS**: 현재 소스의 앱에서 최근 상담 목록 → 21:04:10 상품 상담 선택 → 기존 3턴의 답변과 각 크림 카드 6개 복원 → 마지막 12,600원 다슈 카드 상세 이동. 상품 ID `oy-a000000122212`, 이름 `다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml`, 가격 12,600원이 일치했다. 최종 선택은 화면에 확인된 버튼의 키보드 Enter 조작이며, 가짜 화면 응답/서버 API 직접 호출로 대체하지 않았다. 최근 상담 모달과 로딩이 종료되고 카드가 실제 표시되는 것을 확인했다. snapshot: common-answer-app-restored-final.txt / restored-detail.txt. 이는 일반 상품 상세이며 판매 optionId 양성 사례가 아니다.
+- 실제/모의 구분: Supabase 기존 로그인, 실제 로컬 PG 저장 상담의 HTTP 복원과 Catalog 상품 상세는 실제다. 이전에 실제 모델로 생성·저장한 답변을 복원했으며 이번 복원 검사에 신규 외부 모델 호출은 0회다(기존 turns.jsonl 4행 유지). 모델 mock/replay 호출을 실제 호출로 세지 않는다. PG 직접 SQL 새 실행/새 상담 생성/Expo Go/전체 G8 평가/사람 검토는 이번에 NOT_RUN.
+- 모의 회귀: useChatConversations/chatSessionApi/chatProductDetail 3 suites/41 PASS, 타입 검사와 lint PASS. 원본 restore-tests.log/typecheck.log/lint.log. 계정 전환·늦은 응답 차단을 포함한 기존 회귀를 유지했다. 백엔드 변경이 없어 이전 전체 백엔드를 재실행하지 않았다.
+- 최종 상세 화면의 스크린샷도 Aside CDP capture timeout으로 생성되지 않았다. 실제 접근성 snapshot과 서버 HTTP 기록을 증거로 사용하며 이미지/시각 품질 검증 완료라고 표시하지 않는다.
+- 다음: 비교 후 새 목표 분해 결함을 공통 의도 계약에서 보완 → 판매 옵션 복원 카드/상세 검증 → 원래 N01·N02·E01·B01 전체 종단. 소스/증빙은 common-answer-app-restore-record.json과 restore-source.diff에 식별하고 보안 검사 후 기존 trace 35행을 보존하여 추가한다.
+
+## 최신 상태 — 공통 답변·실제 로그인 앱 연결, 복원 미완료 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+현재 ⑤: A 공통 결과 계약 유지, B 상품 조건·완료 판정 유지, **C 공통 답변 구현/부분 실제 앱 검증**, D 원래 N01·N02·E01·B01 전체 평가 대기. C/G8 전체 완료로 표시하지 않는다.
+
+- 기준: feat/compound-consultation, HEAD `3a8ee1c5d44214623487e5f07717500368259900` + 기존 미커밋 작업. 로컬 origin/develop `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`; 이번 fetch/commit/push/PR 없음.
+- 변경: schemas/consultation_answer.py, services/consultation_answer_service.py, services/consultation_parent_graph.py 및 tests/test_g8_consultation_answer.py, tests/test_g7_memory_api_pg.py. 내부 objective를 화면 제목으로 출력하지 않고, 검증된 현재/이전 조건·보존 상태·카드 수로 상품 답변을 구성한다. 기존 전문 지식/부분 결과의 근거 문구, 판매 옵션 및 카드 연결은 유지한다. 나머지는 승인된 두 문서와 common-answer-app-* 증빙. 앱 제품 소스는 이번에 아직 변경하지 않았다.
+- 모의/정적: 답변·부모·의도 집중 회귀 57 PASS, 앱 카드·저장 복원·상세 테스트 3 suites/61 PASS. 타입 검사/lint, 챗봇 ruff/계층 3계약 PASS. 전체 챗봇은 1,631 PASS/121 SKIP/17 ERROR: 기존 공용 pytest 임시 폴더 접근 권한 오류로 17건의 setup이 실패했다. 소스 수정 없이 별도 basetemp로 해당 3개 테스트 파일을 재실행하여 38 PASS. 단일 전체 실행 통과로 표현하지 않는다. 원본 common-answer-app-backend.xml / backend-temp-retry.xml 보존.
+- 실제 PG 회귀: 격리 vishue_chat_test에서 45 PASS/9 SKIP(common-answer-app-pg.xml). 이 회귀의 모델·인증·Catalog는 mock이다.
+- 실제 모델·Catalog·PG: common-answer-app-live-pg-answer.xml / live-dialogue.json, 4턴 PASS, 실제 gpt-6-luna 호출 3/2/2/2 = 9회. 토너·크림 검색 → 토너 보존+크림 보습 → 크림 15,000원 → 종류 해제+예산 유지. 내부 작업 문구/ID 비노출, 후보·종류·예산·보존 및 저장 답변 일치를 검사했다. 인증과 최초 부모 상태는 합성이므로 로그인 앱 결과와 분리한다.
+- 실제 로그인 웹 앱: Aside로 기존 Supabase 로그인 상태를 확인하고 정상 UI로 4개 합성 발화를 전송했다. 일반 보습 추천 1회, 비교+룩 3회, 토너/크림 추가 3회, 크림 예산 변경 2회로 모델 호출 총 9회. 초기 Neo4j 연결 실패 요청은 별도 미완료 시도로 보존했고, 완료 발화 호출 수에 포함하지 않는다. 로컬 검증 런처의 G1/Neo4j 주소를 기존 실행 서비스에 맞춰 재시작했다. G5는 꺼져 있으며 이 실행은 지식 품질 검증이 아니다.
+- 앱에서 확인: 일반 보습 후보 6개 표시; 공통 부모 크림 6개 표시; ‘크림만 15,000원 이하로 찾아줘’ → ‘크림은 15,000원 이하로 맞췄어요’와 6개 카드. 첫 일반 카드 `oy-a000000004434`/19,200원과 예산 변경 카드 `oy-a000000122212`/12,600원이 각각 같은 상품 상세로 이동했다. Aside 접근성 snapshot을 detail/added/budget/cream-detail.txt에 보존했다. 스크린샷은 CDP capture timeout으로 생성되지 않았으며 snapshot을 화면 이미지로 표현하지 않는다.
+- 실제 PG 대조: vishue_g8_browser 읽기 전용 SQL로 로그인 앱 네 응답과 저장된 답변/상품 ID 목록의 일치를 확인했다(common-answer-app-pg-browser.json). 서버 저장 검증이 앱 재진입 복원 성공을 뜻하지 않는다.
+- **미해결**: 최근 상담 선택 후 ‘상담을 불러오는 중이에요’ 지속. 서버 GET은 HTTP 200(restore-http.jsonl)이나 클라이언트 종료 원인은 미확정이다. hooks/useChatConversations.ts, lib/api.ts의 추적/수정 및 chatSessionApi.test.ts 추가 범위를 사용자에게 요청했다. 승인 대기 중 해당 파일을 수정하지 않았다. 복원된 카드 상세 이동·판매 optionId 사례·Expo Go·전체 G8 평가·사람 검토는 NOT_RUN/차단으로 남긴다.
+- **추가 결함**: 비교+룩 상담에 ‘토너 찾아줘. 크림도 찾아줘’를 추가하면 토너가 새 검색 대신 기존 비교 후속으로 해석되어 비교 대상 질문이 반환됐다. 크림 검색/예산은 실행됐으나 두 종류의 신규 검색 성공으로 기록하지 않는다. 기존 합성 부모 4턴 PASS와 이 실제 진입 실패를 구분한다.
+- 실행: backend/chatbot에서 `uv run pytest -q --tb=short --junitxml=../../reports/g8/parent/common-answer-app-backend.xml`; 실패한 기존 3개 파일은 `--basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-common-answer-app-retry`로 재실행. `uv run python ../../reports/g8/parent/common-answer-app-run-pg.py --live --label answer`, 동일 스크립트 `--regression`, `uv run python ../../reports/g8/parent/common-answer-app-verify-pg.py`. 루트 `npm run typecheck`, `npm run lint`, `npm test -- --runInBand __tests__/chatProducts.test.ts __tests__/useChatConversations.test.tsx __tests__/chatProductDetail.test.tsx`. 시각은 XML timestamp/turns.jsonl at, 소스는 common-answer-app-source.diff/new-sources.json/record.json으로 보존한다. 모델 alias gpt-6-luna, 고정 모델 snapshot과 Catalog 데이터 릴리스 버전은 미확인이다.
+- 다음: 복원 대기 원인 확정/계정 전환 방어 유지 회귀 → 실제 최근 상담/복원 카드 상세 → 새 검색과 기존 비교 구분 → 판매 옵션 카드 → ⑥ 원래 전체 평가. 새 운영 제한이나 공용 API/AR 정책 변경 없음. 신규 증빙은 보안 검사 후 trace에 append하며 과거 기록을 유지한다.
+
+## 최신 상태 — 상품 종류 계약·완료 판정·명시 보존 (2026-11-27)
+
+마지막 상태 수명 수정 후 전체 백엔드 **1,647 PASS/121 SKIP**(common-parent-product-contract-lifecycle-backend.xml). 아래 1,646건은 그 직전 소스의 기록이다. 이번 전체 실제 모델 호출은 탐색·실패·중간·최종을 모두 포함해 **62회**, 고정된 최종 4턴×2회는 그중 **18회**다.
+
+최종 상태 수명 보완: 실제 고정 검증/보안 기록 이후 검토에서 상품 재조회 실패 시 직전 성공 assessment가 남아 공통 결과 검증에서 상태 불일치를 낼 수 있는 경로를 발견했다. execute_request의 새 상품 실행 시작에서 assessment만 초기화하고 상품 요구 조건/검색 context는 유지하도록 수정했다. 신규 실패 회귀 포함 집중 89 PASS/1 SKIP, ruff/import 3계약 PASS. 이 마지막 변경에서는 외부 모델을 다시 호출하지 않았다. 앞 실제 모델·Catalog·PG 증빙은 preserve-source.diff 소스, 마지막 변경 소스/회귀는 lifecycle-*로 구분해 보존한다. 기존 실제 검증을 최종 변경 뒤 재실행한 것으로 표현하지 않는다.
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 ⑤의 A 공통 결과 연결 유지, **B 상품 조건/완료 판정 보완 및 실제 모델·Catalog·PG 검증 완료(아래 범위)**. C 공통 답변·앱 표시, D 전체 종단/원래 N01·N02·E01·B01 평가와 일반 표현 안정성은 남는다. ⑤/G8 전체 완료가 아니다.
+
+- 기준 branch feat/compound-consultation, HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 작업. 이번 원격 fetch/commit/push/PR 없음. 이전 작업 파일을 보존했고, 이번 승인한 상품 계약 파일과 추가 승인한 consultation_intent_service.py / test_g8_consultation_intent.py 범위에서 수정했다.
+- 구현: ProductRequirement(상품 종류), 변경 set/keep/clear/unknown, ProductAssessment(조건 판정·조회 수·표시 후보별 상품명 근거·제한)를 공통 스키마/서비스로 추가했다. 신규 부모 상품 작업의 전문 계획은 종류를 보습 선호·상품명 query와 분리한다. task ID별 요구 조건과 기존 검색 context(세션 토큰 제외)를 서버 부모에 저장하며 다음 전문 요청에 전달한다. 기존 단일 상담 공개 API와 기존 foundation/cushion productType 계약은 바꾸지 않았다.
+- 상품명 판정: 기존 Catalog name/nameKo로 지원 종류를 분류한다. 일반 크림보다 클렌징·톤업·아이크림·선제품·팩 등 용도를 우선하고, 토너/로션 같은 상충 표기는 UNKNOWN. 명시적 증정품 표기는 본품 종류에서 제외한다. description의 다른 상품 언급으로 종류를 확정하지 않는다. 별도 사람 검수 데이터를 필수로 요구하지 않는다. 지원 어휘는 product_search_contract.py의 KIND_TERMS이며 전체 상품 분류 체계 완성/효능 검증은 아니다.
+- 완료 판정: 정상 조회와 일치 후보 없음은 no_match로 구분, 미확인/미지원 조건은 partial 또는 확인 질문, 조회 실패는 기존 failed 경로를 유지한다. 기존 가격·향료 등 ConditionCheck의 미확인도 완료로 승격하지 않는다. 부모가 수집하는 완료 결과의 상품 ID마다 해당 종류의 match 근거가 있어야 한다. 상품 비교는 실제 Catalog 식별 조회를 별도 판정 근거로 제공해 기존 E01 동작을 유지한다.
+- 추가 발견/수정: 실제 PG 테스트의 초기 assertion은 대상 크림 조건만 검사했고, 전체 저장 결과 대조에서 “토너 쪽은 놔두고”를 부모 모델이 철회로 해석해 토너가 superseded 된 사례를 발견했다. 당시 pytest 1 PASS를 형제 작업 보존 PASS로 확대하지 않는다. 사용자 추가 승인 후 공통 changes.operation에 preserve를 추가했다. 보존/변경/철회 충돌과 변경된 선행 결과에 의존하는 보존 요구를 거절하고, 보존-only는 도구 실행 없이 결과를 유지한다. 강화한 실제 테스트는 토너 상태·상품 목록 보존까지 검사한다.
+- **최종 실제 결합 검증: 고정한 지침/스키마로 4턴을 2회 실행, 두 번 모두 PASS.** 첫 “토너 찾아줘. 크림도 찾아줘” → “토너 쪽은 놔두고 크림만 촉촉한 걸로” → “토너 쪽은 놔두고 크림만 15,000원 이하로” → “크림 종류 제한만 풀고 그 예산은 유지해줘”. 실제 gpt-6-luna/Catalog HTTP/격리 PostgreSQL을 함께 사용했다. 매번 모델 호출 3/2/2/2회, Catalog 조회 2/1/1/1회. 토너 재조회 없이 상태/상품 목록 유지, 크림 종류 유지, 예산 적용, 종류 해제 후 예산 유지 및 저장된 최종 답변 조회 일치를 검증했다. 인증과 최초 knowledge 완료 작업은 합성이며 로그인 앱/G5 실행은 NOT_RUN이다.
+- 이전 실제 5턴에서는 크림→로션 변경과 예산 유지도 확인했다(common-parent-product-contract-product.json). 이후 초기 부모 계획이 기존 style 작업을 중복 변경하려 해 서버가 거절한 별도 5턴 실행은 final-product.json에 보존했다. 이를 성공 재실행으로 덮어쓰지 않았다. 최종 보존 지침은 새로운 역할은 additions로 처리하도록 명시하지만 모든 초기 부모 조합/표현의 안정성을 입증한 것은 아니다. broad-product.json의 실제 립/베이스 2작업 조회는 별도 PASS.
+- 실제 상품 대조: live-dialogue-preserve.json에서 4턴×2작업의 표시 상품 ID/가격을 Catalog 4,991행의 후속 스냅샷과 독립 대조했다. 예산 15,000원 턴에 더랩바이블랑두 카밍+ 크림 14,850원, 디오디너리 내추럴 모이스처라이징 팩터스 + HA 10,200원 등을 확인했다. 가격은 앱 등록 상품 가격이며 실시간 판매 옵션 현재가 검증이 아니다. HTTP 응답 SHA-256을 보존했고 Catalog build SHA는 endpoint에서 제공하지 않아 미확인으로 기록한다.
+- 실제 호출: 최종 고정 2회 검증 18회. 이번 prefix 전체 탐색/실패/중간 검증을 포함한 원격 모델 호출 합계는 record.json에서 원본 JSON/XML을 합산한다(초기 실패 호출 포함). replay 없음. modelConfiguredMode와 실제 remote HTTP 수는 턴별 별도 기록, 모델 별칭 gpt-6-luna이며 immutable model snapshot은 미고정이다.
+- **모의·회귀:** 최종 전체 백엔드 1,646 PASS/121 SKIP(backend-preserve.xml). 실제 PG 회귀 45 PASS/9 SKIP(pg-preserve.xml), 이 회귀의 모델/Catalog/인증은 mock. 새 공통 보존 집중 검증 64 PASS. ruff PASS, import-linter 3계약 PASS, 앱 typecheck/lint PASS. 전체 앱 테스트·로그인 앱·AR 실행·G5 재검증은 이번 NOT_RUN.
+- 증빙: common-parent-product-contract-*에 초기/최종 실행을 구분했다. live-pg-preserve.xml / live-pg-preserve-repeat.xml은 강화된 실제 4턴 결과. frozen.json은 최종 지침/스키마, preserve-sources.json/source.diff/preserve-new-sources.json은 실행 대상 미커밋 소스다. 정확한 실행 시각은 JSON at/HTTP event 및 JUnit timestamp에 남긴다. 주요 명령은 backend/chatbot의 `uv run python ../../reports/g8/parent/common-parent-product-contract-run-pg.py --live --label preserve`와 `--label preserve-repeat`, `--regression --label preserve`, `uv run pytest -q --tb=short -o junit_family=legacy --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-product-contract-preserve-final --junitxml=../../reports/g8/parent/common-parent-product-contract-backend-preserve.xml`.
+- 다음: C의 내부 작업 문구가 그대로 노출되는 답변 결합/카드 범위 선택 개선, 로그인 앱에서 저장·복원·상품 상세/판매 옵션 연결 확인, 새 목표 추가·보존·철회의 별도 표현 및 원래 G8 평가 확장. 신규 증빙은 환경 자격증명 대조·Gitleaks 검사 통과 후 기존 trace prefix를 보존하여 추가한다.
+
+## 최신 실제 연결 검증 — 설명·상품 조회·최종 응답 (2026-11-27)
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. A 공통 결과 계약 유지, B 작업 ID 실행의 실제 전문 서비스 연결 확인, **B 상품 조건 충족/완료 판정 결함 발견**, C 공통 답변 품질 및 D 로그인 앱·전체 평가 미완료. 이전 모의/계획 해석 통과를 실제 상담 품질 통과로 확대하지 않는다.
+
+- 기준: feat/compound-consultation, HEAD 3a8ee1c5d44214623487e5f07717500368259900 + 기존 미커밋 소스. 이번에는 제품 코드를 수정하지 않고 승인된 common-parent-connected-* 증빙과 관리 문서를 추가한다. develop 최신 원격 fetch는 이번에 하지 않았다.
+- 실제 경로: 현행 ChatService.answer → 부모 실제 gpt-6-luna 해석 → G5 실제 검색/원문/선택·답변·검증(gpt-6.1-terra) 또는 실제 Catalog HTTP → 부모 응답 결합. 최초 부모의 완료된 style 작업 하나는 합성 준비 상태다. 로그인/ConversationService/PG 대화 저장은 이번에 실행하지 않았다. 후속 턴은 앞 실제 서비스 결과의 부모 JSON을 읽어 전달했으며 PG 복원으로 표현하지 않는다.
+- 상품 질문: `토너 찾아줘. 크림도 찾아줘` → 서로 다른 상품 작업 2개, 모델 3회, 실제 /api/products?category=skincare 조회 2회(각 4,991개 원본 응답), 각각 6개 표시 후보. 토너와 크림의 검색어는 전문 서비스의 로컬 필터에서 적용된다. HTTP 요청 자체가 서로 다른 상품 종류를 전송한 것은 아니다. 크림 후보에는 클렌징크림·톤업크림도 포함됐다.
+- 실제 후속: `보습용 크림으로 찾아줘. 토너는 그대로 둬` → 토너 재조회 0회, 크림 작업만 실행, 모델 2회/Catalog 1회. 그러나 반환 상품은 토너·클렌징 젤·미스트·마스크·로션 등으로 크림 조건이 유지되지 않았다. **작업 ID 선택 PASS, 상품 조건 적합성 FAIL**. 부모는 해당 product를 completed로 기록하므로 의미적 조건 충족과 완료 판정 연결도 보완 필요하다.
+- 실제 지식 질문: `세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘` → 지식 작업 2개, 검색 각 20후보, 모델 7회(부모 1 + G5 6). 보습 순서 전체 대신 세안 후 물기 유지 주장, 일반 덧바르기 대신 수영장 상황의 주장만 남고 두 결과 모두 partial. 근거 E1~E4 분리는 동작했다. 불충분 근거를 설명 완성으로 간주하지 않는다.
+- 실제 혼합 질문: `세안 후 보습 순서를 설명해줘. 보습용 크림도 찾아줘.` → 실제 설명+상품 실행 2개, 모델 5회, 최종 답변 결합. 지식 partial, 상품 completed지만 크림 외 상품 6개 반환으로 적합성 FAIL. 새 독립 작업 간 결합 검증이며 N01의 K1→V1 성분 조건 전달 검증을 대체하지 않는다.
+- 총 실제 챗봇 원격 HTTP 호출 **17회: gpt-6-luna 8, gpt-6.1-terra 9**, 모두 200. 모델 설정 live와 턴별 실제 횟수를 별도 기록했다. API 프로세스의 임베딩 원격 횟수는 미계측이며 검색 3회의 embeddingInputTokens(16/28/16)만 관측했다. 모델 별칭을 사용했으며 immutable 모델 snapshot은 별도 고정하지 않았다. 문서 sourceVersion, Catalog 응답 SHA-256·후보 ID는 JSON에 보존한다.
+- 환경: 기존 Windows Catalog 19834 실제 응답. G5는 WSL 내부 15441 DB가 살아 있었으나 Windows localhost 접근이 거부됐다. 자동 승인 검토가 릴레이를 거절했고 사용자가 WSL IP:19841→내부15441 임시 릴레이를 명시 승인했다. 현행 G5 API를 localhost19838에 실행해 기존 DB를 사용했다. 검증 후 이번 임시 API/릴레이만 종료, 기존 DB·서버 유지. 초기 8082/19834 G5 경로 탐색은 404였다.
+- 모의 회귀: 부모 intent/parent 테스트 **48 PASS**, XML에 4건의 기존 record_property/xunit2 경고 포함. 앱 typecheck/lint PASS. 이번 전체 백엔드·전체 앱 테스트 재실행은 NOT_RUN(제품 코드 변경 없음); 앞 절 1,630/119와 PG 44/8은 이전 검증이다.
+- 원본 질문/답변/상품/전문 입력/HTTP/작업 상태: common-parent-connected-product.json, product-followup.json, knowledge.json, mixed.json. 명령: backend/chatbot에서 `uv run python ../../reports/g8/parent/common-parent-connected-run.py product`, `product --followup`, `knowledge`, `mixed`; `uv run pytest tests/test_g8_consultation_intent.py tests/test_g8_consultation_parent.py -q --tb=short --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-connected-check --junitxml=../../reports/g8/parent/common-parent-connected-tests.xml`; 루트 `npm run typecheck`, `npm run lint`.
+- 다음 우선순위: 상품 종류·용도 조건을 보존하는 구조화 검색 계약과 결과 적합성/완료 판정, 질문의 범위와 부분 지식 답변의 관련성, 이후 C 공통 답변과 D 실제 로그인 앱/저장·전체 평가. 정확한 제품 수정 파일 범위는 별도 제시 후 승인 범위에서 수행한다. 이번 PR/commit/push 없음.
+
+## 최신 상태 — B 새 목표 분해·동일 역할의 작업 ID 실행 (2026-11-27)
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+세부: A 공통 결과 연결 완료. B의 기존 작업 변경/무효화에 이어 **활성 상담의 독립 지식·상품·룩 목표 추가와 동일 역할 복수 작업의 ID별 실행·저장·복원·재시도 구현/관련 검증 완료**. C 공통 답변 및 실제 앱 표시/선택, 별도 표현·원래 G8 전체 평가를 포함한 D는 남는다. G8 전체/⑤ 전체 완료가 아니다.
+
+- 기준 feat/compound-consultation / HEAD 3a8ee1c5d44214623487e5f07717500368259900. 로컬 origin/develop 991dd634dba33b99ceeb1c03de4dd8d921ce07f9(fetch 없음). 기존 미커밋 보존, commit/push/PR 없음.
+- 변경: schemas/consultation_parent.py의 추가 목표/문자열 taskId/질문 ID/표시 결과 저장, schemas/chat.py의 요청 내 의존 결과 전달, consultation_intent_service.py의 발화 근거·대상 검증, consultation_parent_graph.py의 ID 실행·위상 순서·범위별 재사용·표시 결합, consultation_task_adapter.py의 ID/의존 참조, chat_service.py의 기존 전문 서비스 위임. 기존 승인된 두 테스트 파일(test_g8_consultation_intent.py, test_g7_memory_api_pg.py), 관리 문서와 common-parent-ids-* 증빙을 갱신했다.
+- 실제 코드+모의 모델/Catalog 검증: 지식 작업 2개를 서로 다른 ID로 실행, 하나의 실패 후 해당 ID만 재시도, 서로 충돌하는 로컬 E1 근거의 원문/문서 버전 보존과 합성 번호 구분, 원래 findings.index 보존, ID별 철회/갱신, 상품 역할 2개의 실제 Catalog category 입력 lip/base 구분, 기존 결과 참조 보존, 없는 목표/위조 조건/중복 추가/한도 초과 거부. 두 작업이 토너/크림 q를 HTTP로 전달한다고 주장하지 않는다. 기존 상품 서비스의 해당 조회 계약은 category/ids와 로컬 필터이며 테스트는 실제 지원 category 입력으로 검증했다.
+- 추가 경계 검증: 기억 epoch 변경 뒤 저장 결과 show/reuse 차단, G5에 실제 StyleRecipe가 앞선 owned_look 결과에서 전달됨, 작업 배열의 순서와 무관한 의존 실행, 보유 확인 부분 성공 상태에서도 독립 설명 유지. 초기 비선택 pending 작업을 공통 결과로 변환할 때의 스키마 오류는 실행 안 함(skipped)으로 구분해 수정했다. Catalog 원본 ReviewedRecipe를 앱용 StyleRecipe 대신 넣은 테스트 fixture 오류도 기존 execute_style을 통과하도록 수정했다.
+- 최종 백엔드 **1,630 pass/119 skip**(common-parent-ids-backend-final.xml/log), ruff 통과, import 3계약 통과, 앱 typecheck/lint 통과. 그 이전 실행 1,628 pass/119 skip은 common-parent-ids-backend.xml/log에 별도 보존한다.
+- 실제 PostgreSQL **44 pass/8 skip**(common-parent-ids-pg.xml, common-parent-ids-pg-final.log). 격리 vishue_chat_test, 인증·모델·Catalog는 mock. 신규 사례는 두 지식 작업의 ID·원본 근거·실패 상태 저장→다음 요청에서 복원→실패 ID만 실행→응답 저장/조회 일치다. 전후 성공한 다른 지식 작업 호출 수가 증가하지 않음을 확인했다. 실제 G5·Catalog·로그인 앱을 함께 묶은 검증은 아니다.
+- 실제 모델: common-parent-ids-live-contract.json에 지침/스키마를 고정하고 SHA-256을 매 호출 기록에 넣었다. 승인된 합성 4개 문장을 각 3회, 총 **12/12** 통과(common-parent-ids-live.json/log). modelConfiguredMode=live와 actualModelCalls=1을 턴마다 분리, 총 12회. api.openai.com/v1, gpt-6-luna. 실행 중 지침 조정 없음. 별도 고정 snapshot 모델 버전은 확인하지 못했다. 이전 B1의 12회와 다른 실행이며 합산 성공률로 섞지 않는다.
+- 실제 모델 네 사례는 서로 이어지는 실사용자 대화가 아니라 같은 합성 입력/상태를 반복한 독립 검사다. 목표 분해와 ID 선택까지 확인했고 실제 Tool 조회/저장은 위 모의 모델 실행·실제 PG 검사로 별도 확인했다. 이번 지침의 별도 holdout 표현·실제 Catalog·로그인 앱·Expo Go·원래 전체 평가·사람 검토는 NOT_RUN이다.
+- 실행 명령: backend/chatbot에서 `uv run ruff check .`, `uv run lint-imports`, `uv run pytest -q --tb=short -o junit_family=legacy --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-parent-ids-final --junitxml=../../reports/g8/parent/common-parent-ids-backend-final.xml`, `uv run python ../../reports/g8/parent/common-parent-ids-run-pg.py --regression`, `uv run python ../../reports/g8/parent/common-parent-ids-live.py`; 루트에서 `npm run typecheck`, `npm run lint`. 실행 시각은 XML timestamp/live JSON at, 소스는 common-parent-ids-sources.json/source.diff/new-sources.json으로 식별한다.
+- 남은 범위: 초기 턴의 자유 목표 분해와 새 의존 연결 종류는 이번에 확장하지 않았다. 현재 추가 가능한 새 목표는 독립 knowledge/product/style이며 기존 N01/N02 내부 협력은 재사용한다. 계획 5작업 한도의 장기 대화 보관 정책, 여러 옵션 범위의 선택/카드 실제 앱 검증, 자연스러운 공통 답변(C), holdout/최종 실제 종단 및 원래 N01/N02/E01/B01 전체 평가(D)가 다음 범위다.
+- 보안: 신규 common-parent-ids-* 증빙과 변경 소스는 빈 ignore의 Gitleaks 8.30.1 통과 후 trace에 추가한다. 기존 30행을 유지한다. 모델에 보낸 것은 승인한 합성 발화와 합성 작업 ID/목표/상태/스키마이며 인증정보·실사용자 기록·G5 문서 원문은 보내지 않았다.
+
+## 최신 상태 — B 복합 변경·재사용 무효화 연결 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+세부: A 완료 → **B 기존 작업의 복합 변경·전이 무효화 연결 검증** → 새 목표 추가/분해·동일 역할 복수 작업 잔여 → C 공통 답변 → D 최종 종단/원래 평가. 전체 B 완료가 아니다.
+
+- 기준 HEAD 3a8ee1c5d44214623487e5f07717500368259900, feat/compound-consultation. 로컬 origin/develop 991dd634dba33b99ceeb1c03de4dd8d921ce07f9(fetch 없음). 기존 미커밋을 보존했고 commit/push/PR 없음.
+- 변경 파일: schemas/consultation_parent.py의 ConsultationChange, schemas/chat.py의 요청 내부 재계획 자료; consultation_intent_service.py의 구조화 변경 검증/전이 무효화; consultation_parent_graph.py의 설명 철회/보유 상담 업데이트 연결; product_style_consultation_service.py의 영향받는 캐시 배제와 독립 결과 재사용; chat_service.py의 skin 업데이트 연결; test_g8_consultation_intent.py의 관련 7개 회귀. 나머지는 승인된 두 관리 문서와 common-parent-replan-* 증빙이다.
+- 모의 검증: ‘왜 그런지에 대한 해설은 이제 됐고, 1만원 이하로 다시 골라줘’를 구조화된 철회+업데이트로 받아 추가 지식 호출 0회, Catalog 옵션 요청 max_price_krw=10000, 보유 선언 유지, 설명 superseded를 확인했다. 전이 의존 3작업의 참조 제거와 독립 작업 참조 보존, 룩 조건 변경 시 기존 상품 비교 호출 없이 룩 재조회와 새 요청 전달, 중복/없는 대상/허위 인용/잘못된 행동 조합 거부도 확인했다. 모델/Catalog는 mock이며 서비스와 부모 실행은 실제 코드다.
+- 전체 백엔드 1,620 pass/118 skip(common-parent-replan-backend.xml/log), ruff 통과, import 계층 3계약 통과. 기존 1,613건에 새 회귀 7개 추가. PG 저장·복원 회귀와 앱 typecheck/lint는 common-parent-replan-pg.xml/log, common-parent-replan-typecheck.log/lint.log에 별도로 기록한다.
+- 실행: backend/chatbot에서 `uv run ruff check .`, `uv run lint-imports`, `uv run pytest -q --tb=short -o junit_family=legacy --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-replan --junitxml=../../reports/g8/parent/common-parent-replan-backend.xml`, `uv run python ../../reports/g8/parent/common-parent-replan-run-pg.py --regression`; 루트에서 `npm run typecheck`, `npm run lint`. 시각은 XML timestamp, 정확한 미커밋 상태는 common-parent-replan-sources.json/source.diff/new-sources.json에 보존한다.
+- 이번 외부 모델 호출 0회, 모델 설정 mock. 새 프롬프트의 실제 모델·실제 Catalog·로그인 앱·자유 표현 일반화는 NOT_RUN. 앞선 실제 모델 4/4는 이전 프롬프트의 별도 검증이며 이번 통과 수치로 사용하지 않는다. 현재 테스트는 실제 종단 답변/카드까지의 완성을 증명하지 않는다.
+- 다음 구현은 새 목표 추가·분해와 작업 ID 기반 실행을 기존 전문 기능에 연결하는 것이다. 현재 changes는 기존 작업만 대상으로 하며 동일 역할 복수 작업은 아직 허용하지 않는다. 이후 지침 고정 반복/별도 표현 및 실제 모델·Catalog·PG·앱 연결 검증을 진행한다. C/D 및 원래 N01/N02/E01/B01 완료 범위는 유지한다.
+- 신규 증빙은 빈 ignore의 Gitleaks 8.30.1 통과 후 trace에 추가하며 기존 29행을 유지한다.
+
+## 최신 상태 — B 공통 후속 해석·실행 경계 1차 검증 (2026-11-27)
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+현재 세부: A 공통 결과 연결 완료. **B의 공통 후속 해석·선택 재시도·취소/재개와 실행 경계 연결**, 최종 검증 기록 정리. B 전체 자유 계획/재계획 통합 완료는 아니다. C 공통 답변, D 실제 종단·전체 평가는 남아 있다. 기존 6묶음의 B01·부모·나머지 사용자 경험·전체 평가를 축소하지 않는다.
+
+- 기준 feat/compound-consultation / HEAD 3a8ee1c5d44214623487e5f07717500368259900. origin/develop은 로컬 참조 991dd634dba33b99ceeb1c03de4dd8d921ce07f9이며 fetch하지 않았다. 기존 미커밋 보존, commit/push/PR 없음.
+- 변경: ConsultationIntent/TaskRequest, ParentTask 식별자와 취소 상태, 공통 해석 서비스, 부모 execute_request 경계, ChatService 진입·공유 deadline, E01 선택 재시도, 기존 상태 저장 호환. N01/N02 전문 조회·옵션 판정·동의·AR 권한을 대체하지 않았다. 수정한 테스트 모델은 새 부모 도구와 기존 도메인 도구의 응답/호출 수를 분리한다. 추가 승인 받은 파일은 test_g8_compound_consultation.py, test_g8_owned_look_interpreter.py, test_g7_conversation_api_pg.py다.
+- 모의: 최종 전체 백엔드 1,613 pass/118 skip(common-parent-backend.xml/log). 부모 자연어 제안→선택 조회 입력, 취소→복원→재개, 의존 실패와 독립 작업, 잘못된 대상/인용/버전 거부, AR·기억·장바구니 요청 모델 우회, 기존 N01/N02/E01 회귀를 확인했다. ruff와 계층 검사 3개 통과. 앱 typecheck/lint 결과는 common-parent-typecheck.log/lint.log.
+- 실제 PostgreSQL: 첫 실행은 38 pass/5 fail/8 skip. 실패는 신규 부모 도구를 기존 모의 모델이 피부 계획/지시어 응답으로 처리한 테스트 계약 누락이며 이를 추가 승인 후 보완했다. 재실행 43 pass/8 skip(common-parent-pg-final.log). 신규 취소 상태 저장·복원·명시적 선택 재개도 포함한다. 인증·모델·Catalog는 mock이다. PG 최종 재확인 결과는 common-parent-pg-verified.log/xml에 별도로 남긴다.
+- 실제 모델: 사용자 승인 합성 발화 4개, api.openai.com/v1, gpt-6-luna. common-parent-live-initial.json은 2/4, common-parent-live-second.json은 3/4, common-parent-live.json은 최종 4/4. 각 턴 configuredMode=live와 actualModelCalls=1을 분리 기록, 전체 12회. 초기/두 번째 프롬프트 원문도 common-parent-live-*-prompt.txt에 보존한다. 모델 버전 문자열 이외 별도 고정 snapshot 버전은 확인하지 않았다. 실제 Catalog/로그인 앱 종단은 이번에 NOT_RUN.
+- 최초 회귀에서 발견한 결함: continue의 빈 targets가 기존 E01 재시도를 생략하던 연결 오류를 수정했다. AR 전용 요청에서도 G8 deadline 설정을 읽던 회귀를 수정해 G8 활성·비AR에만 적용했다. 기존 답변/지시어 모의 테스트의 호출 수는 부모 호출을 별도 기록하도록 수정했고 기존 단언을 완화하지 않았다.
+- 실행 명령: backend/chatbot에서 `uv run ruff check .`, `uv run lint-imports`, `uv run pytest -q --tb=short -o junit_family=legacy --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-common-parent-final2 --junitxml=../../reports/g8/parent/common-parent-backend.xml`, `uv run python ../../reports/g8/parent/common-parent-run-pg.py --regression`, `uv run python ../../reports/g8/parent/common-parent-live.py`; 루트에서 `npm run typecheck`, `npm run lint`. 실제 시각은 XML timestamp/live JSON at. 소스 지문·미커밋 diff·신규 소스 본문은 common-parent-sources.json/source.diff/new-sources.json에 보존한다.
+- 남은 구현: 새로운 목표 추가/분해, 같은 capability의 복수 작업, 조건 변경→의존 작업 전이 무효화, 설명 철회와 다른 목표 실행의 동시 처리까지 구조화된 부모 계획으로 통합. 현재 전문별 그래프/순차 실행 조립은 유지되고 공통 실행 경계를 사용한다. 모델 해석 4개 통과를 이 범위의 완료 근거로 삼지 않는다. 이후 C 답변 통합, D 실제 모델·Catalog·PG·로그인 앱 결합 및 원래 전체 평가가 남아 있다.
+- 보안: 신규 common-parent-* 증빙과 변경 소스를 빈 ignore의 Gitleaks 8.30.1로 검사한 뒤 trace에 추가한다. 기존 28행은 보존하며 자격증명·실사용자 대화는 신규 증빙에 포함하지 않는다.
+
+## 최신 상태 — 공통 구조 A 계약 연결 (2026-11-27)
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+현재 세부: **A 공통 결과·입력 연결 계약 구현 및 회귀 검증**. 다음 B 공통 의도·부모 실행/재계획/B01, C 공통 답변, D 실제 종단·원래 평가. 기존 6묶음(N02/E01/B01/부모/사용자 경험/전체 평가)의 범위를 유지하고 공통 구조 중심으로 순서를 재편했다. N02/E01 대표 검증 이력을 전체 완료로 승격하지 않는다.
+
+- 기준: feat/compound-consultation / HEAD 3a8ee1c5d44214623487e5f07717500368259900. 로컬 origin/develop 991dd634dba33b99ceeb1c03de4dd8d921ce07f9, 이번 fetch 없음. 기존 미커밋 보존. commit/push/PR 없음.
+- 승인 범위 내 ConsultationTaskResult/TaskBinding 및 어댑터, ChatResponse 내부 속성, N01/N02/독립 상품·룩 실행 연결, 부모 검증과 공통 회귀를 추가했다. 기존 전문 결과·공개 응답·저장 계약은 유지한다. N02 조기 실패에서 이미 실행한 결과가 누락되는 경로도 보완했다.
+- 신규 회귀 13건: N01 앞 후보 optionId 변경→실제 다음 HTTP 클라이언트 입력 변경, N02 근거/상품 보존·조기 실패, E01 성공 보존·실패 구분·재시도에서 상품 호출 생략, 잘못된 ID/버전/입력/상태/의존성/연결 거부. HTTP·모델 데이터는 mock이며 실제 외부 API 검증이 아니다.
+- 실행: backend/chatbot에서 `uv run ruff check .`, `uv run lint-imports`, `uv run pytest -q --tb=short -o junit_family=legacy --basetemp=C:/Users/playdata2/AppData/Local/Temp/g8-common-backend --junitxml=../../reports/g8/parent/common-contract-backend.xml`; 루트에서 `npm run typecheck`, `npm run lint`. 백엔드 1,600 pass/117 skip, ruff·계층 3계약·앱 타입/린트 통과. common-contract-* 증빙에 원본 보존한다.
+- 최초 targeted 실행은 fixture import 누락으로 58 pass/1 error였고 수정 후 59 pass. 이후 N02 조기 실패 회귀를 추가한 최종 전체 실행은 위 1,600 pass다. uv 캐시 sandbox 접근 실패 후 승인 범위 내 확장 실행으로 확인했다. 이를 제품 실패로 집계하지 않는다.
+- 모델 설정: 계약 회귀 mock, 실제 외부 모델 호출 0회. 이는 A의 검증 구성일 뿐 제품 모델 호출 제한 정책이 아니다. 실제 모델·실제 Catalog·로그인 앱·모바일 터치·전체 G8 평가·사람 검토는 이번 A에서 NOT_RUN이다.
+- 실제 격리 PostgreSQL 저장·복원 회귀: `uv run python ../../reports/g8/parent/common-contract-run-pg.py --regression`, 42 pass/8 skip(common-contract-pg.xml/log). DB만 실제이며 인증·모델·Catalog는 mock이다. 실행 시각은 각 XML timestamp, 미커밋 소스의 정확한 SHA-256/추적 diff/신규 파일 본문은 common-contract-sources.json/source.diff/new-sources.json에 보존한다. 신규 증빙과 변경 소스는 빈 ignore의 Gitleaks 8.30.1 검사 후에만 trace에 추가한다.
+- 남은 작업: A를 기반으로 부모의 작업 요청·의도 해석·조건 변경 영향·재사용/무효화·취소·재계획을 공통화(B). 이후 N01/N02/E01의 공통 근거 기반 답변(C), 최종 실제 종단과 원래 평가(D). B/C를 구현한 것으로 표시하지 않는다.
+
+## 최신 상태 — E01 PG 복원·실제 모델·로그인 웹 연결 검증 (2026-11-27)
+
+전체 ①→②→③→④→**⑤ 협력 완성**→⑥→⑦. 6묶음 중 **2 E01의 대표 부분 성공·복구 흐름 검증 완료, 사람 검토·UX 보완 잔여**. 1 N02 대표 웹 확인 상태 유지. 다음 3 B01 / 4 부모 실행 생명주기 / 5 나머지 사용자 경험 / 6 전체 평가·리뷰는 남아 있다. G8 전체 또는 원래 E01 평가 행을 최종 PASS로 변경하지 않았다.
+
+기준 feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900, 로컬 origin/develop 991dd634dba33b99ceeb1c03de4dd8d921ce07f9(fetch 없음). 기존 미커밋 보존. 사용자 추가 승인에 따라 conversation_repository.py의 _CONTEXT_KEYS에 productStyle만 추가했다. 새 필드 때문에 저장이 실패하던 문제를 해결했다. 실제 PG 후속에서 발견한 추가 결함: G7은 후보 실행 세션을 복원하지 않는데 기존 비교 _reply가 후보 목록에 없는 선택 상품을 제거했다. E01 어댑터에서 정보 비교 전후 서버 선택을 유지하도록 보완했고 후보 세션 유/무 회귀를 추가했다. 성공 작업이 없을 때 ‘확인한 결과 유지’라는 안내도 붙이지 않도록 수정했다. 승인 범위 밖 제품 파일 수정·PR·commit·push 없음.
+
+검증 구분:
+- 최종 챗봇 1,587 pass/117 skip(e01-approved-backend.xml), 부모/E01 관련 29 pass/1 skip(e01-final-source.xml), ruff·import 3계약·앱 typecheck/lint 통과. PG 회귀는 e01-approved-pg.xml/log, 그 이전 실행 42 pass/8 skip(e01-pg-final.log). DB는 실제 격리 PostgreSQL vishue_chat_test이며 인증·Catalog·모델은 mock. 최초 허용 필드 추가 후 후속 선택 유실 실패도 e01-pg-approved.log에 보존한다.
+- 실제 로그인 웹: Aside, Expo web 19836, Catalog 19834, chatbot 19833, PG vishue_g8_browser, Supabase 로그인, OpenAI api.openai.com/v1 gpt-6-luna. 기존 승인 계정/동의 사용, 합성 발화만 전송. 외부 모델 설정 live와 실제 호출 횟수를 분리한다. 상품 정보는 Catalog 실제 HTTP, 룩 장애는 로컬 검증 런처의 UpstreamError 주입이다. 실제 HTTP 503 경계는 앞선 합성 HTTP 테스트이며 동일 검사로 혼동하지 않는다.
+- 앱 0번 턴: 짧은 ‘퓌 3D 볼류밍 글로스’가 실제 Catalog의 서로 다른 2개 ID와 매칭되어 확인 질문. 임의 선택하지 않았다. 1번 턴: 전체 이름으로 비교 성공+룩 실패(중간 소스). 2번 턴: 최종 소스로 같은 비교 성공+룩 실패. 3번 턴: 최근 상담 복원 후 ‘룩만 다시 찾아줘’, 장애 해제 후 상품 비교 재실행 0회·룩 조회 성공. 최종 대표는 2/3번 턴이며 실제 모델 호출 1/2회. 전체 앞선 중간 실행 포함 0~3번 호출은 1/1/1/2회, 합계 5회다. 4번 복원 룩 카드 선택 자동 안내는 모델 0회다.
+- 실제 상품 oy-a000000162092(토리든 립 에센스), oy-a000000246445(퓌 글로스), 등록 기준가격 5,900/12,900원. 정확한 판매 옵션 가격 검증이나 현재 실시간 판매가 비교는 아니다. 해당 기존 비교 응답은 상품 카드 없이 설명을 반환한다. 룩 카드는 ‘가을 출근 스피드 메이크업’이며 제목·태그 ‘출근’ 근거다. 시각적 유사성·영상 기법 검증을 주장하지 않는다. 별도 Catalog 배포 버전은 확인하지 못했으며 실행 시각·조회 ID·실제 Tool 입력/응답은 e01-e2e-turns.jsonl에 보존한다.
+- 실제 앱에서 부분 성공 상담 복원 전후 텍스트가 일치했고, 복구 성공 후 재복원 텍스트도 일치했다. 복원된 룩 카드를 키보드 Enter로 선택하면 상담 대상이 해당 룩으로 바뀌고 일반 단계 안내가 표시됐다. 외부 상세 페이지 이동이 아니라 앱의 기존 룩 선택·가이드 동작이다. 새 상품 카드 상세/결제/AR 실행은 이번에 수행하지 않았다.
+- 실제 PG 읽기 전용 검증: 0~3번 답변·카드·선택 상품·productStyle 저장, 작업 완료 상태, 상품 중복 조회 없음, COMMITTED를 확인(e01-e2e-pg.json). e01-e2e-verify-pg.py는 룩 카드 선택 전 상태에서 실행한 검사다. 이후 4번 자동 가이드가 현재 상담 맥락을 변경하므로 과거 시점의 상태 검증 기록으로 해석한다. 계정 식별자·토큰은 저장하지 않았다.
+
+미실행/제한: Expo Go 터치·포인터 QA·전체 14능력/12시나리오 평가·사람 의미 검토는 NOT_RUN. Aside screenshot은 CDP timeout으로 실패했으며 캡처 성공을 주장하지 않는다. 실제 DOM/텍스트와 서버·PG 증빙을 사용한다(e01-e2e-browser.json, e01-e2e-card.json). 기존 비교의 ‘Catalog 기준가격/검수’ 표현은 사용자용 UX 개선 대상으로 남겼다. 자유로운 비교 대상 생략을 모두 해석하거나 브랜드 전체 우열을 판단하는 구현은 아니다.
+
+보안·재현성: e01-approved-sources.json과 e01-approved-source.diff, e01-approved-new-sources.json에 최종 소스를 보존하고 e01-approved-record.json에 실행 결과를 기록한다. 최종 소스 기준 통과 여부는 XML을 직접 확인한다. 신규 자료 전체 Gitleaks 8.30.1/빈 ignore 검사 후 기존 26행 trace를 보존하고 추가한다(e01-approved-security.log). 테스트용 룩 장애 플래그는 제거했으며 운영 서비스·공용 보안 설정을 변경하지 않았다.
+
+다음: 비교 문구 개선 범위를 정리하고 E01 사람 검토 자료를 넘긴 뒤, 3번 B01의 혼합 실행 요청·기억/AR 권한·재전송을 이어 검증한다. 이번 PR 생성 없음.
+
+
+## 최신 상태 — E01 독립 조회·부분 성공 구현, PG 저장 보완 대기 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 6개 묶음 중 **2번 E01 진행**. 1번 N02 대표 웹 키보드 종단은 이전 기록대로 유지하며 모바일 터치 통과를 뜻하지 않는다. 남은 3 B01 / 4 부모 실행 생명주기 / 5 나머지 사용자 흐름 / 6 전체 평가·리뷰를 유지한다.
+
+기준 feat/compound-consultation HEAD 3a8ee1c5d44214623487e5f07717500368259900, 로컬 origin/develop 991dd634dba33b99ceeb1c03de4dd8d921ce07f9 (fetch 없음). 이전 미커밋 변경 보존. 개발 하위 에이전트 사용·commit·push·PR 없음.
+
+변경: 상품 비교와 룩 검색을 독립 부모 작업으로 연결하고 결과 보존·실패한 조회만 재시도·입력 지문 변경 시 재사용 차단을 구현했다. 기존 실제 비교/룩 Tool을 재사용한다. 신규 ProductStyleContext는 표시 결과만 보존한다. 원래 E01을 피부·성분 사례로 대체하지 않았다. 현재 비교는 정확한 상품의 확인된 정보이며 브랜드 전체 우열이나 시각적 유사성 판정이 아니다. 추가 운영값 없이 기존 1회 재시도/80초 전체 예산을 적용한다. product 종류 추가로 부모 종류별 최대 작업 수만 5로 맞췄다.
+
+실제 확인:
+- 서비스/모의/합성 HTTP 10 pass(e01-mock-verified.xml). 실제 로컬 HTTP 서버가 Style 503을 반환할 때 상품 조회 1회+비교 대상 조회 1회, Style 2회. 400 비재시도, 503 제한 재시도, 전체 시간 초과 성공 결과 보존, 비교/기준 룩 부족 확인 질문, 변경된 입력의 재사용 차단 포함. 외부 모델 0회.
+- 로컬 실제 Catalog 19834 + 통제된 Style UpstreamError + 모의 모델을 결합하여 추가 1건 포함 **11 pass**(e01-catalog.xml). 실제 상품 ID·가격과 요청 인수/결과는 JUnit e01_live_catalog property에 기록. 실제 Catalog 데이터와 합성 장애를 구분한다. 등록 상품 가격이며 현재 판매가 검증은 아니다. 데이터의 별도 배포 버전은 확인하지 않았고 조회 ID·값·실행 시각을 증빙으로 보존했다.
+- 전체 챗봇 **1,586 pass/117 skip**(e01-backend.xml). ruff PASS, import 3계약 PASS, 앱 typecheck/lint PASS. 앱 Jest/로그인 앱/E01 외부 모델/전체 G8 평가/사람 검토 이번 NOT_RUN.
+- 실제 격리 PostgreSQL 15434/vishue_chat_test 첫 실행 FAIL: HTTP 503의 원인은 finish_turn에서 신규 productStyle 필드를 허용하지 않는 ValueError(Unknown conversation context field). e01-pg-verified.log, e01-pg-diagnostic.log에 경위 보존. 인증·모델·Catalog는 모의. 최초 Docker 접근 sandbox 권한 실패(e01-pg.log)와 이후 실제 PG 실행 실패를 구분한다. 임시 진단 계측은 제거했다.
+
+남은 차단: 승인 목록 밖 backend/chatbot/app/repositories/conversation_repository.py의 _CONTEXT_KEYS에 productStyle만 추가하는 수정 승인을 요청했다. 동의·소유권·민감 필드 검사·트랜잭션 경계를 바꾸지 않는다. 승인 전 해당 파일은 수정하지 않았으며 E01 저장 가능/전체 완료로 표시하지 않는다. 다음은 이 필드 허용 후 실제 PG 저장→복원→룩만 재시도에서 상품 중복 조회 없음 검증과 G7 PG 회귀다. 이후 E01 모델·앱 종단 및 B01로 이어간다.
+
+증빙: e01-sources.json(exact-byte 지문), e01-source.diff(기존 미커밋 포함), e01-new-sources.json(신규 소스 보존), e01-record.json(모드/실행 결과/미실행). 실행 명령과 시각은 e01-run-pg.py 및 JUnit·기록 파일에 남긴다. 신규 자료와 수정 소스는 Gitleaks 8.30.1/빈 ignore로 검사한 뒤 trace에 추가하며 과거 원문은 보존한다. 보안 결과는 e01-security.log에 기록한다.
+
+
+## 최신 재확인 — 앱 복원 통과·503 테스트 모의 누락 정정 (2026-11-27)
+
+전체 ①→②→③→④→**⑤ 협력 완성**→⑥→⑦, 6묶음 중 1번 N02 대표 종단과 5번 사용자 흐름 일부 확인. 아래 직전 실행에서 미완료로 남긴 두 문제를 추가 조사했다. PR/commit/push 없음.
+
+1. 철회 후 일반 chat ‘다시 추천해줘’의 503을 격리 PG에서 재현했다. 원본 예외는 ChatService.execute_tool의 LLM.complete 호출에서 발생한 AttributeError. N02 전용 tests.test_g8_owned_look_interpreter.Model은 complete_with_tools만 구현했다. 해당 PG 테스트 안에 일반 complete를 지원하는 모델을 두고, 동의 철회 후 명시적 N02 차단과 일반 재추천 HTTP 200·응답 저장·appliedMemories 없음 모두 검증했다. 제품 503 결함으로 확정하지 않는다. 실제 PG + 모의 인증/모델/Catalog 41 pass/8 skip(n02-e2e-recheck-pg.log). 최초 진단용 in-memory 실험은 HTTP 200을 확인했어도 기존 N02 전용 기대값 때문에 실패했으므로 정식 회귀 통과와 구분한다.
+2. 최근 상담 클릭 당시 실제 선택 함수의 실행 로그가 없었고, 백그라운드 refresh만 실행됐다. 서버 목록/상세 GET은 HTTP 200, 약 0.33초(후속 약 0.02~0.05초)였다. 동일한 실제 버튼을 Aside의 Enter 키로 활성화하자 select→응답→상태 복원→요청 복구→finally 완료를 관측했고, 저장된 3턴·예산 3만원·틴트 제외·판매 카드가 실제 화면에 복원됐다. 자동화 클릭의 선택 미실행을 제품 무한 로딩 결함으로 단정한 이전 설명을 정정한다. 정확한 포인터 클릭 미실행 원인은 미확정이며 모바일 터치 통과를 뜻하지 않는다.
+3. 복원된 마지막 카드에서 Enter로 상품 상세 이동. URL의 product/oy-a000000183683?shade=01&optionId=A000000183683-001&requireShade=1, 화면의 01 피치베이지·11,900원·가격 기준일·앱 옵션 결제 제한 안내를 확인했다. AR·장바구니 변경·결제 실행 없음. 이후 자료는 n02-e2e-recheck-browser.txt, 비식별 읽기 시각은 n02-e2e-restore-http.jsonl.
+
+승인된 hooks/useChatConversations.ts와 lib/api.ts의 임시 console 계측은 제거하여 제품 변경 0. 앱 회귀 두 파일 37 pass(n02-e2e-recheck-app.log). 추가 유지 변경은 test_g7_memory_api_pg.py의 모의 완성 및 일반 재추천 회귀다. 실제 외부 모델 신규 호출 0, 앞선 실제 3턴 0/1/0 호출 증거는 그대로다. 검증 웹이 CI 모드라 계측 반영을 위해 재시작했으며 사용자 계정·토큰은 로그에 넣지 않았다.
+
+PG 공용 출력 XML은 재실행으로 갱신되었으며 이번 결과를 n02-e2e-recheck-pg.xml로 보존한다. 이전 실행별 로그는 유지한다. 신규 소스·검사·보안·trace는 n02-e2e-recheck-record.json 참조. 대표 로그인 웹 흐름은 키보드 활성화 범위에서 PASS. 포인터·Expo Go 터치, 전체 G8 및 사람 검토는 미실행. 다음 구현 우선순위는 2번 E01이며 3 B01 / 4 부모 실행 생명주기 / 5 나머지 사용자 흐름 / 6 전체 평가·리뷰가 남아 있다.
+
+## 최신 상태 — 실제 로그인 웹 N02 연결·복원 미완료 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 현재 6묶음 중 **1번 N02 대표 종단 검증**. 5번 사용자 흐름 일부도 선행 확인했으나 전체 완료가 아니다. 다음은 앱 복원 결함 조사, 이후 2 E01 / 3 B01 / 4 부모 실행 생명주기 / 5 나머지 사용자 흐름 / 6 전체 평가·리뷰다.
+
+기준 `feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900`; origin/develop 로컬 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9` (이번 fetch 없음). 기존 미커밋 변경 보존, commit/push/PR 없음. 승인된 제품 수정은 owned_look_consultation_service.py, conversation_service.py와 세 테스트 파일.
+
+변경: 앱이 전송하는 style_consultation을 N02 gate와 G7 보유 기억 읽기에서 제외하던 두 경계를 보완했다. 동의·기능 플래그·서버 룩 맥락·철회 검사와 기억 의존성 저장을 유지하고 읽기 자격으로 기억 쓰기를 확대하지 않았다. 검증 런처 Redis 연결 누락도 보완했다. 초기 후보 세션 경고는 G7 DB 저장 실패가 아니었다.
+
+실제 환경: Aside / Expo web 19836, Catalog 19834(기존 로컬 데이터), chatbot 19833, 격리 PG vishue_g8_browser, 실제 Supabase 로그인. 사용자 승인 필수 약관·G7 동의, 합성 발화만 사용. G5 비활성, gpt-6-luna live 설정. 계정·비밀번호·토큰은 증빙 제외.
+
+- 최종 소스 3턴: 립 전체 미보유·2만원 → 정확한 립펜슬/틴트 옵션 2개; ‘그 틴트만’ 해제 → 립펜슬 1개; 3만원 → 예외·옵션 유지. 실제 모델 호출 **0/1/0**, 답변 조합 0. 중간 실행에는 모델 확인 질문과 제품명 확인 턴이 있었으며 보존한다. 항상 같은 응답을 보장한다고 주장하지 않는다.
+- 실제 Catalog: 영상 XyqUi5HKkX8, recipe guide-v1:7dd99bc4b44f9ff4795bbc19. 립펜슬 A000000183683-001 11,900원, 틴트 A000000158896-010 13,000원. 등록 스냅샷 가격이며 실시간 가격이 아니다. 다른 상품의 옵션·사용 관계 미확인은 유지했다. 전문 작업 입력/결과·조회·답변: n02-e2e-turns.jsonl. DOM 관측: n02-e2e-browser.txt.
+- 실제 PG: 최종 방의 6개 메시지, 답변·ownedLookOptions 일치, 예외 유지, maxPriceKRW=30000, 관련 턴 COMMITTED를 읽기 전용 SQL로 확인(n02-e2e-pg-final.json, n02-e2e-verify-pg.py). 앱 복원 성공과 별도다.
+- 최종 챗봇 **1,576 pass/115 skip**(n02-e2e-backend-last.xml). 실제 격리 PG + 모의 Catalog/모델/인증 **41 pass/8 skip**(n02-e2e-pg-regression-2.xml, n02-e2e-pg-verified-2.log). 일반/룩 방 후속 및 동의 철회 후 명시적 N02 차단 포함. ruff, import 3계약, 앱 typecheck/lint 통과. 앱 Jest·Expo Go·전체 G8 평가 이번 NOT_RUN.
+- 실패 이력: uv 캐시 권한 실패 후 재실행, PG style 진입/후속 자격 실패 보존. 철회 후 맥락이 제거된 상태의 ‘다시 추천’ 테스트는 명시적 N02 요청으로 고쳤다. 이때 일반 chat 재추천 503도 관측했으며 이를 해결했다고 주장하지 않는다. 별도 회귀 조사 대상이다.
+- **앱 남은 결함:** 새로고침은 룩 새 상담을 연다. 최근 상담에서 최종 방 선택 후 ‘불러오는 중’이 지속됐다. PG 저장은 정상이나 UI 복원은 미확인. useChatConversations.open의 인증/API/복구 중 어느 대기인지 미확정. 앱 코드는 수정하지 않았다. 복원 후 판매 옵션 상세 이동·스크린샷은 NOT_RUN. 전체 로그인 앱 종단은 **PARTIAL**.
+- 최종 소스 지문 n02-e2e-sources.json, diff n02-e2e-source.diff, 신규 소스 n02-e2e-new-sources.json. runtime.json의 finalSourceStartRow 이후 첫 3행이 최종 대표 실행, 앞 행은 중간 이력. 모델 live 설정과 실제 modelCalls를 분리한다. 보안 검사/trace 결과는 n02-e2e-security.log와 n02-e2e-record.json 참조.
+
+아래는 이전 실행 당시 기록으로 유지한다.
+
+## 최신 상태 — 자연스러운 N02 최종 답변 연결 (2026-11-27)
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+현재 **6개 묶음 중 1번 N02 보완의 답변 표현 연결**까지 이번 승인 범위 구현·검증 완료. 다음 우선순위는 **2번 원래 E01**이다. 3번 B01, 4번 부모 재계획/취소/교체/재개, 5번 실제 사용자 종단·일반 선택 옵션 가격, 6번 전체 14능력/12시나리오 평가·팀 리뷰는 남아 있다. G8 전체 완료가 아니다.
+
+기준: `feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900`, 로컬 origin/develop 참조 `991dd634dba33b99ceeb1c03de4dd8d921ce07f9`. 이번 fetch/merge/commit/push/PR 없음. 기존 미커밋 변경 보존. 개발 하위 에이전트 사용 없음.
+
+변경: ConsultationAnswer 내부 계약과 consultation_answer_service를 추가하고 N02의 장문 판정 나열을 대체했다. 부모는 구조화된 완료 판정·정확한 질문을 사용하며 문장 치환을 하지 않는다. 예산 변경·‘없음’ 조건 해제는 변경 사항부터 설명한다. 반복 질문은 같은 미해결 질문을 가진 예산-only 턴에만 생략한다. 상품 카드·정확한 옵션·미확인/조건 불일치/조회 실패와 기존 G5 설명·실패 안내는 유지한다. 답변 생성에 추가 모델 호출은 없다.
+
+실제 실행:
+- 관련 모의 98 pass/7 skip (`n02-answer-mock.xml`). 이후 다른 질문 대상은 생략하지 않는 회귀 1건 추가. 최종 전체 챗봇 **1,569 pass/113 skip**, `n02-answer-backend.xml` (41.79초). 잘못된 카드·옵션·보유 확정·질문 버전은 거부하는 테스트 포함. 초기 실패 기록은 순환 스키마 import 정리와 구형 보고서 문구 기대값 변경 경위를 보존한다. 상태 판정 검사는 유지·추가했다.
+- 실제 OpenAI `gpt-6-luna` / `api.openai.com/v1`: 기존 승인된 두 합성 발화로 지시어 해석 후 최종 자연어 답변·카드 기록. 최종 검증 **live 해석 2회, 답변 모델 호출 0회**, `n02-answer-live-verified.xml`. 앞선 중간 검증도 해석 2회 통과(`n02-answer-live-final.xml`); 이번 실행 전체의 실제 해석 호출은 4회다. Catalog mock, 저장 JSON round-trip이며 실제 PG 결합은 아니다. 실제 사용자 대화·인증정보·G5 문서 원문을 전송하지 않았다.
+- 실제 PostgreSQL `15434/vishue_chat_test`: 정상 Chat API 4턴(전체 미보유 → 틴트만 해제 → 예산 변경 → 전체 미보유 재선언). 최종 답변 원문과 판매 옵션 카드의 저장·복원 일치를 확인. Catalog/인증/모델은 mock, 외부 모델 0회, 해석 mock 1회. `n02-answer-live-pg-verified.xml`의 reference_pg property에 질문·실제 답변·복원 답변·모드/횟수 기록.
+- 실제 Catalog `127.0.0.1:19831`: 기존 실제 룩 `XyqUi5HKkX8`, 정확한 옵션 `A000000158896-010` 조회·추천과 설명 철회 후 유지 검증 재실행 통과. 모델 disabled/0회, 합성 보유 입력, PG 없는 별도 사례. 같은 JUnit의 scope_live_catalog property에 데이터/레시피 버전과 요청·응답을 보존.
+- 최종 실제 PG 전체 회귀 **39 pass/8 skip**, `n02-answer-pg-regression-2.xml` (41.13초). ruff·계층 3계약·앱 typecheck/lint 통과. 실제 모델/Catalog/PG가 모두 결합된 종단, 로그인 앱/브라우저/Expo Go, 앱 Jest, 전체 G8 평가·사람 검토는 이번 NOT_RUN.
+
+검토 자료: `reports/g8/parent/n02-answer-before-after.json`은 기존 4턴 원문과 새 4턴 원문·카드를 비교한다. ‘그 틴트만 … 빼줘’의 새 답변은 ‘롬앤 쥬시 래스팅 틴트 (07호) 제품은 ‘없음’ 조건에서 뺐어요.’로 시작하고 립펜슬만 추천한다. ‘예산은 3만원 이하로 바꿔줘’에는 ‘예산을 30,000원 이하로 바꿨어요.’로 시작하며 이전의 호수 보유 질문을 반복하지 않는다. 합성 상품·옵션이므로 실제 판매 정보로 해석하지 않는다.
+
+재현성: `n02-answer-sources.json`에 이전 미커밋 변경을 포함한 Python 16파일의 exact-byte 지문, `n02-answer-source.diff`에 tracked diff, `n02-answer-new-sources.json`에 신규 소스 원문을 보존. 검증 중 소스 변경 없음. 실행 명령은 신규 run-live/run-pg 스크립트·trace에, 시각은 JUnit timestamp와 trace recordedAt에 기록한다. 단순히 모델 설정이 켜졌다는 이유로 live로 집계하지 않는다.
+
+보안: 신규 자료와 수정 소스를 Gitleaks 8.30.1/빈 ignore로 검사한 뒤 trace에 추가한다. 기존 22행 원문을 보존하며 공용 보안 설정은 수정하지 않는다. 상세 검사 결과는 `n02-answer-security.log`와 신규 trace에 기록한다.
+
+남은 범위: 문장 틀의 N02 첫 적용이며 모든 상담의 자유 생성 문장 품질 완료가 아니다. N01 답변 전면 교체·추가 생성 모델·새 운영 제한은 도입하지 않았다. 다음은 E01의 상품 비교 성공+Style 503에서 결과 보존·실패 작업 재시도를 구현하면서 동일 답변 계약 적용 범위를 정리한다.
+
+
+## 최신 상태 — N02 지시어·개별 예외 보완 (2026-11-27)
+
+전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계.
+현재: **남은 6개 묶음 중 1번 N02 보완**. 이번 승인 범위의 구현·모의 검증·분리된 실제 연결 검증 완료. 다음 우선순위는 2번 원래 E01이다. 아래 과거 작업 이력의 미구현 표시는 당시 상태로 보존한다.
+
+| 묶음 | 세부 상태 / 다음 범위 |
+| --- | --- |
+| 1 N02 | 기존 세 결함·입력 지문 보완 유지. 지시어의 구조화 해석/서버 검증, 상품 보유와 옵션 미보유 분리, 부위 미보유의 개별 예외, 예산 변경 유지·전체 재선언/해제·저장 복원까지 이번 검증. 임의 생략을 모두 지원하는 것은 아님 |
+| 2 원래 E01 | 다음: 상품 비교 성공 + Style 503에서 성공 보존·실패 작업만 제한 재시도 |
+| 3 B01 | AR/기억 제안·승인·실행·ACK·재전송 멱등 |
+| 4 부모 실행 | 재계획·취소·교체·구버전 무효화·중단 실행 재개 |
+| 5 실제 사용자 흐름 | 실제 모델/Catalog/PG 결합 종단·로그인 앱/Expo Go·일반 선택 옵션 가격 상담 |
+| 6 전체 평가·인계 | 기존 14개 능력·12개 시나리오, 전체 평가와 팀 리뷰 |
+
+기준: feat/compound-consultation / `3a8ee1c5d44214623487e5f07717500368259900`. 이번 fetch/merge/commit/push/PR 없음. 기존 미커밋 변경을 포함해 13개 Python 파일의 exact-byte SHA-256과 diff, 신규 3개 파일 원문을 `reports/g8/parent/n02-reference-sources.json`, `n02-reference-source.diff`, `n02-reference-new-sources.json`에 보존했다. 전체 회귀 이후 테스트 1개의 줄 길이만 정리했으며 이전 지문은 `n02-reference-sources-preformat.json`, 최종 해당 파일 재검증은 `n02-reference-interpreter-final.xml`이다. 런타임 코드는 그 사이 변경하지 않았다.
+
+변경: 기존 모델 전송 클라이언트를 재사용한 N02 해석기와 엄격한 제안 스키마를 추가했다. 모델이 선택한 대상을 현재 레시피/저장 목록 버전으로 재검증한다. 부위 전체 미보유의 한 상품 해제는 보유로 바꾸지 않고 예외로 저장한다. 상품 보유와 정확한 옵션 미보유를 동시에 표현하며 예산 변경에도 유지한다. 기존 AR·판매·영구 기억 경계는 유지한다. 개발 하위 에이전트는 사용하지 않았다.
+
+실제 실행 결과와 증빙:
+- 모의: 기존 N02/부모 + 새 6사례 92 pass/7 skip(`n02-reference-mock.xml`), 이후 ‘만원’ 오분류 회귀 포함 최종 해석기 7 pass/1 skip(`n02-reference-interpreter-final.xml`). 전체 챗봇 **1,563 pass/113 skip**(`n02-reference-backend-final.xml`). 기본 전체 실행의 17 error는 Windows 기본 pytest 임시 폴더 접근 거부였으며 전용 basetemp로 재실행했다.
+- 실제 OpenAI `api.openai.com/v1`, `gpt-6-luna`: 합성 틴트 상품 보유+다른 호수 → 해당 틴트만 조건 해제, 정상 ChatService를 통한 두 후속 턴. 최종 **live 2회 호출**, 첫 결정적 턴 0회. Catalog는 mock, 저장은 JSON round-trip. `n02-reference-live-final.xml`의 턴별 audit에 configured/invocations를 구분했다. 실제 사용자 대화·G5 원문은 전송하지 않았다. 첫 실행은 해제 실패로 상태 보존, exempt의 status 계약을 프롬프트에 명시한 두 번째와 최종 실행은 통과했다. 첫 실패 응답의 원본 제안은 수집되지 않아 원인을 status 필드로 확정하지 않는다. 첫 실패 로그와 재실행 로그를 모두 보존한다.
+- 실제 격리 PostgreSQL `15434/vishue_chat_test`: 정상 Chat API 4턴에서 전체 미보유 → 틴트만 해제 → 예산 변경 → 전체 재선언. 저장 복원과 카드 payload 유지 검증 통과. 모델/Catalog/인증은 mock이며 외부 호출 0, mock 해석 1회. `n02-reference-live-pg-final.xml`의 reference_pg property. PG 전체 회귀 **39 pass/8 skip**, `n02-reference-pg-regression-2.xml`.
+- PG 첫 회귀에서 ‘상품 조건 전체 해제 … 2만원 … 제외’의 ‘만’을 예외 연산으로 오분류해 기존 필터 해제가 중단됐다. 가격 단위 ‘만원’을 배제하고 전용 회귀를 추가한 뒤 PG 전체 재실행 통과. 실패 로그는 보존한다.
+- 실제 Catalog `127.0.0.1:19831`: 기존 한국어 상품명 → 정확한 `A000000158896-010` 조회/추천과 설명 철회 후 유지 사례 재실행 통과. 모델 disabled/호출 0, 합성 보유 입력, 해당 사례는 PG 없이 실행. 실제 룩/데이터 버전과 요청은 같은 JUnit의 scope_live_catalog property에 있다.
+- ruff, 계층 3계약, 앱 typecheck/lint 통과. 실제 모델+실제 Catalog+PG 결합 종단, 브라우저/로그인 앱, Expo Go, 앱 Jest, 전체 G8 평가/사람 검토는 이번 NOT_RUN. 모델 실패 시 재확인 경로는 있으나 모든 자연어 생략을 해결했다고 판단하지 않는다.
+
+실행 명령·시각: 신규 `n02-reference-run-live.py`, `n02-reference-run-pg.py [--regression]`와 JUnit timestamp/로그, 신규 trace의 commands 참조. 실제 외부 호출은 테스트 함수 안에서 선택된 2턴에만 있고 mock/disabled와 분리된다. 원격 반영은 하지 않았다.
+
+보안: 신규 기록과 수정 파일을 Gitleaks 8.30.1/빈 ignore로 검사한 뒤 trace를 append한다. 원본 21행은 exact-byte prefix로 보존한다. 상세 결과는 `n02-reference-security.log`와 신규 trace에 기록한다. 기존 공용 보안 설정은 수정하지 않는다.
+
+남은 제한: ‘아까/이전’ 목록 이력은 재확인하며 애매한 지시어를 임의 상품으로 확정하지 않는다. 추천 옵션 목록 순번과 룩 목록 순번이 충돌하면 목록을 명시하도록 묻는다. 실제 모델의 다양한 표현 반복 평가와 전체 사용자 종단은 ⑤/⑥의 남은 작업으로 유지한다. 다음 구현은 E01의 실패 작업 보존·재시도 계약이며 새 파일 범위는 착수 전 제시한다.
+
+
+## 전체 6개 작업 묶음 — N02 리뷰 보완 실행
+
+전체 ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성 진행 중** → ⑥ 통합 검증 → ⑦ PR 인계.
+
+| 묶음 | 현재 상태 | 남은 범위 |
+| --- | --- | --- |
+| 1 N02 결함 보완 | 이번 승인 범위: 선언 범위·옵션 확인 수준·목표 후속·입력 지문 구현 및 검증 | 아래 증빙으로 완료 범위를 한정. 자유로운 생략/지시어·복합 범위 예외 해제까지 완성한 것은 아님 |
+| 2 원래 E01 | 다음 우선순위 | 상품 비교 성공+Style API 503, 성공 보존·실패 작업만 제한 재시도 |
+| 3 B01 | 후속 | AR/기억 제안·승인·실행·ACK와 재전송 멱등 |
+| 4 부모 실행 완성 | 후속 | 재계획·취소·교체·구버전 무효화·중단 실행 재개 |
+| 5 실제 사용자 흐름 | 부분 검증 유지 | 실제 연결 종단·로그인 앱·Expo Go·일반 선택 옵션 가격 상담 공백 |
+| 6 전체 평가·인계 | 미착수 | 기존 14개 능력·12개 시나리오 및 G8 평가, 결함 정리·PR·팀 리뷰 |
+
+### 이번 변경 — N02 세 결함과 입력 지문 (2026-11-27)
+
+기준 `feat/compound-consultation / 3a8ee1c5d44214623487e5f07717500368259900`, 미커밋 변경. 이번 원격 fetch/merge/commit/push/PR 없음. 이전 게시 커밋과 증빙은 그대로 보존한다. 승인된 6개 런타임 파일·3개 테스트 파일과 두 관리 문서·신규 parent 증빙만 수정/생성했다. 개발 하위 에이전트는 사용하지 않았다.
+
+변경: 상품/옵션 표현을 먼저 해석하고 소비한 구절은 부위 선언에서 제거한다. 알 수 없는 상품명의 일부 단어도 부위 전체 선언으로 확대하지 않는다. scope(product/option/zone/legacy)를 저장해 상품 보유와 정확한 호수 보유를 분리한다. 질문에는 항상 정확한 옵션을 표시하고 과거 질문의 확인 수준이 없으면 양성 답변을 재확인한다. 같은 룩의 단독 설명 철회+상품 요청도 부모 경로로 연결한다. N1 지문에는 상품별 선언과 확인 수준·질문 대상·답변·레시피 버전을 포함한다.
+
+주요 검증:
+- 모의 Catalog/기억 입력, 실제 ChatService/부모/N02 코드: 한국어 상품명 미보유가 다른 립 상품에 전파되지 않음, 상품별 해제가 다른 선언을 보존함, 02호 기억+상품명 “있어”로 07호를 충족 처리하지 않음, 07호 질문/명시 답변 후 충족, legacy 질문 재확인, 애매한 07호와 식별 불가 상품명 보류, 단독 설명 철회 후 필터·룩·상품 경로 유지 및 G5 추가 호출 0, N1 지문 답변 변화/선언 순서 독립성을 검증했다.
+- 실제 Catalog HTTP 사례 1건: `127.0.0.1:19831`, 룩 `XyqUi5HKkX8`. 합성 보유 입력으로 립펜슬 `A000000183683-001`을 보유한 상태에서 실제 Catalog의 한국어 틴트명을 사용자 문장으로 보내 `A000000158896-010`만 실제 옵션 조회·추천했다. `_owned_look_answer` 주입 없음. 이어 설명만 철회해도 예산과 옵션 추천 유지. 상품 DB 데이터 변경 없음. 이 사례에 PG는 사용하지 않았다.
+- 실제 PG 사례 1건: `15434/vishue_chat_test` 격리 DB의 정상 Chat API 5턴. 정확한 립펜슬 07호 보유+틴트 상품 보유→07호 질문에 “있어”→틴트 07호 미보유 변경→단독 설명 철회→틴트 선언 해제. 질문 확인 수준·선언·필터 저장/복원과 옵션 요청 대상을 확인했다. Catalog/인증은 모의이며 실제 Catalog까지 결합한 종단 사례가 아니다.
+- 모델: 이번 실제 연결 사례는 disabled, 외부 호출 0. 설명 협력 모의 사례는 G5 대역 첫 턴 1회/철회 후 0회, 외부 호출 0. 각 턴의 mode/count는 JUnit property와 신규 trace에 구분 기록한다. 실제 LLM·로그인 앱·Expo Go·앱 Jest는 이번 NOT_RUN.
+
+중간 발견: 정상 ChatService 검증에서 복원된 recipe 메타데이터와 부모의 초기 룩 객체를 전체 비교하면 같은 룩을 다르게 판단하는 문제를 발견해 kind/lookId 기준으로 수정했다. “설명 말고”는 접속어 분리 전에 철회 구절을 제거해야 G5 재호출이 없음을 확인했다. 과거 테스트 중 상품명만으로 정확한 옵션 완료를 기대하던 두 건과, 호수 없는 질문 문구 기대값은 새 계약에 맞춰 변경했다. 단순히 G5 호출만 막은 검증으로 완료 처리하지 않는다.
+
+최종 검사 결과: 관련 모의 86 pass/6 skip, 실제 Catalog 1건 + 모의 Catalog를 사용한 실제 PG 1건 통과, PG 저장/기억 회귀 38 pass/8 skip, 전체 챗봇 1,556 pass/111 skip(41.69초). ruff·계층 3계약·앱 typecheck/lint 통과. 건너뛴 검증을 통과로 취급하지 않는다. 동일한 최종 소스 해시를 검증 시작 전에 고정했다.
+
+보안 검사: Gitleaks 8.30.1/빈 ignore로 신규 증빙과 trace 원문을 포함한 33파일 통과. 기존 trace 20행의 exact-byte prefix를 보존해 1행만 추가했으며, 최종 소스 9파일의 SHA-256 일치를 확인했다. 공용 보안 설정 변경 없음.
+
+증빙: n02-scope-sources.json exact-byte 소스 해시, n02-scope-source.diff, n02-scope-run-pg.py, mock/live/PG regression/backend JUnit·로그. 검증 명령/시각은 원본 JUnit과 신규 trace에 기록한다. 새 임계값이나 제한은 도입하지 않았다. 다음 작업은 2번 원래 E01의 부모 작업 분해·실패 보존·재시도 계약과 정확한 수정 범위 정리다.
+
+
 ## 현재 진행판 — 2026-11-27
 
 전체: ① 설계 → ② 기준·계약 → ③ 실행 구조 → ④ 첫 복합 상담 → **⑤ 협력 완성** → ⑥ 통합 검증 → ⑦ PR 인계. 아래의 과거 날짜별 기록은 당시 상태로 보존한다.
 
 | ⑤ 내부 순서 | 상태 | 남은 일 |
 | --- | --- | --- |
-| A 공통 부모와 N01·N02, 목표·후속 질문 연결 | 상품별 질문 대상·레시피 버전 결속, R1 최종 결과 기반 완료/부분 완료 구현 | 범용 목표 분해·재계획·취소/실행 재개 미완료 |
-| B N02 보유품·조건·단계별 상품 사용 근거 | 같은 부위의 복수 상품/옵션 분리, 실제 립 2개 상품 사례 추가 확인 | 공동 사용·필수·대체 관계 미확인은 유지. 임의 역할 표현과 전체 N02 완료는 미확정 |
+| A 공통 부모와 N01·N02, 목표·후속 질문 연결 | 옵션을 표시한 질문·legacy 확인 수준 구분, 단독 설명 철회 후 상품 경로 유지 | 범용 목표 분해·재계획·취소/실행 재개 미완료 |
+| B N02 보유품·조건·단계별 상품 사용 근거 | 한국어 상품/부위 선언 분리, 상품 보유와 정확한 옵션 보유 구분·입력 지문 보완 | 공동 사용·필수·대체 관계 미확인은 유지. 임의 역할 표현과 전체 N02 완료는 미확정 |
 | C 실행 기준 확정 및 판매 옵션/AR 정보 분리 | 이번 범위 구현·검증 완료 | C1/C2 실행 기준 확인, C3-2 검수 조건/판매 옵션/AR 분리, C4-2 실제 3턴·회귀 완료 |
 | D 실제 상담→상품 카드→저장·복원 | 판매 optionId 상세·장바구니에 이어 상담·명시 보유 기억·N02 입력 연결 실제 API/PG 통과 | 옵션 결제 제한 유지. Expo Go 및 로그인 앱 종단 미실행 |
 | E 남은 협력·E01/B01·취소·재개 | 후속 | 개별 사례 통과와 전체 완료 구분 |

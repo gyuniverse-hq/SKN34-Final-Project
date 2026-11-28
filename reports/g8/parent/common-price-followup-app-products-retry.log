@@ -1,0 +1,9 @@
+
+> final_project@1.0.0 test
+> jest --runInBand __tests__/chatProducts.test.ts
+
+Test Suites: 1 passed, 1 total
+Tests:       32 passed, 32 total
+Snapshots:   0 total
+Time:        18.316 s
+Ran all test suites matching __tests__/chatProducts.test.ts.

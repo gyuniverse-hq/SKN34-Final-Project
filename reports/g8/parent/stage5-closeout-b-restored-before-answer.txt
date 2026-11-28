@@ -1,0 +1,27 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/chat?recipeKind=video&recipeLookId=AG03mUj4vnY]
+- link "(tabs), back" [ref=e1]
+- heading "사진발 윤곽 보정 메이크업" [level=1]
+- button "기억 관리" [ref=e3]: ""
+- button "최근 상담" [ref=e4] [focused]: ""
+- button "새 상담" [ref=e5]: ""
+- generic [ref=e62] [scrollable]:
+  - alert: "상품 종류와 조건을 입력해 새로운 독립 검색을 시작해 주세요."
+  - button "새 검색 시작" [ref=e63]
+  - text: "이 룩 화장법을 단계별로 알려줘 영상의 실제 화장 순서는 확인되지 않았습니다. 아래는 일반적인 방법이에요.\n1. 베이스: 스펀지로 얼굴 중앙부터 얇게 펴고 필요한 부분에만 조금씩 덧발라요. 턱과 헤어라인의 경계도 두드려 정리하세요.\n2. 눈썹\n3. 아이섀도: 작은 블렌딩 브러시에 색을 …[+303 chars]"
+  - heading "사진발 윤곽 보정 메이크업" [level=1]
+  - heading "메이크업 단계" [level=1]
+  - text: "1 / 7 단계 1 베이스 피부에 얇게 펴 바르고, 입술·눈·눈썹은 덮지 마세요."
+  - button "전체 단계 보기" [ref=e64]: "전체 단계 보기"
+  - button "이전 단계" [ref=e65] [disabled]: "이전 단계"
+  - button "다음 단계" [ref=e66]: "다음 단계"
+  - text: "레시피 근거 영상 메타데이터 기반 일반 가이드 · 영상 미분석 일반 가이드 · 영상의 실제 기법·순서는 미확인"
+  - button "출처와 버전 보기" [ref=e67]: "출처와 버전 보기"
+  - button "참고 제품" [ref=e68]: "참고 제품"
+  - text: "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘 조금 더 알려주시면 이어서 도와드릴게요 · 추가 질문에 답해주세요뷰티 AI 베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE)…[+626 chars]"
+  - button "검색 범위 보기" [ref=e69]
+  - text: "피부는 오후에 건조하고 각질이 떠. 피부 상담 질문에 답한 거야. 룩 제품 보유 질문은 그대로 둬 조금 더 알려주시면 이어서 도와드릴게요 · 추가 질문에 답해주세요뷰티 AI 베이스 제품은 정확한 옵션이나 요청하신 조건을 확인할 정보가 부족해요.\n\n에뛰드 (ETUDE) 산리오 캐릭터즈 …[+616 chars]"
+  - button "검색 범위 보기" [ref=e70]
+- text: "상담 대상: 사진발 윤곽 보정 메이크업"
+- textbox "궁금한 점을 입력하세요" [ref=e71] [placeholder="궁금한 점을 입력하세요"]
+- button "보내기" [ref=e72] [disabled]: ""

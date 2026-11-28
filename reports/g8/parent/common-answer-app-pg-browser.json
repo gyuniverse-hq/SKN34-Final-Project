@@ -1,0 +1,55 @@
+{
+  "at": "2026-11-27T12:04:32.034155+00:00",
+  "database": "vishue_g8_browser",
+  "readOnly": true,
+  "auth": "real_supabase_browser",
+  "catalog": "live_local",
+  "checks": [
+    {
+      "turn": 0,
+      "question": "건조함이 고민이야. 2만 원 이하 보습 제품 추천해줘",
+      "answerEqual": true,
+      "productIdsEqual": true,
+      "productCount": 6,
+      "styleCardsEqual": true,
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 1,
+      "parentPresentInFinalRoom": false
+    },
+    {
+      "turn": 1,
+      "question": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘",
+      "answerEqual": true,
+      "productIdsEqual": true,
+      "productCount": 0,
+      "styleCardsEqual": true,
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 3,
+      "parentPresentInFinalRoom": true
+    },
+    {
+      "turn": 2,
+      "question": "토너 찾아줘. 크림도 찾아줘",
+      "answerEqual": true,
+      "productIdsEqual": true,
+      "productCount": 6,
+      "styleCardsEqual": true,
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 3,
+      "parentPresentInFinalRoom": true
+    },
+    {
+      "turn": 3,
+      "question": "크림만 15,000원 이하로 찾아줘",
+      "answerEqual": true,
+      "productIdsEqual": true,
+      "productCount": 6,
+      "styleCardsEqual": true,
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 2,
+      "parentPresentInFinalRoom": true
+    }
+  ],
+  "appRestore": "BLOCKED_LOADING",
+  "note": "SQL equality is not evidence of successful UI restoration."
+}

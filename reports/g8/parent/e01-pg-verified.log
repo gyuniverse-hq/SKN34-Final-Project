@@ -1,0 +1,33 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_e01_partial_result_pg_restore_and_style_only_retry ___________
+tests\test_g7_memory_api_pg.py:2487: in test_e01_partial_result_pg_restore_and_style_only_retry
+    first = ask(client, room, version, '"상품나"와 브랜드 비교하고 비슷한 룩도 찾아줘', request_type="beauty_consultation")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_g7_memory_api_pg.py:97: in ask
+    assert response.status_code == 200, response.text
+E   AssertionError: {"error":"Persistent chat is unavailable","code":"persistence_unavailable"}
+E   assert 503 == 200
+E    +  where 503 = <Response [503 Service Unavailable]>.status_code
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "9924c94454354c279006a161539a0ce5", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 247.7}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/1570e206-d94c-4b86-a09d-8f3e1f2f812a/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "5a579485a40c460ebdbd4ef9c6c7f43c", "method": "PATCH", "path": "/api/chat/conversations/1570e206-d94c-4b86-a09d-8f3e1f2f812a/state", "status": 200, "duration_ms": 91.1}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/1570e206-d94c-4b86-a09d-8f3e1f2f812a/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "7e9da6eeb803412c8613c78c18c301d0", "method": "PATCH", "path": "/api/chat/conversations/1570e206-d94c-4b86-a09d-8f3e1f2f812a/state", "status": 200, "duration_ms": 49.8}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 503 Service Unavailable\"", "request_id": "-"}
+{"ts": "2026-11-27T18:13:55+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "682383302d994a17956f35f747dce20f", "method": "POST", "path": "/api/chat", "status": 503, "duration_ms": 98.9}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/1570e206-d94c-4b86-a09d-8f3e1f2f812a/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/1570e206-d94c-4b86-a09d-8f3e1f2f812a/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 503 Service Unavailable"
+INFO     access:observability.py:82 request
+=========================== short test summary info ===========================
+FAILED tests/test_g7_memory_api_pg.py::test_e01_partial_result_pg_restore_and_style_only_retry
+1 failed in 1.58s

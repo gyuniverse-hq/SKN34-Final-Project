@@ -1,0 +1,12 @@
+B023 Function definition does not bind loop variable `mapping`
+   --> app\services\consultation_parent_graph.py:424:52
+    |
+422 |             # Substitute in one pass so renumbering cannot replace a newly written ID again.
+423 |             answer = re.sub(
+424 |                 r"\[([^\[\]]+)\]", lambda m: "[" + mapping.get(m[1], m[1]) + "]", answer
+    |                                                    ^^^^^^^
+425 |             )
+426 |             evidence.extend(e.model_copy(update={"id": mapping[e.id]}) for e in knowledge.evidence)
+    |
+
+Found 1 error.

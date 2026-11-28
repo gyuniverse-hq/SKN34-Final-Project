@@ -1,0 +1,8 @@
+warning: in the working copy of '__tests__/chatConversationStore.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/chatScreen.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/useChatConversations.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'reports/g8/parent/trace.jsonl', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/chatConversationStore.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/chatScreen.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '__tests__/useChatConversations.test.tsx', LF will be replaced by CRLF the next time Git touches it
+PASS 53 source hashes; 141 evidence files; 93 chatbot HTTP starts; privacy/known secrets absent

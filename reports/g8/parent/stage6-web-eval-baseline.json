@@ -1,0 +1,1042 @@
+{
+  "at": "2026-11-27T20:58:16.098744+00:00",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "branch": "feat/compound-consultation",
+  "source": [
+    {
+      "path": "__tests__/chatConversationStore.test.ts",
+      "sha256": "928142794a6b7406ee2d771b0c44bc6554c98e82a110fdd583dc3b675758a981"
+    },
+    {
+      "path": "__tests__/chatScreen.test.ts",
+      "sha256": "8d57268aee33ff61d25428e1bd914bf896534014b07459ab47e5c63b4b9232ae"
+    },
+    {
+      "path": "__tests__/chatSessionApi.test.ts",
+      "sha256": "80fbf3e39d4dac87e0df36ce26119205b879617284410a13f325b2c5db69c5e3"
+    },
+    {
+      "path": "__tests__/useChatConversations.test.tsx",
+      "sha256": "53338b6420a4f0b728d15032295d928fafc9a69b1229f62ec7a58001b13dd547"
+    },
+    {
+      "path": "app/chat.tsx",
+      "sha256": "9f7b262c86804905bea839dd9b00e734d26159c2f96693e5f8f40c4b1c61832d"
+    },
+    {
+      "path": "backend/api/app/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/clients/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/clients/chatbot_deletion_client.py",
+      "sha256": "e48e4fc74d162d78f2111fd714628371043e1b59e54022edddbff3812969c3cc"
+    },
+    {
+      "path": "backend/api/app/clients/gemini_client.py",
+      "sha256": "516bf4e4d304b539e4e3e5c394f3edf96f70c7b76f591670d7e4bcb9d07983de"
+    },
+    {
+      "path": "backend/api/app/clients/naver_client.py",
+      "sha256": "c654832ea196ffac41313b902d817fb223d63983e948683c8f9cd0c356992802"
+    },
+    {
+      "path": "backend/api/app/clients/openai_embedding_client.py",
+      "sha256": "9ac3b32ca2455249f8aa074c530e38fba25cd7b6f86706d61f4cc91ce01331a2"
+    },
+    {
+      "path": "backend/api/app/clients/supabase_admin_client.py",
+      "sha256": "40baad939b9a9df940054c4b8d197a0a1e0aa5381702ca159d90b0d83e148511"
+    },
+    {
+      "path": "backend/api/app/clients/toss_client.py",
+      "sha256": "330bb26d98c3824f56e9da1ef61b5c66a508bf7da1b4860127d3db209356f8b6"
+    },
+    {
+      "path": "backend/api/app/clients/vision_llm_client.py",
+      "sha256": "4ecf7ac5fac7a72fe9f5cdb4f722b0073358e7f163d4cd09c4dabcd189e283ab"
+    },
+    {
+      "path": "backend/api/app/clients/youtube_client.py",
+      "sha256": "71a7e3b5da637546c3cea1fb5ba59732f9685dd51a686fc47d99906f3a917b8f"
+    },
+    {
+      "path": "backend/api/app/core/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/core/ar_palette.py",
+      "sha256": "284b6b366b4249e391aab3e2fbbd244c8ba1d5bc137be6c59a512a02928d6143"
+    },
+    {
+      "path": "backend/api/app/core/ar_palette_artifacts.py",
+      "sha256": "cb812d24ef9e37a471c13cee9062e808c5ef239e181ee443217434a9d8ea5fe0"
+    },
+    {
+      "path": "backend/api/app/core/auth.py",
+      "sha256": "0c8261fef61b697ee25c08d27e345fe6dad62fb7af2af40e0ba220f74f2c5010"
+    },
+    {
+      "path": "backend/api/app/core/cache.py",
+      "sha256": "6340afd327aecac01c1232bd3b3227f3c125c1b615998abe5487beba20eb1f7c"
+    },
+    {
+      "path": "backend/api/app/core/config.py",
+      "sha256": "8347eb82ca98c8296a9c73be48a0da9c52cf1f59a663db11bc4cbeb570e6b6eb"
+    },
+    {
+      "path": "backend/api/app/core/db.py",
+      "sha256": "ad907bb6de53445f5e9c93cfe174881e5a028dfce56810e53fc79cc6ef3e48a4"
+    },
+    {
+      "path": "backend/api/app/core/errors.py",
+      "sha256": "346f2e508751eb9f70a3027b4f7f5192d4f56438ad72c8f7a914de3733623cd4"
+    },
+    {
+      "path": "backend/api/app/core/http.py",
+      "sha256": "cdf3a13aff50c70f1516253599530c2028d4b225f1a1d532dafda90e5f854c1f"
+    },
+    {
+      "path": "backend/api/app/core/ingredient_alias_approval.py",
+      "sha256": "936a8fb9d18a56a8922b6786db448fa0222c09aea0338d40b53dd426f1d47d72"
+    },
+    {
+      "path": "backend/api/app/core/observability.py",
+      "sha256": "cf0d7641bffbc944cf47ad5952249021ee29ba4242e87e395317c681ead49def"
+    },
+    {
+      "path": "backend/api/app/core/oliveyoung_image.py",
+      "sha256": "b6027c84f8b7c62f03f18ba87a2e843194a9c4fcf4c43e1005e3515952b1bd39"
+    },
+    {
+      "path": "backend/api/app/core/ratelimit.py",
+      "sha256": "dbc111b5f024493dce32942b17740c7d58514497f53a679ba84fa73b74cb40ef"
+    },
+    {
+      "path": "backend/api/app/core/video_shade_resolution.py",
+      "sha256": "8b59052c2df7496afd71a048c125ea8ef32056a05ed4f008a2f1dd870b1a3fc5"
+    },
+    {
+      "path": "backend/api/app/jobs/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/jobs/align_knowledge_quotes.py",
+      "sha256": "a0fd15fa897cb2af262d4d0f90ca25d606b0a7c996c987cfc809ccbe5e602adb"
+    },
+    {
+      "path": "backend/api/app/jobs/apply_look_recipe.py",
+      "sha256": "66659296a5983cab61c2d7999785403f3d1b9e9e0ad4bcb947549956d758d3fd"
+    },
+    {
+      "path": "backend/api/app/jobs/apply_video_product_mappings.py",
+      "sha256": "227a318079fdbe85932f8270d606608db1c4e34b2f2f74b3245b88ddc9102986"
+    },
+    {
+      "path": "backend/api/app/jobs/ar_palette_ml.py",
+      "sha256": "2553c27b2d26f5d834f84db106f51dea2c24016fab6c4ad034617adb337e651a"
+    },
+    {
+      "path": "backend/api/app/jobs/build_oy_catalog_from_csv.py",
+      "sha256": "3e49d398d88e76fd26c878170c256691fcb2d775cb7a74290b788f51c01f55ac"
+    },
+    {
+      "path": "backend/api/app/jobs/cart_recommendation_report.py",
+      "sha256": "7ad71cd9ec36ec5712d81966111fd80fcbd57b6d9efc2313c5f6c4397cfd2913"
+    },
+    {
+      "path": "backend/api/app/jobs/check_curated_videos.py",
+      "sha256": "abd6e4704d200d257e5b789b8470f198e17a7b77df85a1e5dfa059c588cf633d"
+    },
+    {
+      "path": "backend/api/app/jobs/collect_youtube_playlist.py",
+      "sha256": "09f5da9359325fcd9dc83980fd794922041d0b99784378b5e172a551adc3f70d"
+    },
+    {
+      "path": "backend/api/app/jobs/export_oy_catalog.py",
+      "sha256": "c3c1afffc152b1ab920a74f59bbd5064d5e873aab67d24f031d10bebbdc7cb5a"
+    },
+    {
+      "path": "backend/api/app/jobs/extract_knowledge.py",
+      "sha256": "8b833366c1a99e488c6102ef95acada1b0b10d17cc2e79ed203cb5d5b67c4213"
+    },
+    {
+      "path": "backend/api/app/jobs/extract_look_recipe.py",
+      "sha256": "1f792b9b6168974e3f1fa5f87d472dc1ddfcaaa563edf4705ef23b1d955febea"
+    },
+    {
+      "path": "backend/api/app/jobs/grant_staff_role.py",
+      "sha256": "ea9a462c26670aa2ac8c92ada72aacfd500eac2adab296bd606d18397f87af0d"
+    },
+    {
+      "path": "backend/api/app/jobs/index_knowledge.py",
+      "sha256": "57a47c2bd081eaf718b883e44c228bf8d61ac8e054bd33f2fc2f99ba2c797a19"
+    },
+    {
+      "path": "backend/api/app/jobs/link_look_products.py",
+      "sha256": "26c3a13c0b6cc1be1e24db7ba21d019952c033b0e9f5c587bcf72a4d7eafc067"
+    },
+    {
+      "path": "backend/api/app/jobs/load_look_tags.py",
+      "sha256": "3bfa9744983686a6b83c2649bd52af18f05b41f584110bd9b7bdb803da381c4b"
+    },
+    {
+      "path": "backend/api/app/jobs/match_video_products.py",
+      "sha256": "c230fea238b2b0196cc8245f70dbfcb5471c86d7edcdcea28cbc351372628957"
+    },
+    {
+      "path": "backend/api/app/jobs/normalize_youtube_candidates.py",
+      "sha256": "1820fde475d788b98f528adb8d7cf1242f9e6ca8abd697197bee6a2c9a796ca0"
+    },
+    {
+      "path": "backend/api/app/jobs/process_account_deletions.py",
+      "sha256": "f70a6e7d15c684f42510d1329ec6ded7cf79b5719c76d2d22aa61ba325610ec3"
+    },
+    {
+      "path": "backend/api/app/jobs/publish_skincare.py",
+      "sha256": "ac5ec862e7f5d6733b93926bda12f1d13ec03df32d3df66594be4a69ae2604ac"
+    },
+    {
+      "path": "backend/api/app/jobs/refresh_youtube_metadata.py",
+      "sha256": "47fd866b5e40e66db30803d258c34b63d14f9a3894850b40d9875cfa3cca3b37"
+    },
+    {
+      "path": "backend/api/app/jobs/register_look_videos.py",
+      "sha256": "64be01b8ea59bca5578f17ba9c6863bfa46f645db231813f7921a825e9982891"
+    },
+    {
+      "path": "backend/api/app/jobs/review_skincare.py",
+      "sha256": "fb16937b56e2d95d75eb0fe27ca5af6274807b508920b236c643e74042b132fe"
+    },
+    {
+      "path": "backend/api/app/jobs/seed_catalog.py",
+      "sha256": "2c23e4f099f022e1f23f011fcff5cc21d6dc87d6862b8fe5af0db8264e3c2d00"
+    },
+    {
+      "path": "backend/api/app/jobs/skincare_funnel.py",
+      "sha256": "3826d36b41a435014140ca6afa06227d68d290f70d40e41ce366fe2833639321"
+    },
+    {
+      "path": "backend/api/app/main.py",
+      "sha256": "c87c1eb49ac765ad56497c6126fcf38d9d21f662dac75474d33133c87618bc04"
+    },
+    {
+      "path": "backend/api/app/models/__init__.py",
+      "sha256": "381976ac6339d5a3498a8d8edc704a224f5f590667dd48d68db0be631db83ed7"
+    },
+    {
+      "path": "backend/api/app/models/account_deletion.py",
+      "sha256": "b45bc22f4df97a8e975b91dfbc949a16c4d8bc3f4cd76fd7390b0df0cd88c5e3"
+    },
+    {
+      "path": "backend/api/app/models/admin.py",
+      "sha256": "0460ee647a1f46af6bd4e055f8ecc180faee4e289f382ac2be6c84cfa14d7734"
+    },
+    {
+      "path": "backend/api/app/models/aihub.py",
+      "sha256": "26d9034bb911ecee1abc7ddccf5fb812e70628e90dd088bf73d68e4480943508"
+    },
+    {
+      "path": "backend/api/app/models/ar_personalization.py",
+      "sha256": "3bcc8da88d21ca222fb0c000edb2a36a21dd19ff6c61f2e7d2f9635d2f309691"
+    },
+    {
+      "path": "backend/api/app/models/cart_recommendation.py",
+      "sha256": "795fd448f502107529cfd7954d3fb58309aa25c6d6d06bd7e6c506ac35c12632"
+    },
+    {
+      "path": "backend/api/app/models/catalog.py",
+      "sha256": "618404ff61b2cb86d742cbf45526eec3d5affc6f36b0b6341865d6eceeafe309"
+    },
+    {
+      "path": "backend/api/app/models/cosing.py",
+      "sha256": "031003d26e4ef3beb305e7780bd0107aded1653b94c8fb871eb7776bf2a39b88"
+    },
+    {
+      "path": "backend/api/app/models/idol_look.py",
+      "sha256": "f7f319c3712c52066e43eb42969e75ccf349fe9f82bad2ec925939095ecb9d7e"
+    },
+    {
+      "path": "backend/api/app/models/knowledge.py",
+      "sha256": "f5393069c1636e3e3ab48e7df1aeb58601ae82906905c605316e33f83101140a"
+    },
+    {
+      "path": "backend/api/app/models/makeup_troubleshooting.py",
+      "sha256": "17f2004cf767ebb24f4ee3a6ecf842ee2e9055187d3bcf13d5a78a4017e65064"
+    },
+    {
+      "path": "backend/api/app/models/member.py",
+      "sha256": "2f59d04d897f77c822f37903a32323d9a51d1c92705c1cef0651c977def6c13a"
+    },
+    {
+      "path": "backend/api/app/models/order.py",
+      "sha256": "489f8792dc97b5370d3faf1eb64e4c72eff671a166bb04b56ffa3b3510fc837e"
+    },
+    {
+      "path": "backend/api/app/models/oy_catalog_category_rule.py",
+      "sha256": "ac59af654b119412051ee86da9896a822f736fe9412a9fcd181e65901befbef1"
+    },
+    {
+      "path": "backend/api/app/models/oy_mfds_ingredient_map.py",
+      "sha256": "bc5330892831435c9c0ad796397ee77ca5b1386d1ddb4f9aba23ad56f9b0f723"
+    },
+    {
+      "path": "backend/api/app/models/raw_mfds_ingredient.py",
+      "sha256": "1d751047ba6e5bd7bcd3421456e174631b962d77eb05fd522a1d8a5ba92dd336"
+    },
+    {
+      "path": "backend/api/app/models/raw_official_product.py",
+      "sha256": "376adee4c81164533e19682b2f1da63d4c76894294e81d499c78153983f18db6"
+    },
+    {
+      "path": "backend/api/app/models/raw_oliveyoung.py",
+      "sha256": "c9821217ee355a005cf4e13ea5ff057f88b87a4e27a3c39910325d3158719164"
+    },
+    {
+      "path": "backend/api/app/models/raw_youtube_product.py",
+      "sha256": "72f733c090e28e5c4525bd7c61b9192f5b6a658c6a9712a1dd39fbc354512285"
+    },
+    {
+      "path": "backend/api/app/models/recommendation.py",
+      "sha256": "121d3be0ab65de7b1ae0c0b25623807bb228e5e65d2febb75a645d0e1adcfb9a"
+    },
+    {
+      "path": "backend/api/app/models/recommendation_feedback.py",
+      "sha256": "2e500df6b4127e4acadbed72a931403a53d43d3128d3353e44c177be14b8a60c"
+    },
+    {
+      "path": "backend/api/app/models/reward.py",
+      "sha256": "8ec4c2d813b942dd4b93ede8f1212056b96434a3211d14d1fe4173a9d1a3d69e"
+    },
+    {
+      "path": "backend/api/app/models/skincare.py",
+      "sha256": "f0eab288d8b4a3930a09fcc113deabb272fbc84edb44376d41b314af9c070990"
+    },
+    {
+      "path": "backend/api/app/repositories/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/repositories/account_deletion_repository.py",
+      "sha256": "b0205179129961fa6a99b191bb54e89d2a9e99ebe3a44499454a00a76e54e020"
+    },
+    {
+      "path": "backend/api/app/repositories/admin_repository.py",
+      "sha256": "e450792aca6baf0ce5ea49fee043a43ca46b3104e5cad76c9fc6777337e935c2"
+    },
+    {
+      "path": "backend/api/app/repositories/ar_history_repository.py",
+      "sha256": "8c01bb83595fea821fd28f72f24e5c31cbb262dfc5168898507d9884bdf1e935"
+    },
+    {
+      "path": "backend/api/app/repositories/ar_palette_repository.py",
+      "sha256": "40b0f1407252ea9a4914b720272dfcaa901228fd6bed05e5d456c769b7ac1bb4"
+    },
+    {
+      "path": "backend/api/app/repositories/cart_recommendation_repository.py",
+      "sha256": "c5277da58624bb43f1292ecd6b746457a018ade038d98a5ce5890e356a5df529"
+    },
+    {
+      "path": "backend/api/app/repositories/catalog_repository.py",
+      "sha256": "20f23fedffb5112e89ef64acbd8e4eda2a8d363df349174153675b8ce60ed481"
+    },
+    {
+      "path": "backend/api/app/repositories/celebrity_video_repository.py",
+      "sha256": "548286071dc1184c9e1b3dcbb90100b8967d78f3a8bf6aa2ce9e7b8627481c4d"
+    },
+    {
+      "path": "backend/api/app/repositories/idol_look_repository.py",
+      "sha256": "a84cbd84fdd4b8e76e019f084f864ec456ae8ce640a5691904edf521c1979c83"
+    },
+    {
+      "path": "backend/api/app/repositories/ingredient_identity_repository.py",
+      "sha256": "0e962d5f679c3ca980977d091af2102f649f200758755c60e15f23305a6c6a07"
+    },
+    {
+      "path": "backend/api/app/repositories/ingredient_repository.py",
+      "sha256": "0a73f1a0688e13f9bb0ecc31693519b2e4bab2be8e8641ac9e660d026bc78947"
+    },
+    {
+      "path": "backend/api/app/repositories/inventory_repository.py",
+      "sha256": "8f7c75996ce5a7c85e99b34bc3296759a02119ef579cfe0a817fc4d10a63160b"
+    },
+    {
+      "path": "backend/api/app/repositories/knowledge_repository.py",
+      "sha256": "08bff438438ea840537b82e167582f5126d1c93bce6fafb2cabf73ba0aeffa17"
+    },
+    {
+      "path": "backend/api/app/repositories/lip_eval_repository.py",
+      "sha256": "e1a37301822da45ef96d6ebde587c7103450a67a847578a4351bc26f3f223216"
+    },
+    {
+      "path": "backend/api/app/repositories/look_consult_repository.py",
+      "sha256": "21125f2124cef691aa6589f3aa51d0b8e18e8cfc446ee2baa2283b7c548b0818"
+    },
+    {
+      "path": "backend/api/app/repositories/look_video_repository.py",
+      "sha256": "cfa7bca300fcd349fd950213c14d25a62770205a92715c139794501aface8e6e"
+    },
+    {
+      "path": "backend/api/app/repositories/member_repository.py",
+      "sha256": "2a851d58ea54d177e8a074aac60f47b93e0cd5af7f811184e17f4f992087225c"
+    },
+    {
+      "path": "backend/api/app/repositories/order_repository.py",
+      "sha256": "b26f8840abb959e931d5464812fa6836dd87700e7e8c3eba75699f264bd39225"
+    },
+    {
+      "path": "backend/api/app/repositories/oy_catalog_repository.py",
+      "sha256": "418f3f5897f6e7065b997243b1d7bc622642360aa6c84d508d8c34dd43ffca0d"
+    },
+    {
+      "path": "backend/api/app/repositories/rag_repository.py",
+      "sha256": "dbbd8d64e5e1760631201d280b7a756e36d10a543e5562a8b7286bc2af6d0d49"
+    },
+    {
+      "path": "backend/api/app/repositories/recommendation_feedback_repository.py",
+      "sha256": "a1b494679ddcce39723a3ef0f0eefad58eb89ea7c85a5424fad84a9ec0d72b68"
+    },
+    {
+      "path": "backend/api/app/repositories/reward_repository.py",
+      "sha256": "35a08c6d446a77a4edf2cd240cc11e01bc79ca64dd0eecbe9f2fa678433ca2df"
+    },
+    {
+      "path": "backend/api/app/repositories/skincare_build_repository.py",
+      "sha256": "19450e995bde53d2c44b6abb7d1f7239a6ab6abc1b7e303688a9736a9dd9cd3b"
+    },
+    {
+      "path": "backend/api/app/repositories/skincare_refresh_repository.py",
+      "sha256": "76974ac7c7d794c365dd73b2325e48745663640b6b3e61a9ed2cabff48a39fa0"
+    },
+    {
+      "path": "backend/api/app/repositories/skincare_repository.py",
+      "sha256": "f7aae2f866f033d382604cccf9b6c2b6bc7f256cb1734b1d10f711d2558ee3bc"
+    },
+    {
+      "path": "backend/api/app/repositories/style_look_repository.py",
+      "sha256": "d01e60031f4c44ca2d378fb1986233175a2ba089aa5fe282f98ca728e6e9256a"
+    },
+    {
+      "path": "backend/api/app/repositories/verified_video_product_repository.py",
+      "sha256": "59df6ec9da809f60b7a812d531187aeec3096d29d69b7053ae22be2ddf59f43a"
+    },
+    {
+      "path": "backend/api/app/repositories/video_mapping_files.py",
+      "sha256": "0a3f0a2746add3f7e8ca210fd144f3ff0c85d40bb8b413439545c9439d4e35ca"
+    },
+    {
+      "path": "backend/api/app/routers/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/routers/admin.py",
+      "sha256": "0735aef3b7e08fe6e82a3f4c41dec54aeb758f0121fe7c75a5bc3e667af1e9f0"
+    },
+    {
+      "path": "backend/api/app/routers/ar_history.py",
+      "sha256": "4e387af4fc37cde4fc8f3f88177c5fd8f89ea05a1928cae674f112761908797c"
+    },
+    {
+      "path": "backend/api/app/routers/cart_recommendations.py",
+      "sha256": "f4321b5529bc61ac7f2eececd26a17b8a49287e77f3298eaef5246e9548c97e7"
+    },
+    {
+      "path": "backend/api/app/routers/catalog.py",
+      "sha256": "d0221c54f53c3209639c208744d0a8dcf3171a934e722c536f81ba51de797c0a"
+    },
+    {
+      "path": "backend/api/app/routers/celebrity_videos.py",
+      "sha256": "bbe66ed0e0e71510ee9fe09585bd50e4ddaca2d1efddd90dab4e82b51415aab0"
+    },
+    {
+      "path": "backend/api/app/routers/health.py",
+      "sha256": "41d0fa9e5961d8da0250a07c6528055f98a2ac66c946906a2d7912b15c649d71"
+    },
+    {
+      "path": "backend/api/app/routers/idol_looks.py",
+      "sha256": "1777106c3762d7219efef641576f3e4efeb2c1c87e5a9a8b97587ba99f10995d"
+    },
+    {
+      "path": "backend/api/app/routers/look_consult.py",
+      "sha256": "4f505ef4c430ce897610f12a4a551616e213d834db9f6eb0b9f4020d18a03b35"
+    },
+    {
+      "path": "backend/api/app/routers/members.py",
+      "sha256": "eef2fa0816bcf25d8bec8e30d3ecfb6312a84ec0bf2c664df31b0225ef837a79"
+    },
+    {
+      "path": "backend/api/app/routers/payments.py",
+      "sha256": "49faa79104660b712c42e6be12681a25e30bb546ab90651854a2674884d46cb4"
+    },
+    {
+      "path": "backend/api/app/routers/rag.py",
+      "sha256": "6d39431b562523fe62f79460cc66b1c22ef98558ce6976352af84ba22e5785cc"
+    },
+    {
+      "path": "backend/api/app/routers/recommendations.py",
+      "sha256": "c6283b6f405543c216e4429ac5c6a0ef12d0ffd40f5a2ab3271f1a25e7cb86e5"
+    },
+    {
+      "path": "backend/api/app/routers/shades.py",
+      "sha256": "0988430d79f07a4196141b4ee211cfe0eda884e749e494c2eebd59a119c5ab89"
+    },
+    {
+      "path": "backend/api/app/routers/style_looks.py",
+      "sha256": "8ca346e6b06de9c58f3d4887f12c7b2f82438f39429aec627520b1468d6f2a63"
+    },
+    {
+      "path": "backend/api/app/routers/tutorials.py",
+      "sha256": "405173014df99ffa8b16ce5a97588f9dfd085dc3e2c9d96e81855867e0d2582a"
+    },
+    {
+      "path": "backend/api/app/schemas/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/schemas/admin.py",
+      "sha256": "ac34360e0c903a7992d20b7ee0ff192775f21b599a52c3711cde5ba7c7daf39a"
+    },
+    {
+      "path": "backend/api/app/schemas/ar_history.py",
+      "sha256": "8f4486f752f3651e95524c40627cbdeb6001a610c1dc87e67448dc06819fdb8c"
+    },
+    {
+      "path": "backend/api/app/schemas/base.py",
+      "sha256": "c3f78d11755532dc7f6f327c7dfe0f9bec98855441d0801e8e594e97140ec7c7"
+    },
+    {
+      "path": "backend/api/app/schemas/cart_recommendation.py",
+      "sha256": "3c315c7075df7521055e2116c601cab639c83ab9fb9fde3acff1979657908331"
+    },
+    {
+      "path": "backend/api/app/schemas/catalog.py",
+      "sha256": "bbeabea01f2b2a56394186f65ebcefd1796242c8eef64158a0310f2ca7360204"
+    },
+    {
+      "path": "backend/api/app/schemas/celebrity_video.py",
+      "sha256": "ec3265c521337b070da6d16b57183516f201e4c941a69e959d296a670172a8c1"
+    },
+    {
+      "path": "backend/api/app/schemas/consultation_recipe.py",
+      "sha256": "be692ec12e0390d655c837ea8040e0c8ac995dee2e8caf91880e006fe0e64173"
+    },
+    {
+      "path": "backend/api/app/schemas/external.py",
+      "sha256": "17c5f82e5882f5b071d743af75aae146a4269217f11663df96dade8d2b1640e9"
+    },
+    {
+      "path": "backend/api/app/schemas/idol_look.py",
+      "sha256": "82bb4b915ebc05659bf3a31b9c9d0a9657612e0cdfac87ae64a011e31586c8b6"
+    },
+    {
+      "path": "backend/api/app/schemas/ingredient.py",
+      "sha256": "4a85479be46366619b1618483787b37ac20f9e94a67278aa65f40fcc50195873"
+    },
+    {
+      "path": "backend/api/app/schemas/knowledge.py",
+      "sha256": "f9f7821c5996ce88e76828212ce430632afd2d5edc96906154127d13171025f8"
+    },
+    {
+      "path": "backend/api/app/schemas/look_consult.py",
+      "sha256": "dcc520e5f72a6dfbc111eece599e6753a94b1a7754709fcc3ad1c2bc036c6ea3"
+    },
+    {
+      "path": "backend/api/app/schemas/look_recipe.py",
+      "sha256": "c248ed63ff5fabdf9ab0e665e379799ed92d9fab98518f096a717f9d4e190509"
+    },
+    {
+      "path": "backend/api/app/schemas/look_video.py",
+      "sha256": "12a3a19fd11d6f3586420d42e6a25e7ed4f8ff209da5f5ba9dd294c740fae6c8"
+    },
+    {
+      "path": "backend/api/app/schemas/member.py",
+      "sha256": "49ff5ce198f1cdab620cdf515ca9be12c1ac251e9dac263940cc4fff82de6e85"
+    },
+    {
+      "path": "backend/api/app/schemas/option_search.py",
+      "sha256": "ce0dffd5fbf0d111a023bde5f25b147acf7b29174f2fd308f26aa8a38febcc41"
+    },
+    {
+      "path": "backend/api/app/schemas/oy_catalog.py",
+      "sha256": "1453aec17dc350f20c855a284e5b6f684e1f7b094d887a64eb187bb9bdd69a8a"
+    },
+    {
+      "path": "backend/api/app/schemas/payment.py",
+      "sha256": "b70917818e2d6f7c18684ea3db675244d985416f48a7cf5415e61ad02c9b2ab7"
+    },
+    {
+      "path": "backend/api/app/schemas/product_option.py",
+      "sha256": "cf7024657938fe02814449b3c27201af8a08bf1af4591b5e3a1fc1d00a1a33f3"
+    },
+    {
+      "path": "backend/api/app/schemas/product_video.py",
+      "sha256": "81fb739c790cda2059ceaa5c4e69de64f8b1d1514d7953c533d4284fe8904e2d"
+    },
+    {
+      "path": "backend/api/app/schemas/rag.py",
+      "sha256": "5462d83139160444d0ed718794f4d827950ffe18f1b836026d1a6041e4d791b4"
+    },
+    {
+      "path": "backend/api/app/schemas/recommendation.py",
+      "sha256": "e83aa8154e5f9d646a7bee184429574f595fb10bdcd4d00472176f1771c4397c"
+    },
+    {
+      "path": "backend/api/app/schemas/recommendation_feedback.py",
+      "sha256": "0009adbca29b9c2b91e86584646d4d29ecc544fed573b283db7083b497fad335"
+    },
+    {
+      "path": "backend/api/app/schemas/reward.py",
+      "sha256": "7e9d1570ebd7fcd319fd9f22124e8932aab719bbf4535cf54065457bd560cce6"
+    },
+    {
+      "path": "backend/api/app/schemas/shade.py",
+      "sha256": "35333b10d49c96fba3f9231f60f12eabe1091720c4ffd38c524528ae9b1c66da"
+    },
+    {
+      "path": "backend/api/app/schemas/skincare.py",
+      "sha256": "64f68c03e038c950776adcdc3ba9b7e76325dcd15145d3b01ca242c333280bac"
+    },
+    {
+      "path": "backend/api/app/schemas/style_look.py",
+      "sha256": "b7dae082d32a451f225bab23ec3b6499d0bf4f36a42a67818d53219288a85b3c"
+    },
+    {
+      "path": "backend/api/app/services/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/api/app/services/account_deletion_service.py",
+      "sha256": "05082b2cad4f62d75148def164b42f6b1b5846e565d88ead21937f846cc5b08e"
+    },
+    {
+      "path": "backend/api/app/services/admin_auth_service.py",
+      "sha256": "28ab78e81b111542805899fc3e7dd64df6ff94b3852d8ba1e42bbf7beb38beeb"
+    },
+    {
+      "path": "backend/api/app/services/admin_ops_service.py",
+      "sha256": "ee2e153ddee7836cfa794d6414dd4062fdf1dd517ae05ef39818cf2f79f88530"
+    },
+    {
+      "path": "backend/api/app/services/admin_service.py",
+      "sha256": "019e68f0bf4fc480676a8012b2d021081563ab6ce79e614289fb1df3967ec8f6"
+    },
+    {
+      "path": "backend/api/app/services/ar_history_service.py",
+      "sha256": "aaba906495325b8e17e1639cc5d77006f9524d38113b17f08583dec9fab674f4"
+    },
+    {
+      "path": "backend/api/app/services/ar_palette_search.py",
+      "sha256": "5f0c3509f51d64f9af4dc237a499cb176aca8e066765e233ea2df8b973153ef1"
+    },
+    {
+      "path": "backend/api/app/services/ar_palette_service.py",
+      "sha256": "8bc6f584e25384fa69de2b227a6b60f2c9ec5e563ddb8c882bf1050de7e08b7c"
+    },
+    {
+      "path": "backend/api/app/services/ar_palette_training_service.py",
+      "sha256": "2129adab1f7a8ac182c481c80f07ead987dd57912bcf5fa6abde52f056937a18"
+    },
+    {
+      "path": "backend/api/app/services/cart_recommendation_service.py",
+      "sha256": "f57a3ae5cef34b7d84ea3688ff6bf51a6cb93d761062814e0888c993bbf88f0a"
+    },
+    {
+      "path": "backend/api/app/services/catalog_service.py",
+      "sha256": "107649ce399eb7de347acfeda914629031400cf9ef11e79314995cdb5fe986e9"
+    },
+    {
+      "path": "backend/api/app/services/celebrity_video_service.py",
+      "sha256": "3366d50781e792c62c08164e9ad585c95ae9b2cc596eb1a1d4e4dc7e227d5be7"
+    },
+    {
+      "path": "backend/api/app/services/color.py",
+      "sha256": "6689c5b6420b81ba0b7e231b95c4dfbc3edc60eefd500c11aca26bb139c92b48"
+    },
+    {
+      "path": "backend/api/app/services/curated_video_check_service.py",
+      "sha256": "60fd08e400cdf0869c9275ce4d63a071c1ac0eb280f01ab870128f37ca275359"
+    },
+    {
+      "path": "backend/api/app/services/description_recipe_service.py",
+      "sha256": "93f4a7d94856a5cf1ef07731defc323bf0ad4eee150175c7b3d40c761db489cf"
+    },
+    {
+      "path": "backend/api/app/services/idol_look_service.py",
+      "sha256": "92ef50b7a4a3b861c743372a97096d1bdfdc8512bcf2b0a27aba72b7ef712731"
+    },
+    {
+      "path": "backend/api/app/services/image_service.py",
+      "sha256": "63c551fab60bf54eb01b2822adeffc57c167a0cfa92160998d104d779e69e5e4"
+    },
+    {
+      "path": "backend/api/app/services/ingredient_service.py",
+      "sha256": "6c3b825ba067142be73b6f14b3d3cbfed0092d33e38989cf83e9a337c67a1957"
+    },
+    {
+      "path": "backend/api/app/services/integration_service.py",
+      "sha256": "861fb17be0177270ef5ac5a04a888973f096611738d29267252d05943d6261a2"
+    },
+    {
+      "path": "backend/api/app/services/inventory_service.py",
+      "sha256": "c01e52b333e2772fde35e386640440ef85bc859a67f38a04b00bde877675545b"
+    },
+    {
+      "path": "backend/api/app/services/knowledge_alignment_service.py",
+      "sha256": "ba93dffc02b53da3b6958e7ff7bfc00509b2d65e163969fbb3455611aefb701c"
+    },
+    {
+      "path": "backend/api/app/services/knowledge_extraction_service.py",
+      "sha256": "916e4093f4f9fe932b086de27ff3d0cb2521b6f10ce063d433a4bcb3f1e83e78"
+    },
+    {
+      "path": "backend/api/app/services/knowledge_ingest_service.py",
+      "sha256": "fcf5a721b9fe0016de3a2318184a3cc23c71385c607c75c555864ee193ff31dc"
+    },
+    {
+      "path": "backend/api/app/services/lip_eval_catalog.py",
+      "sha256": "92b4862d761149378ab35f4ea4aaf9484638615bd2c4a2cbe17c29386b862304"
+    },
+    {
+      "path": "backend/api/app/services/lip_eval_panel_service.py",
+      "sha256": "1ba13208ca315b987a4b10b8fe94fbfc75aa41a30be1c868c75ef3a9e603150c"
+    },
+    {
+      "path": "backend/api/app/services/lip_technical_metrics.py",
+      "sha256": "1b72c6f141b5d01016cdb16ee820b64191b6d8377e2adfda4cc9b181748ee475"
+    },
+    {
+      "path": "backend/api/app/services/lip_triad_eval_service.py",
+      "sha256": "30b11c5a25f2af5e402946924b6e94bbe4f83935c2321a1534e099cc824aa676"
+    },
+    {
+      "path": "backend/api/app/services/look_consult_service.py",
+      "sha256": "f80f6f14bf40ea2df12f2a887f54089c4f9bda27e0b59a7fc83a3952e651a9fe"
+    },
+    {
+      "path": "backend/api/app/services/look_product_link_service.py",
+      "sha256": "b449688e91231f348db2d94c91f709f161e6d16250cb9c8ebadedce5640dae5d"
+    },
+    {
+      "path": "backend/api/app/services/look_recipe_service.py",
+      "sha256": "873ea47c8f1b8692e8bdf0facb3c5c032aa3b755656f25e200de28090921f668"
+    },
+    {
+      "path": "backend/api/app/services/look_tag_load_service.py",
+      "sha256": "0446be0acfd7b8e36d133642471aebcba938a9e5fe2b4ecaf11fa2169d878be3"
+    },
+    {
+      "path": "backend/api/app/services/look_video_registration_service.py",
+      "sha256": "22bbafda6045e298e3693fc22006740791c09b58b7769878487f98ac0ec03a39"
+    },
+    {
+      "path": "backend/api/app/services/member_service.py",
+      "sha256": "908c80e3c1a697ffa2585117b92a00a0d7ab85d6c79f7e1a63ce48dc0e36136c"
+    },
+    {
+      "path": "backend/api/app/services/offer_service.py",
+      "sha256": "9c5a70db50d6f7b11f8132731ce76478cd14a87d71ca28130dda87413226d287"
+    },
+    {
+      "path": "backend/api/app/services/option_search_service.py",
+      "sha256": "4dc043448ef8dabc2e1db01148305f0a80c7c0a48bfe9afff7f55358691b1870"
+    },
+    {
+      "path": "backend/api/app/services/oy_catalog.py",
+      "sha256": "81d5dccdd8f2ffe8f61abacbbf39e9fadad8a09304c6e8fca70b52ba4b29f540"
+    },
+    {
+      "path": "backend/api/app/services/payment_service.py",
+      "sha256": "9c84245f88500fe272d6bd3343ce207b6a00a83541b6f155fef5dc62db8256f8"
+    },
+    {
+      "path": "backend/api/app/services/product_option_service.py",
+      "sha256": "c1c221b8a71707677f03f40929dcfb4f4b5ebda120aa0aaa9f11974cc9a64cc9"
+    },
+    {
+      "path": "backend/api/app/services/product_video_service.py",
+      "sha256": "c5e890bb2fd8f0f62eab7601be3e21e906bceef64b8dc1aca68f6810d92dba31"
+    },
+    {
+      "path": "backend/api/app/services/rag_chunking.py",
+      "sha256": "3d1d31969e7cce08f52dea92740b0fae44c9c450a80d0fa00b7fc4980d673a55"
+    },
+    {
+      "path": "backend/api/app/services/rag_index_service.py",
+      "sha256": "f2938e3c00aef5f00abfe00bed87851934cc201b7bef7e6d883cc73f6743598b"
+    },
+    {
+      "path": "backend/api/app/services/rag_search_service.py",
+      "sha256": "ca4b9c0bcfdfd9f0598dbc1cbfa8a3c17526e1b7720d7e475f0032cc121ec31c"
+    },
+    {
+      "path": "backend/api/app/services/rating_score_service.py",
+      "sha256": "991c0933f26407cb1ad1aaf0655788d6e9b093a8855736dd44e236b3942c883f"
+    },
+    {
+      "path": "backend/api/app/services/recommendation_feedback_service.py",
+      "sha256": "b8ac547a9eeb959267f060f9dbe53ec3e0385753b3ee06528a7e9f9efa2c1d15"
+    },
+    {
+      "path": "backend/api/app/services/recommendation_service.py",
+      "sha256": "e38d9b2951a522fef6f18b6533fec24d9936fb26684919230115de1ec9c44182"
+    },
+    {
+      "path": "backend/api/app/services/review_suitability_service.py",
+      "sha256": "5712f4c1888371b0ccf729ccdce3f0f9f32f15d889112f0d4823d3cec24aa0c2"
+    },
+    {
+      "path": "backend/api/app/services/reward_service.py",
+      "sha256": "5acbd0990785dbb005053a5db00487e8a6a8299b87285484938510816c3889ff"
+    },
+    {
+      "path": "backend/api/app/services/shade_service.py",
+      "sha256": "10d6625baab405e6a8b45f0d0ba957c8f7862846471d28cfb6a83928585ea9f2"
+    },
+    {
+      "path": "backend/api/app/services/skincare_refresh_service.py",
+      "sha256": "1c6f4b0e88519f6e48a27b8979e04f5bd8743168d81d1ee6ef40eb7618ef8004"
+    },
+    {
+      "path": "backend/api/app/services/skincare_service.py",
+      "sha256": "3fb86b92677130c0a4d8e08dd15fc89efe445d1d1f7729b8adaf4d4df0f20d1f"
+    },
+    {
+      "path": "backend/api/app/services/style_look_service.py",
+      "sha256": "d2295c92fc7866cd3298294facd6918bd5c4830ef79b15cd56ad33887971e188"
+    },
+    {
+      "path": "backend/api/app/services/tutorial_service.py",
+      "sha256": "aff84870f55bbb8eb612bd06ccaca6341a2255d503b73ddcb46d08567af216d5"
+    },
+    {
+      "path": "backend/api/app/services/verified_video_product_links.py",
+      "sha256": "bdd992f560e35606d33eed5c767358f393dd0b6958eee86f96d2955557927f5d"
+    },
+    {
+      "path": "backend/api/app/services/video_mapping_service.py",
+      "sha256": "20bf255c93ad00b4c81015be08a478ec7e18866b5dde583e47bd03beef1543da"
+    },
+    {
+      "path": "backend/api/app/services/video_product_matching.py",
+      "sha256": "b91ad6bf3d6a12b249a86a35f9f6f02bb148dcafe6684e1223f235eccadc9f54"
+    },
+    {
+      "path": "backend/api/app/services/youtube_playlist_service.py",
+      "sha256": "5ea53b999f56d8940031d680d1dca7e6aaa2d2b8229eb3255bb574228f085df3"
+    },
+    {
+      "path": "backend/chatbot/app/repositories/conversation_repository.py",
+      "sha256": "30aecf9d6191bde4f4967e12aa06e1ad3411494fbe5366a47ce19a6b0d421274"
+    },
+    {
+      "path": "backend/chatbot/app/routers/conversations.py",
+      "sha256": "3308e1a73dd87ee80a595e710b4ee094339571169fd3f579b3a8bb93a5678939"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "f3686fecbd375e1723f862af77c33a85860378ab2bb53ce1a8022a71c1a4b7c0"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/compound_consultation.py",
+      "sha256": "3d3d8a4ad3d2332d8b790798eb66028a7d6996291946f29c611b4ca8e1c99a6e"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_answer.py",
+      "sha256": "2156c599a6cf1461259079a427bdc222cddabf01bfe90d205f636e7462fd3fe7"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "b909a464e0eaa7da87212ab572f295a6062d91223a00b5e203995f2a222fcfe9"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_task.py",
+      "sha256": "be0f6934f4e2842fe97b38ead9d5bb62f57a8d0b3e5c41d8b805934744ac2f27"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/conversation.py",
+      "sha256": "07663b7140bd3cf05cb0b9e50ad2e341c422a3da4e6fa406cee50947f012aa22"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "143a804bcfeb15d72cf64337eb340d9d57339cb15294a312db7c9649dda04e4a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_intent.py",
+      "sha256": "5b33dd75f9dd13fc3fa86b1fff4fda2b901faef4c4c22056308ffff50a4e530c"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/product_style_consultation.py",
+      "sha256": "bb18ba0b87fc0d938017bff3b9cbd85f48bef2474334e1166130c1d94a31d4ac"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/supervisor.py",
+      "sha256": "c02ef2f4512a12eed90fb7dd5b25e406094f1a0091adf00be8c43731c9448ca8"
+    },
+    {
+      "path": "backend/chatbot/app/services/beauty_consultation_service.py",
+      "sha256": "5f2f20b26a31330ac6438b63a5a68b8e978ebecd3fcd6b58e5c804704040cd3a"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "d74f710fc7bf4f052886b785fcfc5d12c0eb57c52f9c2f7959cf17eeaf06810c"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_graph.py",
+      "sha256": "7ff72ab1c3ef5720c208667f337620cda8faec5c3f1ab0040c9f94574e01827e"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_service.py",
+      "sha256": "81daa5e524c9abd8299d23e137bf0956ed8aa86cb3f6f056652a102a66b3fd5d"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_answer_service.py",
+      "sha256": "c00fc986b4bae1032835b7d5d60c849f0b279f5b6aabbab70ae9a633b922066d"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_intent_service.py",
+      "sha256": "57fb5cc3ad0acb2a112af17b28568606ffc39e8e729804d832dec3fdb6a67cc2"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "eb2f8086492a9023a96a7d962b1f71dd8fddbcbe96c8b99ca3c083c8f8f137fa"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_result_service.py",
+      "sha256": "91d2173e8ed217f404adde40ad16ae3225a292edfbd7582c46b06731c43d6567"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_task_adapter.py",
+      "sha256": "b6515c417062d6b0a3813894e52111721742febff43042481fd1f3b2cde116e3"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "3002009956b191d68b3e1b591fdaebfc9547bd090962dd5295614a92b74cb214"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_service.py",
+      "sha256": "bbf6842c0bbef0b622632ed2aee112be307a798e4d5d8c56bb70d5fe256d2e2f"
+    },
+    {
+      "path": "backend/chatbot/app/services/knowledge_service.py",
+      "sha256": "b891346f56e82e2c26eaa085d444daa03e6bb81afa8b61a238b985c4d44e582a"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "83e5d7f58b452e7dd2f9f5a9b2c6aed9b323efd004f3fc1720fe0eb00c429341"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_interpreter.py",
+      "sha256": "77a4b53f1bede883dbc4431d49428347d5a33518a5076d80def1741c63b89e9c"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_search_contract.py",
+      "sha256": "604ef64eb23de0dad1879060777e6b56a2812ce39a15ff97522ac11c2229c368"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_style_consultation_service.py",
+      "sha256": "d44d7fa6e22db41eee5dd4a76ea54cc945ff8bdd864d2472503e2d9be0af1584"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+      "sha256": "143d9c502d3de0f047218572346da0a0d45579974edf8f410a9393f17f7a7be6"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_service.py",
+      "sha256": "f55bf83305308244ef6e290c33b4bc6ce5b6628f8100cad9c4efb1d853fb371d"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "01ba1f065fe45f844e827a77b0119b1f9d78f60e3c3fb077235bee55c240041b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_compound_consultation.py",
+      "sha256": "fd33eb59e12b63f3f8bcc0626671980c165c30c90dfadf03d05642b5e2931ed2"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_answer.py",
+      "sha256": "556aaabefe0179c2ef30401c2385dec3da4e797d13ed4a296623e43546b9b3d6"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_intent.py",
+      "sha256": "8a7912ae9756d74d3a575ab318520dd5b8653bb1acdb8e90adacb302598b9a7c"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "bc0ace47b83343624a5ad2509f2628ce5d6976d10908dd76b8ca20f8be1a1eb8"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "530970ff99872a033765e03babd3b728ff28227060a771b00f94a0b88eb56fb7"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+      "sha256": "e5f3cc02d5ff1460c39f76d1e1c039cf9e23fcb123b561fc21c0c267469fa502"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_partial_success.py",
+      "sha256": "51840e1f2a2606bac990935a1dd86401502dfdeb324d72aacf04ec495ec49ad9"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_task_contract.py",
+      "sha256": "751f1df81d2baf40e2077aac8a5bc49de2f68fd268a66c9eabc9400ecadc5eb6"
+    },
+    {
+      "path": "backend/chatbot/tests/test_knowledge_service.py",
+      "sha256": "d1bb71d143e9caf54f75ea5e40e54804c25e784b98fe818f17f39eb1071d885b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_product_search_contract.py",
+      "sha256": "4202cda2014f6cd1398bb30cc374b0522ae2e5a2d97aafcb8fbda2973f95f91d"
+    },
+    {
+      "path": "docs/ai-design/G8-IMPLEMENTATION-SPEC.md",
+      "sha256": "89db38938babf2fa09bb7db7af76fd08a4956e745c00e320366c6de5871990f1"
+    },
+    {
+      "path": "docs/ai-design/G8-WORKLOG.md",
+      "sha256": "2e5f48c7ac3fa3257595ccc75926dc715e7e397787814b44000d05ef7ca17adc"
+    },
+    {
+      "path": "hooks/useChatConversations.ts",
+      "sha256": "6462c0a4672a26b764b8a8d07f65370f55bfab1bc1839c9dbf707538cb94dfe7"
+    },
+    {
+      "path": "lib/api.ts",
+      "sha256": "65fb0a7f1e17734d9b36bad14a75bb1d6ee7cbfed0a24229bc8d19f2bc338c37"
+    },
+    {
+      "path": "lib/i18n/en.ts",
+      "sha256": "ec7a573499b567ac4f9af476f7ea50e59e8ce8747d9019a6c4a9555d8e2d4b95"
+    },
+    {
+      "path": "lib/i18n/ja.ts",
+      "sha256": "a7df00d4518b91b8fc418ab2d24f4a1175bdf2bfd0488981644790a85151b8bc"
+    },
+    {
+      "path": "lib/i18n/ko.ts",
+      "sha256": "8ff633ee52a2a23978c9a5190ff074ec04c276fe31e284f3a88e5c00390f304e"
+    },
+    {
+      "path": "lib/i18n/zh.ts",
+      "sha256": "c68e057392436dc6d8e2d3e99415d7823e4c808786573485a2a83237e0ff0125"
+    },
+    {
+      "path": "store/chatConversationStore.ts",
+      "sha256": "e9118660baf96fdb370ddf3faf676ebfcb991c45cb902f1e301236293fd7cfdd"
+    },
+    {
+      "path": "types/chatConversation.ts",
+      "sha256": "1e29465dbffdc551409c487bb95140cd8536a4bcbd572f6095654d1d6b7a6128"
+    },
+    {
+      "path": "types/index.ts",
+      "sha256": "d4e2a3a3138daa33e5b18dcd2f988bd4e007bb1a45df3c583313fd1aae62c34a"
+    }
+  ],
+  "previousTraceRows": 49,
+  "previousTraceSha256": "8d9e86698135ed61ccc8865006d7dbaf8dfa5860e897238ec00adc2f870a9473",
+  "reviewMode": "agent evaluation of actual web execution; user-authorized replacement of human review"
+}

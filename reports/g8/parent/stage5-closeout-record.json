@@ -1,0 +1,1872 @@
+{
+  "at": "2026-11-27T17:31:15.003747+00:00",
+  "case": "stage5-closeout-20261128",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "branch": "feat/compound-consultation",
+  "developLocalRef": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+  "remoteFreshnessChecked": false,
+  "uncommitted": true,
+  "stage": "5/7; remaining three closeout cases; stage6 original integration NOT_RUN",
+  "sourceSha256": [
+    {
+      "path": "__tests__/chatConversationStore.test.ts",
+      "sha256": "928142794a6b7406ee2d771b0c44bc6554c98e82a110fdd583dc3b675758a981"
+    },
+    {
+      "path": "__tests__/chatScreen.test.ts",
+      "sha256": "8d57268aee33ff61d25428e1bd914bf896534014b07459ab47e5c63b4b9232ae"
+    },
+    {
+      "path": "__tests__/useChatConversations.test.tsx",
+      "sha256": "53338b6420a4f0b728d15032295d928fafc9a69b1229f62ec7a58001b13dd547"
+    },
+    {
+      "path": "app/chat.tsx",
+      "sha256": "9f7b262c86804905bea839dd9b00e734d26159c2f96693e5f8f40c4b1c61832d"
+    },
+    {
+      "path": "backend/chatbot/app/repositories/conversation_repository.py",
+      "sha256": "30aecf9d6191bde4f4967e12aa06e1ad3411494fbe5366a47ce19a6b0d421274"
+    },
+    {
+      "path": "backend/chatbot/app/routers/conversations.py",
+      "sha256": "3308e1a73dd87ee80a595e710b4ee094339571169fd3f579b3a8bb93a5678939"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "0b142dd8c863501d3f39a34c848caf1a167afed6fc69028c4e3e8426d559a1e5"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/compound_consultation.py",
+      "sha256": "82cc6f1208b342e92df07ee25c41e8463f7db1c64c7584317b5f718473bee52b"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_answer.py",
+      "sha256": "d6c5d4c446546d41ee789cec2b780d3048869d3d03a87732140d6ed141f4c454"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "2ef7549af57bb59b99b42a3b31b0b0794c9073f9edbe2fcac7b2b3e266aeab50"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_task.py",
+      "sha256": "5ef1a945d8f4b86e0d902cae521677ea0a1eb19d9911be2688c25126d198b1f4"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/conversation.py",
+      "sha256": "07663b7140bd3cf05cb0b9e50ad2e341c422a3da4e6fa406cee50947f012aa22"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "143a804bcfeb15d72cf64337eb340d9d57339cb15294a312db7c9649dda04e4a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_intent.py",
+      "sha256": "5b33dd75f9dd13fc3fa86b1fff4fda2b901faef4c4c22056308ffff50a4e530c"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/product_style_consultation.py",
+      "sha256": "bb18ba0b87fc0d938017bff3b9cbd85f48bef2474334e1166130c1d94a31d4ac"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/supervisor.py",
+      "sha256": "c02ef2f4512a12eed90fb7dd5b25e406094f1a0091adf00be8c43731c9448ca8"
+    },
+    {
+      "path": "backend/chatbot/app/services/beauty_consultation_service.py",
+      "sha256": "dc15361392a4ac30e72edcb1be2072b274088af248098f4b72d0168c04648d46"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "d74f710fc7bf4f052886b785fcfc5d12c0eb57c52f9c2f7959cf17eeaf06810c"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_graph.py",
+      "sha256": "3ba5cc5ce92459c84b62afe649f37048cc304b317752099ff5cf11ec6cfe5bd9"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_service.py",
+      "sha256": "aaa8d8ad40fca849aeb9328e45bb3c694c3be7618b84705695ff1439f0d5213f"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_answer_service.py",
+      "sha256": "a449d3ddbcb0d3012e4a5e857aced9bb0a13b6e1ddeb2b305b08c53b73810e74"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_intent_service.py",
+      "sha256": "a42c9aabc968df2c2b0947cb36a2dd1d2be5a1faa1a4e5a73dc6c3825a7cedb1"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "597cce3de1b7878cf1718ad402d2d7bd851f0b99acad3a9af9c6f88fbc3dc5a6"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_result_service.py",
+      "sha256": "91d2173e8ed217f404adde40ad16ae3225a292edfbd7582c46b06731c43d6567"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_task_adapter.py",
+      "sha256": "3c8ac8bd81e3bac971c6f5b64bee19e45b79ac11cb7b0f63e0f0fc93af098bad"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "3002009956b191d68b3e1b591fdaebfc9547bd090962dd5295614a92b74cb214"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_service.py",
+      "sha256": "bbf6842c0bbef0b622632ed2aee112be307a798e4d5d8c56bb70d5fe256d2e2f"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "40fbbf00765b194e78dbdd3b51a545578dc74a00c2a8a6b2322f25764a1ae73e"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_interpreter.py",
+      "sha256": "8676b1d753ad9363a26a1c0c0a519d53c3f164de854ade089e7dee9a56f51121"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_search_contract.py",
+      "sha256": "243b712849afa58731760cb61d04359545b2c7d70af02431889374f2b8acfe76"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_style_consultation_service.py",
+      "sha256": "d44d7fa6e22db41eee5dd4a76ea54cc945ff8bdd864d2472503e2d9be0af1584"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+      "sha256": "5a0d7f89033e13887e02000421c0ec2582020e67320a4d82b367d985b2d78391"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_service.py",
+      "sha256": "f55bf83305308244ef6e290c33b4bc6ce5b6628f8100cad9c4efb1d853fb371d"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "01ba1f065fe45f844e827a77b0119b1f9d78f60e3c3fb077235bee55c240041b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_compound_consultation.py",
+      "sha256": "3462a0d8ef20859e251a6070db9af7d4a4b960190c1c7a0ae73b2f3de8ff631d"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_answer.py",
+      "sha256": "fa88a665eea9c0f0a2422c76760ba2b4c63666c90e5ab17f8cb23487e926f576"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_intent.py",
+      "sha256": "dbb36e3bab617e22eb5f2ce669d1fbe42e446e913dad1ddcd739ec31556a4202"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "2d1931d48a16c30b0987fc12ab7a5f0f626089a7d4231f662c89672f01791458"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "530970ff99872a033765e03babd3b728ff28227060a771b00f94a0b88eb56fb7"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+      "sha256": "fc07cd6a0a1ff6299bd42732d239fd640de42decd59e1be1e77ffeb4c3deefa9"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_partial_success.py",
+      "sha256": "51840e1f2a2606bac990935a1dd86401502dfdeb324d72aacf04ec495ec49ad9"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_task_contract.py",
+      "sha256": "751f1df81d2baf40e2077aac8a5bc49de2f68fd268a66c9eabc9400ecadc5eb6"
+    },
+    {
+      "path": "backend/chatbot/tests/test_product_search_contract.py",
+      "sha256": "db5a0923e1c371f0298e916b44bc19d4e9d1d03e9b9cbe64bdcd3639b02264b1"
+    },
+    {
+      "path": "docs/ai-design/G8-IMPLEMENTATION-SPEC.md",
+      "sha256": "58916c268c416fc491a755d49079c6a54b34e7cc8a97d90cca46d4d980ab4616"
+    },
+    {
+      "path": "docs/ai-design/G8-WORKLOG.md",
+      "sha256": "68feb27d77be908a8a10a07cf1082e82029a4aa10d77878674955698f9cc2292"
+    },
+    {
+      "path": "hooks/useChatConversations.ts",
+      "sha256": "6462c0a4672a26b764b8a8d07f65370f55bfab1bc1839c9dbf707538cb94dfe7"
+    },
+    {
+      "path": "lib/i18n/en.ts",
+      "sha256": "ec7a573499b567ac4f9af476f7ea50e59e8ce8747d9019a6c4a9555d8e2d4b95"
+    },
+    {
+      "path": "lib/i18n/ja.ts",
+      "sha256": "a7df00d4518b91b8fc418ab2d24f4a1175bdf2bfd0488981644790a85151b8bc"
+    },
+    {
+      "path": "lib/i18n/ko.ts",
+      "sha256": "8ff633ee52a2a23978c9a5190ff074ec04c276fe31e284f3a88e5c00390f304e"
+    },
+    {
+      "path": "lib/i18n/zh.ts",
+      "sha256": "c68e057392436dc6d8e2d3e99415d7823e4c808786573485a2a83237e0ff0125"
+    },
+    {
+      "path": "store/chatConversationStore.ts",
+      "sha256": "e9118660baf96fdb370ddf3faf676ebfcb991c45cb902f1e301236293fd7cfdd"
+    },
+    {
+      "path": "types/chatConversation.ts",
+      "sha256": "1e29465dbffdc551409c487bb95140cd8536a4bcbd572f6095654d1d6b7a6128"
+    },
+    {
+      "path": "types/index.ts",
+      "sha256": "d4e2a3a3138daa33e5b18dcd2f988bd4e007bb1a45df3c583313fd1aae62c34a"
+    }
+  ],
+  "sourceDiff": "reports/g8/parent/stage5-closeout-source.diff",
+  "untrackedSources": "reports/g8/parent/stage5-closeout-new-sources.json",
+  "modelConfiguredMode": "live",
+  "replayTurns": 0,
+  "mockTurns": 0,
+  "actualChatbotModelHttpStarts": 93,
+  "actualChatbotModelHttp": [
+    {
+      "model": "gpt-6-luna",
+      "status": "200",
+      "count": 66
+    },
+    {
+      "model": "gpt-6.1-terra",
+      "status": "200",
+      "count": 27
+    }
+  ],
+  "actualG5ApiHttpStarts": [
+    {
+      "model": "text-embedding-3-large",
+      "count": 9
+    }
+  ],
+  "counting": "HTTP send starts, including rejected/retried/cancelled work. Provider billing not inferred. G5 generation runs in chatbot and is included in its counts; G5 API embedding calls separate.",
+  "turns": [
+    {
+      "index": 1,
+      "at": "2026-11-27T16:34:47.486074+00:00",
+      "utterance": "향료 제외 조건으로 토너 찾아줘. 같은 조건으로 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 3,
+      "catalogHttpStarts": 26,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-163258.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/beauty_consultation_service.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 2,
+      "at": "2026-11-27T16:36:55.936018+00:00",
+      "utterance": "향료 제외 조건으로 토너 찾아줘. 같은 조건으로 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 3,
+      "catalogHttpStarts": 2,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-40cbc8ea58ce4390b11dd72c94929c2c",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-440114fbca1041f49fb8c584e9ca9342",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-163616.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 3,
+      "at": "2026-11-27T16:38:02.925938+00:00",
+      "utterance": "토너는 그대로 두고 크림만 2만원 이하로 바꿔줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-40cbc8ea58ce4390b11dd72c94929c2c",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-440114fbca1041f49fb8c584e9ca9342",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-163616.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 4,
+      "at": "2026-11-27T16:38:44.050919+00:00",
+      "utterance": "크림의 향료 제외 조건만 해제해줘. 토너 조건은 유지해줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-163616.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 5,
+      "at": "2026-11-27T16:40:35.056154+00:00",
+      "utterance": "크림 검색을 다시 시도해줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-40cbc8ea58ce4390b11dd72c94929c2c",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-440114fbca1041f49fb8c584e9ca9342",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164014.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 6,
+      "at": "2026-11-27T16:43:39.040124+00:00",
+      "utterance": "이 룩 화장법을 단계별로 알려줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 14,
+      "summary": null,
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164014.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 7,
+      "at": "2026-11-27T16:43:45.688431+00:00",
+      "utterance": "이 룩 화장법을 단계별로 알려줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 14,
+      "summary": null,
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164014.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 8,
+      "at": "2026-11-27T16:44:51.737167+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 14,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164014.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 9,
+      "at": "2026-11-27T16:46:53.351599+00:00",
+      "utterance": "피부는 오후에 건조하고 각질이 떠. 피부 상담 질문에 답한 거야. 룩 제품 보유 질문은 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164014.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 10,
+      "at": "2026-11-27T16:48:22.966992+00:00",
+      "utterance": "이 룩 화장법을 단계별로 알려줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 14,
+      "summary": null,
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164014.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 11,
+      "at": "2026-11-27T16:50:07.843622+00:00",
+      "utterance": "피부 상담만 다시 이어줘. 오후에 건조하고 각질이 떠. 원인과 관리 방법 설명하고 2만원 이하 제품도 찾아줘. 룩 보유 질문은 유지해줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164923.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 12,
+      "at": "2026-11-27T16:51:18.879611+00:00",
+      "utterance": "피부는 오후에 건조하고 각질이 떠. 피부 상담 질문에 답한 거야. 룩 제품 보유 질문은 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 6,
+      "catalogHttpStarts": 4,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-844acf0145474e8ca11dba5beb522d87",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘."
+          },
+          {
+            "taskId": "task-07a2adad887148da860944bedeee3d3a",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164923.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 13,
+      "at": "2026-11-27T16:51:55.657087+00:00",
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164923.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 14,
+      "at": "2026-11-27T16:53:35.408549+00:00",
+      "utterance": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘",
+      "mode": "live",
+      "modelHttpStarts": 4,
+      "catalogHttpStarts": 0,
+      "summary": null,
+      "errorCode": "request_interrupted",
+      "sourceSnapshot": "stage5-closeout-live-source-164923.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 15,
+      "at": "2026-11-27T16:53:41.142848+00:00",
+      "utterance": "토너 찾아줘. 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 3,
+      "catalogHttpStarts": 2,
+      "summary": {
+        "status": "completed",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-164923.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py",
+        "backend/chatbot/app/services/conversation_service.py"
+      ]
+    },
+    {
+      "index": 16,
+      "at": "2026-11-27T16:56:13.555805+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-165503.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 17,
+      "at": "2026-11-27T16:57:42.093102+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 3,
+      "catalogHttpStarts": 14,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-165652.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 18,
+      "at": "2026-11-27T16:59:21.918780+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 14,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-165903.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 19,
+      "at": "2026-11-27T17:00:42.391883+00:00",
+      "utterance": "피부는 오후에 건조하고 각질이 떠. 피부 상담 질문에 답한 거야. 룩 제품 보유 질문은 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 5,
+      "catalogHttpStarts": 3,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-09ca7e6c9cee4890b698241905d62965",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          },
+          {
+            "taskId": "task-0d5b0123c37b41a08ca7bfc842c22628",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-165903.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 20,
+      "at": "2026-11-27T17:01:09.532202+00:00",
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 16,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-165903.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/chat_service.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 21,
+      "at": "2026-11-27T17:04:07.522455+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 14,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-170335.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 22,
+      "at": "2026-11-27T17:05:15.754948+00:00",
+      "utterance": "피부는 오후에 건조하고 각질이 떠. 피부 상담 질문에 답한 거야. 룩 제품 보유 질문은 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 6,
+      "catalogHttpStarts": 4,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-f090672754b24c079d43555dee1d4f8d",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          },
+          {
+            "taskId": "task-214929a099524ebfb90068d6e25b2d8f",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-170335.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 23,
+      "at": "2026-11-27T17:05:45.320725+00:00",
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 16,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-214929a099524ebfb90068d6e25b2d8f",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          },
+          {
+            "taskId": "task-f090672754b24c079d43555dee1d4f8d",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-170335.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 24,
+      "at": "2026-11-27T17:07:08.457011+00:00",
+      "utterance": "윤곽 상품 확인 답변. 추가 추천해줘.",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 17,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-170335.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py",
+        "backend/chatbot/app/services/consultation_parent_graph.py"
+      ]
+    },
+    {
+      "index": 25,
+      "at": "2026-11-27T17:09:58.593423+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 5,
+      "catalogHttpStarts": 14,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-170913.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 26,
+      "at": "2026-11-27T17:12:21.907475+00:00",
+      "utterance": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘. 오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 14,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 27,
+      "at": "2026-11-27T17:14:02.658227+00:00",
+      "utterance": "피부는 오후에 건조하고 각질이 떠. 피부 상담 질문에 답한 거야. 룩 제품 보유 질문은 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 6,
+      "catalogHttpStarts": 3,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-1f8999f5cb294410bc2cfb7b93b99198",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          },
+          {
+            "taskId": "task-c5f15817817445b0b9e6753aafc630b2",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 28,
+      "at": "2026-11-27T17:14:32.070405+00:00",
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-1f8999f5cb294410bc2cfb7b93b99198",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          },
+          {
+            "taskId": "task-c5f15817817445b0b9e6753aafc630b2",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 29,
+      "at": "2026-11-27T17:15:28.275805+00:00",
+      "utterance": "없어",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 16,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": true,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-c5f15817817445b0b9e6753aafc630b2",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          },
+          {
+            "taskId": "task-1f8999f5cb294410bc2cfb7b93b99198",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 30,
+      "at": "2026-11-27T17:17:21.201771+00:00",
+      "utterance": "없어",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 17,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-c5f15817817445b0b9e6753aafc630b2",
+            "label": "오후에 화장이 뜨는데 원인 알려주고 나한테 맞는 제품도 찾아줘"
+          },
+          {
+            "taskId": "task-1f8999f5cb294410bc2cfb7b93b99198",
+            "label": "이 룩에 필요한 상품을 보유 제품 기준으로 추천해줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 31,
+      "at": "2026-11-27T17:19:50.979588+00:00",
+      "utterance": "향료 제외 조건으로 토너 찾아줘. 같은 조건으로 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 32,
+      "at": "2026-11-27T17:20:23.821717+00:00",
+      "utterance": "향료 제외 조건으로 토너 찾아줘. 같은 조건으로 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 1,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "waiting_user",
+        "hasPendingInput": true,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-171151.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_parent.py",
+        "backend/chatbot/app/schemas/consultation_task.py",
+        "backend/chatbot/app/services/consultation_intent_service.py"
+      ]
+    },
+    {
+      "index": 33,
+      "at": "2026-11-27T17:21:53.633329+00:00",
+      "utterance": "향료 제외 조건으로 토너 찾아줘. 같은 조건으로 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 3,
+      "catalogHttpStarts": 2,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-8907077f2a0c4bdfa3ec7aa045727ebb",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-3ada22e5f58f4d8b897ff79c43c60735",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-172135.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_task.py"
+      ]
+    },
+    {
+      "index": 34,
+      "at": "2026-11-27T17:22:36.682151+00:00",
+      "utterance": "토너는 그대로 두고 크림만 2만원 이하로 바꿔줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-8907077f2a0c4bdfa3ec7aa045727ebb",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-3ada22e5f58f4d8b897ff79c43c60735",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-172135.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_task.py"
+      ]
+    },
+    {
+      "index": 35,
+      "at": "2026-11-27T17:23:00.684059+00:00",
+      "utterance": "크림의 향료 제외 조건만 해제해줘. 토너 조건은 유지해줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 0,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-172135.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_task.py"
+      ]
+    },
+    {
+      "index": 36,
+      "at": "2026-11-27T17:23:44.089085+00:00",
+      "utterance": "크림 검색을 다시 시도해줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-8907077f2a0c4bdfa3ec7aa045727ebb",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-3ada22e5f58f4d8b897ff79c43c60735",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-172135.json",
+      "differentFinalAppSources": [
+        "backend/chatbot/app/schemas/consultation_task.py"
+      ]
+    },
+    {
+      "index": 37,
+      "at": "2026-11-27T17:25:05.480330+00:00",
+      "utterance": "크림의 향료 제외 조건만 해제해줘. 토너 조건은 유지해줘",
+      "mode": "live",
+      "modelHttpStarts": 2,
+      "catalogHttpStarts": 1,
+      "summary": {
+        "status": "partial",
+        "hasPendingInput": false,
+        "displaySelectionRequired": true,
+        "displayChoices": [
+          {
+            "taskId": "task-8907077f2a0c4bdfa3ec7aa045727ebb",
+            "label": "향료 제외 조건으로 토너 찾아줘"
+          },
+          {
+            "taskId": "task-3ada22e5f58f4d8b897ff79c43c60735",
+            "label": "같은 조건으로 크림도 찾아줘"
+          }
+        ]
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-172439.json",
+      "differentFinalAppSources": []
+    },
+    {
+      "index": 38,
+      "at": "2026-11-27T17:26:18.125346+00:00",
+      "utterance": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘",
+      "mode": "live",
+      "modelHttpStarts": 7,
+      "catalogHttpStarts": 0,
+      "summary": null,
+      "errorCode": "request_interrupted",
+      "sourceSnapshot": "stage5-closeout-live-source-172439.json",
+      "differentFinalAppSources": []
+    },
+    {
+      "index": 39,
+      "at": "2026-11-27T17:26:23.447237+00:00",
+      "utterance": "토너 찾아줘. 크림도 찾아줘",
+      "mode": "live",
+      "modelHttpStarts": 3,
+      "catalogHttpStarts": 2,
+      "summary": {
+        "status": "completed",
+        "hasPendingInput": false,
+        "displaySelectionRequired": false,
+        "displayChoices": []
+      },
+      "errorCode": null,
+      "sourceSnapshot": "stage5-closeout-live-source-172439.json",
+      "differentFinalAppSources": []
+    }
+  ],
+  "validation": {
+    "backend": "1703 PASS/135 SKIP final source; real scheduler, mostly mock external services",
+    "app": "1352 PASS/108 suites; typecheck/lint PASS; synthetic UI services",
+    "pg": "28 PASS/5 SKIP actual disposable PG/mock auth+models; complete file, no duplicate totals",
+    "loggedInApp": "A typed ingredient/kind inputs+budget+clear/retry; B three questions through all answers and restore; C actual model in-flight cancel/new request/latest summary restore",
+    "static": "ruff PASS/import contracts 3 KEPT"
+  },
+  "finalB": {
+    "firstTurnIndex": 26,
+    "queueCounts": [
+      3,
+      2,
+      2,
+      1,
+      0
+    ],
+    "acceptedQueueTransitions": [
+      3,
+      2,
+      1,
+      0
+    ],
+    "skinPayloadUnchangedAfterAnswer": true
+  },
+  "sourceBoundaries": "Each live turn pins startup app hashes. B predates final role descriptions and nullable unused product quote; queue/storage logic is unchanged. Final A clear and C pin final app source. Do not label every historical turn exact final source. No frontend production edits this task.",
+  "data": {
+    "mappingArtifact": "pr233-reviewed-mapping.json",
+    "mappingSha256": "3f10755e88e78ee46f6c38b3337b34fe02c4abc6abe7edffbb1c60c9247a4a1f",
+    "globalDbSnapshot": "not pinned",
+    "catalogAndG5": "actual current worktree API endpoints; precise option/ingredient/source versions retained in payloads; no DB data or reviewed recipe edits"
+  },
+  "failuresPreserved": [
+    "initial optionSearch omission broad fallback fixed",
+    "ingredient-clear invalid specialist JSON rejected; explicit retry succeeded",
+    "selected-look scope prevented skin dispatch fixed",
+    "request-type change skipped owned memory read fixed",
+    "sibling global filter change invalidated skin result fixed",
+    "initial rejection persisted empty parent and skipped replanning fixed",
+    "specialist actual clarification was replaced by generic text fixed",
+    "short ownership target fell through legacy single-goal parent fixed",
+    "first planner split symptom explanation from personalized search; common workflow guidance clarified and live rerun retained",
+    "final B explicit ownership+preserve wording proposed update and preserve for same task; safely rejected without state changes; short explicit answers recovered",
+    "backend default pytest temp directory permission errors; unique temp rerun PASS",
+    "new scope test missing issuedAt fixture corrected",
+    "PG audit used nonexisting excludedIngredients instead of ingredientConditions; helper corrected"
+  ],
+  "remaining": [
+    "stage6 original14 abilities/12 scenarios and N01/N02/E01/B01 continuous final-source integration",
+    "holdout expression reliability incl rejected model plans",
+    "native mobile, performance/multi-worker, required human review",
+    "unverified ingredient/usage/alternative/AR evidence stays unknown; no fabricated product match",
+    "transient stale memory-change/new-search UI notice and slow recent restore observed; not silently marked fixed",
+    "automatic checkpoint recovery and hard cancellation of already-started specialist HTTP remain unsupported"
+  ],
+  "commitPushPr": "NOT_RUN",
+  "security": "Gitleaks8.30.1 empty ignore + known runtime secret/privacy checks before immutable append",
+  "executions": [
+    {
+      "artifact": "stage5-closeout-backend-final-schema.xml",
+      "sha256": "ebb72621f70602d8e5485e0dfd813e803b17c534c8bea64c17252b45469ea286",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "135",
+          "tests": "1838",
+          "time": "43.735",
+          "timestamp": "2026-11-28T02:24:58.240529+09:00",
+          "hostname": "playdata"
+        }
+      ]
+    },
+    {
+      "artifact": "stage5-closeout-pg-complete.xml",
+      "sha256": "7b7325b9e6d4f6f78b06ea70bec146f7be75f7e8901f1eea59cade0ca203599c",
+      "suites": [
+        {
+          "name": "pytest",
+          "errors": "0",
+          "failures": "0",
+          "skipped": "5",
+          "tests": "33",
+          "time": "18.409",
+          "timestamp": "2026-11-28T02:17:03.987689+09:00",
+          "hostname": "playdata"
+        }
+      ]
+    }
+  ],
+  "artifactSha256": [
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-budget.txt",
+      "sha256": "5a4839841a7152bd395d77b6bbbf43af269751b410b6511e2569d88a6519736c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-cleared.txt",
+      "sha256": "6edf1641b7cb4bdb977b735665471b6ddb2ce0fdc896d59da8b987b5687b0256"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-final-budget.txt",
+      "sha256": "4f6dca28df9163dda0307664ad3cc4107d8f4727111dd3257f35641043be3e46"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-final-clear-pass.txt",
+      "sha256": "f3f297bec0c939c05ac74e1866f94b86e5470fcccb80cca387a422a219eeee66"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-final-clear-rejected.txt",
+      "sha256": "4e970cd94959c9800a0c516c069339b4021816fa04abd53d2a64002757590518"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-final-entry-rejected.txt",
+      "sha256": "d970449c5c409c2bec0954f389cb737e4e5aa8ba87ec139461c20114e02d4ddc"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-final-retry.txt",
+      "sha256": "35e80783f4f817b5d3d0b29e22886cbd232f0520a911393e35563809356aaa64"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-final-typed-options.txt",
+      "sha256": "ce5ed51a141540939613caa3e941a2c75797d68aba80618ee394c61d787c36d3"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-initial.txt",
+      "sha256": "d300710854bec2f091dbf95c7f681d7da03ab6e92f1f8f9dfe791cba3e1a7570"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-pending.txt",
+      "sha256": "09578ad038ee1893862cc88c9210374a6502bcbd67ad0fa831c39eba6450b52b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-retest.txt",
+      "sha256": "2419169554afe9d9b4a1ea25c4e5c38201fd9bbf63d1cc84fd3f517220342eff"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-a-retry-release.txt",
+      "sha256": "4daf250f9f5a1619432e01a127f03b4a8b45c00358f1c1f43be03b1d76cd8c55"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-chat.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-pg-all-final.log",
+      "sha256": "9938bde6964dc9a32cfc19140f9b4cb0875861783cd509af1828141e5658f0e7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-pg-b-final.log",
+      "sha256": "9938bde6964dc9a32cfc19140f9b4cb0875861783cd509af1828141e5658f0e7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-pg-check.log",
+      "sha256": "9938bde6964dc9a32cfc19140f9b4cb0875861783cd509af1828141e5658f0e7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-pg.json",
+      "sha256": "390d6fe60576410db19fffa80c4d9205d6ce2238cfc7582350b9ec1c6e9b289f"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-pg.log",
+      "sha256": "87817af986831be64770f02faab248ea01da41a1531e682a1087a9ca93450042"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-pg.py",
+      "sha256": "7eb175cf177891432e96f8e4f8b2c9e6163856aec7b715870b7e875527f2e470"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-restore-http.jsonl",
+      "sha256": "1075c920707f16db1dfd4e95ecf3b868c59ef4cfe4c075e9a844ff9551cdbb75"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-run.py",
+      "sha256": "7edec748bca83dc2da6aca02065df5363425dd181b508dd97bd8ae9d342eb94e"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-runtime.json",
+      "sha256": "fba33178042d25d4191ad64d894fc8a1e7338e4dfb156c52f31906032e7b88ee"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-tests.log",
+      "sha256": "7ac4a2aa98f448bf72579e84f79569fb4163740f214ddcb5f04e39666459cdec"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-app-turns.jsonl",
+      "sha256": "7ab13c70a5584c38837180bda32448e5360b158156b2382c05427f31623d71cc"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-created.txt",
+      "sha256": "20056777001e4f484b235ca0c3b8060073a050bfeded07b7a9401283b985119c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-empty-plan-fallback.txt",
+      "sha256": "f10898ec9b44a868fb53678778f809cf81f5a289df5820f03ca7e48746f70075"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-contract-all-answered.txt",
+      "sha256": "cbda24692eb0e341fd92d8963f7fe87002bd150cf0bcc4250a40d795e080f56b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-contract-created.txt",
+      "sha256": "df54b45b07ec910bd9e0af98f3e258f1e254ffc254b3ad607e08fc3aa164ed88"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-contract-restored-one-question.txt",
+      "sha256": "a6b1236ca9447d906e372bd8ec22d0d077f39a661a723486c5d6880c6e803a47"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-contract-skin-answer.txt",
+      "sha256": "0b34ffececb1dfa2f8136c89bfb4d90e2443a06a74df481d907ccce7f9068ce3"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-created-three-questions.txt",
+      "sha256": "a7e8005a17e14310b518f271e90ec3614488ea9143565ef46e93939782dd3e54"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-duplicate-proposal-rejected.txt",
+      "sha256": "2719cd718a4f6d10f86e798f1a056e5a063e1e1bc6a42969b0228d4a80c9b2a3"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-short-first-answer.txt",
+      "sha256": "66ab4ccb930ce56285e95b821de3a444bbbd0c6ba9bb7518eda1ea0fe7bc3d8b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-skin-answer.txt",
+      "sha256": "a0f184e127bf1a6bb182f404ff1d335cd1a73cab9a8f9d9f9fd281763bb01142"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-final-source-entry-rejected.txt",
+      "sha256": "51eabb5c0a84e2267522066f2d6903a85f744b4d32c123f1dfd31eb263d11f39"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-latest-created.txt",
+      "sha256": "1dd44138bf03eb65ab89f8b13e3da3df6b47a811c10a9010b06ae3423f9fa2ee"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-latest-one-question-sibling-preserved.txt",
+      "sha256": "f2d9f3f11640f4334c0b39d1cf9167f8921351f9a55d03ec9039251acf425e77"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-latest-restored.txt",
+      "sha256": "286ed88f4e36df0bd12f5c552d91c72782ac00645b8730089ff33fc97847bafc"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-latest-skin-resolved.txt",
+      "sha256": "604a25c1e36ec3c43da4ea570d9898a449e093bebdcdf21a3ea1114e89e57bba"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-look-entry.txt",
+      "sha256": "fe89fc8ddc8555d5225c81bfe0cd02f0d4dbeca05fcecde6322a6dfbdec33a15"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-memory-boundary-failure.txt",
+      "sha256": "c42a129f2c363258f64774a9604cf724511de05563bcf7bb34e5529ee5aeef97"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-recovery-invalid-plan.txt",
+      "sha256": "0f008fc1157150dd50099e97413dbee4ea1e854f764b334786bd2e0bb8248b80"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-restored-before-answer.txt",
+      "sha256": "23d54df1258b3b814235694db121973b4b20d4f686b1e01b03e4eaf079f6674b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-short-answer-legacy-failure.txt",
+      "sha256": "fd5c7407d03b7f2a7b65cafd6d4b0b7f5d71a205392014cce62d45f1bb796fc9"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-sibling-scope-failure.txt",
+      "sha256": "5fa07afecac6dbe649cb6e6217f4370f7c81a0bac4f0649290f89c54970371d5"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-skin-answer.txt",
+      "sha256": "ca1060ecf5e45402efe64cca8493447aab055e074d2a0a8eba3afcf17fcbb9a2"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-skin-resolved-owned-preserved.txt",
+      "sha256": "8c2488586a7decf7ec6d4ec83431ee8cfb4a883b009ea9503f84d988a838678f"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-b-split-workflow-variation.txt",
+      "sha256": "53b0ddfe41c0c1771acb7721971e0285a8733b5857571f16e7fd5195fa506dae"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-clean.log",
+      "sha256": "1e32cdff0c0da14096511b458cfdcf9019bf9f6957267b0aef6d122e525a1474"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-clean.xml",
+      "sha256": "310acb654573cda7b8ba3f8018d72777e6760b435eb066c80ef287f21befcb9f"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-end.log",
+      "sha256": "59885a60de943e98edaa2e495779e38fc56b37ed5f226773a11157908df5a46a"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-end.xml",
+      "sha256": "024104fb39c494c3b2ade6009028fff35a85895a571b9748ecae52541ce5269e"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-final-schema.log",
+      "sha256": "9c002528be37a339314a046f00001b40da48151f37dea2ca4e8532ad7f761f5d"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-final-schema.xml",
+      "sha256": "ebb72621f70602d8e5485e0dfd813e803b17c534c8bea64c17252b45469ea286"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-final.log",
+      "sha256": "e83f086def51de25527bf2ca581a7b100f2b6d8cb69945e31c0dd38bcf981aa6"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-final.xml",
+      "sha256": "f82f89b8d19e8225415a7b7b3ae4710c0705d4ab2b4bfa2ab526fda7a34d4ad0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-final2.log",
+      "sha256": "79a8804d86ef1f2dc6cc28439fce495b125e8c40a6b433d87e30aa13981e7d72"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-final2.xml",
+      "sha256": "90d98445e79b0c0b68ae97df39a35e3885e304b1d4e0320d8100cae8ee3f32d4"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-last.log",
+      "sha256": "16c97911ce3b6d0d0d17e627a65b3aaeb5e691b56f0a1a56fed976b38bc5403c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-last.xml",
+      "sha256": "6c64c15e6d2f4f88126a14bb041a6bf04780c62ab87de32d53cc4b12e846e0f8"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-release.log",
+      "sha256": "772a81149f58e0c3a5c1aa328505efef0391465588e72a62756b49487af5d5b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-release.xml",
+      "sha256": "a422762950d05a23688993063d311e553978662d552ee11227a267600f4bace7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-roles.log",
+      "sha256": "c64410922dac6b4e7e9bf607362807c7cb9761ad10930f29c76bb2d0014477b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend-roles.xml",
+      "sha256": "8c4b5b0006785c482d280f6dedfedb74260ef5daf6508f32c3c40adc022805df"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend.log",
+      "sha256": "dd68656115abc68800718eea33cb6ffec44b51f41f714a41aa6bb3ed2c5d47b6"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-backend.xml",
+      "sha256": "b5542eaba749c4d63ae418346613e88df656ee1d47f7f9ba364d2f3b4ebf3490"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-baseline.log",
+      "sha256": "54b4c2eedd2a1110f48342356a5f1be6e7e410350ed7e544a11d191ba828fe0b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-baseline.xml",
+      "sha256": "649525966bd4fe9a849c35b860d37ba908c41b0bd6da3f90704e514d06bbcc3b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-cancelled.txt",
+      "sha256": "98a25f68a3be013dec62c43f996e81aee7cd9bae73f2420c228c401c909a9c06"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-final-cancelled.txt",
+      "sha256": "3e6b1fbdfdb5a9cf25165d0f9f713072ae4ba0dee8e468bd7eb8466d1021f161"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-final-pending.json",
+      "sha256": "cf90892d8ed6de1aa8dff72793c418cbeb96dd690048a64654eedb7478e3d39e"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-final-replacement.txt",
+      "sha256": "1617605e5de86404761b6e2ab495cf7e742f88409f8e0adb6a8d4ddf29cdbeeb"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-final-restored.txt",
+      "sha256": "f97d02fc0eecc0b58b6c58dbb100a556849ed4511c4a22e4a1a1d3abfda05c59"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-observation.json",
+      "sha256": "ae0d9beb476f81a1cfc944690378379d89fb7703ea63d0e9a2f8ff243a77f4bf"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-replacement-summary.txt",
+      "sha256": "86d78f7a93158437d75c8822b3f8354ccc427a0a3c3a01e7f51f55d23014b96e"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-c-restored.txt",
+      "sha256": "4e4a9677c8e9c0a1a323a0914db80a34242e570080281f1ea8b3d1c25f3dc2c6"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-cleanup.json",
+      "sha256": "288885ee9ec16b35e8ab0b96c251d28b32239df8f720f243fb55dda1b893453b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-exit-matrix.json",
+      "sha256": "86f9cd097855769bc9f154982495f2542efcf9d1707a9875d9e125a93bf7b3a0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-finalize.py",
+      "sha256": "d549464b327d32b3a1cb92cc4a1f6e0e6fdb7ae6e029cb6b434de9e8be6f5062"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-g5-api.py",
+      "sha256": "b54bbf043d6cb94a825d13013d51f5b9bb7b93778962d8c0b5d75f59aa9b95c9"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-g5-error.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-g5-models.jsonl",
+      "sha256": "7964aa9860c578a2cc3419a7ea7c1b87300a7fbf461eb476ae23cf56fcbb41ac"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-g5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-end.log",
+      "sha256": "bc9c5e4260c49844ec62f216e6b1b3daa11467b5139d2724f61c7d36f768fb04"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-final-schema.log",
+      "sha256": "bc9c5e4260c49844ec62f216e6b1b3daa11467b5139d2724f61c7d36f768fb04"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-final.log",
+      "sha256": "217004a623b5da2c27e3ffbc4d0a5f176878a47beabebe8cf98337128974e24b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-final2.log",
+      "sha256": "bc9c5e4260c49844ec62f216e6b1b3daa11467b5139d2724f61c7d36f768fb04"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-last.log",
+      "sha256": "217004a623b5da2c27e3ffbc4d0a5f176878a47beabebe8cf98337128974e24b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-release.log",
+      "sha256": "bc9c5e4260c49844ec62f216e6b1b3daa11467b5139d2724f61c7d36f768fb04"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports-roles.log",
+      "sha256": "bc9c5e4260c49844ec62f216e6b1b3daa11467b5139d2724f61c7d36f768fb04"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-imports.log",
+      "sha256": "217004a623b5da2c27e3ffbc4d0a5f176878a47beabebe8cf98337128974e24b"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-lint.log",
+      "sha256": "733d977b4f44bb6a6c61d282581d16341e389b20f0985ebbb4e1456214d4cfe3"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-163258.json",
+      "sha256": "53bb4728a49a5e1f50e27f07cf38602405be5de6cf2efeacf253e1a519c2a758"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-163616.json",
+      "sha256": "3b86257e1ec36a74e2108b51a0c7d4733f544610e425b5b9a591fb1b556c2af8"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-164014.json",
+      "sha256": "3b86257e1ec36a74e2108b51a0c7d4733f544610e425b5b9a591fb1b556c2af8"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-164923.json",
+      "sha256": "189c371f3f11a4e2e629acf1bc79d3d969ec1061023905f06e83e5c36559ce0c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-165503.json",
+      "sha256": "94dfd35d218e8b0c0ddf5374733eda281e51f62328c5972c24c3f2553991a103"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-165652.json",
+      "sha256": "94dfd35d218e8b0c0ddf5374733eda281e51f62328c5972c24c3f2553991a103"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-165903.json",
+      "sha256": "c3a6110ade8c92754bf3d2617d10f19ea9c4d4e5315a6407b1bb3be26e439d81"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-170302.json",
+      "sha256": "b66d70d5a2be79142b99830506554169a91640e4b753b617c249a0bd4a55e855"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-170335.json",
+      "sha256": "aac0731943b5950d8459110b66028dcd5f8916edae69dc14922a5a4b41bf74f0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-170913.json",
+      "sha256": "8d30679a089c1ae2a5b3a597bd8b310dd0c163085b92ea1766c164303564d669"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-171151.json",
+      "sha256": "b2e6f15e25869645771455d9e84d3431f65f58c181b454a1cfab4bc1164cc0dc"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-172135.json",
+      "sha256": "d1ca4b1a09f3dfbd7586ef6478b1f2406bd605110bfadcda929bb98403da2582"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-live-source-172439.json",
+      "sha256": "68987dd615ee4c08d3ddb3830837e4644b97fb82e6c011e95b7a5eed5ce7d4ca"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-model-events.jsonl",
+      "sha256": "133d99f9fdbe436d7b2e8259bdf97973ed0c77f5fff9a39669a7c9b13e7d674f"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-new-sources.json",
+      "sha256": "e70c0ad740721085a401b8416badc4a9e049e1f5c34910fef9b233a58eca5b69"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-null-quote.log",
+      "sha256": "3a9865002470aea0a6ecfc03a2f3eb23ffe13f7b5b0568d8b9edaa66adc28aa7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-parent-scope.log",
+      "sha256": "44380ff57d780269abb4c95337accb3c221dde0173e6b0279735e6d593840ae6"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-complete.log",
+      "sha256": "19da6fb7f6219bfae214908760bd2ae531ca13140b7a423e40f4a8b28910f544"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-complete.xml",
+      "sha256": "7b7325b9e6d4f6f78b06ea70bec146f7be75f7e8901f1eea59cade0ca203599c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-end.log",
+      "sha256": "b3335c944c6ce1909ead37d596650166ca59c3ff287ad59e518847aacdc92ad6"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-final-control.log",
+      "sha256": "e0528f926b356909d193a7a1e308b887934647d5d72ccfca41b79b54439502bc"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-final.log",
+      "sha256": "593ae80e1d4a51e5f587b33f4cc218c13bc3d6e454ba34435c81d169327830ee"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-last.log",
+      "sha256": "1a5216e9e36fcc5db750d9523ad4b94b5c60ee9bd477034f3d8d57616704f177"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-regression-final.log",
+      "sha256": "bfa25ca798153d9e1516bb7c59a6d5ec9507be9a991569787a039e4373178bb7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg-regression.log",
+      "sha256": "34da269890b33af073bdedefe1729bb6c4ba167e0213ce10afb12b224c563511"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg.log",
+      "sha256": "a7a3c6ac2250a20ae76d15deb9ed6f47c307539a7f96a48ec9dcc843595b6eee"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-pg.xml",
+      "sha256": "a2a360677e51f594833d356380923bf48138d18e3abd3219b7a7df53e24c1a24"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-record-check.log",
+      "sha256": "be9f4d1c1bf41551003ea2003839c576883ee411dbf8426ae7f6d7eca4317c97"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-record.py",
+      "sha256": "78030ca799841d406bc26a9949c995f2549a5c79dfd3be802d6030684f4e8871"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-relay.py",
+      "sha256": "3476da666147196917a93e55e82d05581bb2c0f858b1f2782d637be515428bab"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-end.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-final-schema.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-final.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-final2.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-last.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-release.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff-roles.log",
+      "sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-ruff.log",
+      "sha256": "725e08ffc613d264e1cbee2cc8d64ad2c99a00088b7bdae4fd404f051747b4b7"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-run-pg.py",
+      "sha256": "eebabf38383cf24da2a89c7e1a6c9162298320e7d0425a4d33ac7f97943a472c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-scope-final.log",
+      "sha256": "c2a2dc5d1872fd50cb1a09568fece171224b77450e9ca85b1316f37bfb9d69f8"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-scope-fixed.log",
+      "sha256": "1c096b390c7582d18de996b5eb8f6cb911256269b3145c1523dc2929cf1b42d5"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-short-followup.log",
+      "sha256": "bbf9f0b6459e00f7ac0eabeaf9bd6e9631cc033185c05f9598c7c7cafca3d707"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-source.diff",
+      "sha256": "488e27735daa0671e9db974ef25b1bdbb4dff527884a033a361bbbf20632a097"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-typecheck.log",
+      "sha256": "4d198ef943c1694c3c795d08a7af0c0da0c5e2417ba896c970ee597c82d52294"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-unit-final.log",
+      "sha256": "3249acf6e79857a85ed32e479429ca5092e525c3f7d287891c394825f9084076"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-unit-final.xml",
+      "sha256": "5de7e5e8df86e61345aad21b1a301094ce3129c54efd97a52dbed4be861c4d34"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-unit.log",
+      "sha256": "10e669277a74855476bd7be3ea3d907b9217c3439ce8dad03ad65820f885088c"
+    },
+    {
+      "path": "reports/g8/parent/stage5-closeout-unit.xml",
+      "sha256": "9a7136cc9618fc7017e6335e52b18c887773caeeac59f3e252f3f19b5d1a9fa6"
+    }
+  ]
+}

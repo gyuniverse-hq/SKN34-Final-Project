@@ -1,0 +1,857 @@
+[
+  {
+    "at": "2026-11-27T12:34:14.647712+00:00",
+    "case": 1,
+    "repetition": 1,
+    "utterance": "토너 찾아줘. 크림도 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2826.2,
+      "result": {
+        "planId": "e384b2be-08b3-42d1-bca2-1e1e7bd5a898",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘.",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          },
+          {
+            "capability": "product",
+            "quote": "크림도 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:17.197321+00:00",
+    "case": 2,
+    "repetition": 1,
+    "utterance": "비교는 그대로 두고 세럼도 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2546.0,
+      "result": {
+        "planId": "bf9394f5-5030-40e3-83c5-409da73b173d",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "preserve",
+            "quote": "비교는 그대로 두고",
+            "productOperation": null
+          },
+          {
+            "taskId": "look",
+            "operation": "preserve",
+            "quote": "비교는 그대로 두고",
+            "productOperation": null
+          }
+        ],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "세럼도 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [],
+        "invalidated": [],
+        "preserved": [
+          "comparison",
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:19.072538+00:00",
+    "case": 3,
+    "repetition": 1,
+    "utterance": "비교 대상만 다른 크림으로 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "rejected_proposal"
+    },
+    "passed": false,
+    "answer": "어떤 상담 작업을 변경할지 다시 알려주세요.",
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:21.264463+00:00",
+    "case": 4,
+    "repetition": 1,
+    "utterance": "비교는 그만하고 토너 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2188.9,
+      "result": {
+        "planId": "9a18f8a5-7bd5-49cc-a260-4c591a034544",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "withdraw",
+            "quote": "비교는 그만하고",
+            "productOperation": null
+          },
+          {
+            "taskId": "look",
+            "operation": "preserve",
+            "quote": "토너 찾아줘",
+            "productOperation": null
+          }
+        ],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "replan": {
+        "withdrawn": [
+          "comparison"
+        ],
+        "updated": [],
+        "invalidated": [
+          "comparison"
+        ],
+        "preserved": [
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:23.051225+00:00",
+    "case": 5,
+    "repetition": 1,
+    "utterance": "크림만 15,000원 이하로 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1783.6,
+      "result": {
+        "planId": "08e89129-207a-4ffe-8c77-71c436330473",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "task-cream",
+            "operation": "update",
+            "quote": "크림만 15,000원 이하로 바꿔줘",
+            "productOperation": "search"
+          },
+          {
+            "taskId": "task-toner",
+            "operation": "preserve",
+            "quote": "크림만",
+            "productOperation": null
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [
+          "task-cream"
+        ],
+        "invalidated": [
+          "task-cream"
+        ],
+        "preserved": [
+          "comparison",
+          "look",
+          "task-toner"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:25.542922+00:00",
+    "case": 6,
+    "repetition": 1,
+    "utterance": "그것만 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2487.4,
+      "result": {
+        "planId": "2c9f72da-96eb-49cc-ac99-5fa3b076ea79",
+        "version": 1,
+        "action": "clarify",
+        "targets": [],
+        "quote": "",
+        "question": "어떤 항목을 바꾸려는 건가요? 제품 비교, 데일리 룩, 토너 찾기, 크림 찾기 중 대상과 바꿀 내용을 알려주세요.",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": true,
+    "answer": "어떤 항목을 바꾸려는 건가요? 제품 비교, 데일리 룩, 토너 찾기, 크림 찾기 중 대상과 바꿀 내용을 알려주세요.",
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:27.142649+00:00",
+    "case": 1,
+    "repetition": 2,
+    "utterance": "토너 찾아줘. 크림도 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1593.8,
+      "result": {
+        "planId": "ad134873-4acc-40e0-a2d9-fceeb873828e",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘.",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          },
+          {
+            "capability": "product",
+            "quote": "크림도 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:29.009709+00:00",
+    "case": 2,
+    "repetition": 2,
+    "utterance": "비교는 그대로 두고 세럼도 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1864.1,
+      "result": {
+        "planId": "3871b42d-2786-4307-8997-c3eddf3e6afc",
+        "version": 1,
+        "action": "continue",
+        "targets": [
+          "comparison"
+        ],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "preserve",
+            "quote": "비교는 그대로 두고",
+            "productOperation": null
+          }
+        ],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "세럼도 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [],
+        "invalidated": [],
+        "preserved": [
+          "comparison",
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:31.033625+00:00",
+    "case": 3,
+    "repetition": 2,
+    "utterance": "비교 대상만 다른 크림으로 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2020.0,
+      "result": {
+        "planId": "48a223f1-771f-4b1a-b5dc-cb54ba9ef45c",
+        "version": 1,
+        "action": "clarify",
+        "targets": [
+          "comparison"
+        ],
+        "quote": "",
+        "question": "비교할 크림을 어떤 제품으로 바꿀까요? 지금 비교 중인 ‘이 제품’도 새 제품으로 교체하려는 뜻인가요, 아니면 비교 대상인 토리든 립 에센스만 크림으로 바꾸려는 뜻인가요?",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": false,
+    "answer": "비교할 크림을 어떤 제품으로 바꿀까요? 지금 비교 중인 ‘이 제품’도 새 제품으로 교체하려는 뜻인가요, 아니면 비교 대상인 토리든 립 에센스만 크림으로 바꾸려는 뜻인가요?",
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:32.746180+00:00",
+    "case": 4,
+    "repetition": 2,
+    "utterance": "비교는 그만하고 토너 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1709.1,
+      "result": {
+        "planId": "ae2b5506-2907-4914-8a74-27998c248681",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "withdraw",
+            "quote": "비교는 그만하고",
+            "productOperation": null
+          },
+          {
+            "taskId": "look",
+            "operation": "preserve",
+            "quote": "비교는 그만하고 토너 찾아줘",
+            "productOperation": null
+          }
+        ],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "replan": {
+        "withdrawn": [
+          "comparison"
+        ],
+        "updated": [],
+        "invalidated": [
+          "comparison"
+        ],
+        "preserved": [
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:34.262521+00:00",
+    "case": 5,
+    "repetition": 2,
+    "utterance": "크림만 15,000원 이하로 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1512.0,
+      "result": {
+        "planId": "2cd91beb-10de-401b-81cf-147c883b17b8",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "task-cream",
+            "operation": "update",
+            "quote": "크림만 15,000원 이하로 바꿔줘",
+            "productOperation": "search"
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [
+          "task-cream"
+        ],
+        "invalidated": [
+          "task-cream"
+        ],
+        "preserved": [
+          "comparison",
+          "look",
+          "task-toner"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:36.028515+00:00",
+    "case": 6,
+    "repetition": 2,
+    "utterance": "그것만 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1762.9,
+      "result": {
+        "planId": "df5162af-ba58-4529-9661-47ef8c9243e1",
+        "version": 1,
+        "action": "clarify",
+        "targets": [],
+        "quote": "",
+        "question": "‘그것만 바꿔줘’에서 ‘그것’이 어떤 목표를 가리키며, 어떤 내용으로 바꾸길 원하시나요?",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": true,
+    "answer": "‘그것만 바꿔줘’에서 ‘그것’이 어떤 목표를 가리키며, 어떤 내용으로 바꾸길 원하시나요?",
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:37.784660+00:00",
+    "case": 1,
+    "repetition": 3,
+    "utterance": "토너 찾아줘. 크림도 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1753.0,
+      "result": {
+        "planId": "14c837ef-5877-4e8b-b293-ee7809746fca",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘.",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          },
+          {
+            "capability": "product",
+            "quote": "크림도 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:39.396292+00:00",
+    "case": 2,
+    "repetition": 3,
+    "utterance": "비교는 그대로 두고 세럼도 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1607.5,
+      "result": {
+        "planId": "bfe0afa0-4c41-449a-a2db-d5da7996acad",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "preserve",
+            "quote": "비교는 그대로 두고",
+            "productOperation": null
+          }
+        ],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "세럼도 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [],
+        "invalidated": [],
+        "preserved": [
+          "comparison",
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:41.236417+00:00",
+    "case": 3,
+    "repetition": 3,
+    "utterance": "비교 대상만 다른 크림으로 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1836.1,
+      "result": {
+        "planId": "edb3bfde-6be7-4866-ac72-d17e875fc250",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "update",
+            "quote": "비교 대상만 다른 크림으로 바꿔줘",
+            "productOperation": "compare"
+          },
+          {
+            "taskId": "look",
+            "operation": "preserve",
+            "quote": "비교 대상만",
+            "productOperation": null
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [
+          "comparison"
+        ],
+        "invalidated": [
+          "comparison"
+        ],
+        "preserved": [
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:42.905996+00:00",
+    "case": 4,
+    "repetition": 3,
+    "utterance": "비교는 그만하고 토너 찾아줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1664.3,
+      "result": {
+        "planId": "7d4db5c3-22ba-46f7-9929-7516582a0839",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "comparison",
+            "operation": "withdraw",
+            "quote": "비교는 그만하고",
+            "productOperation": null
+          },
+          {
+            "taskId": "look",
+            "operation": "preserve",
+            "quote": "비교는 그만하고 토너 찾아줘",
+            "productOperation": null
+          }
+        ],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "replan": {
+        "withdrawn": [
+          "comparison"
+        ],
+        "updated": [],
+        "invalidated": [
+          "comparison"
+        ],
+        "preserved": [
+          "look"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:44.684679+00:00",
+    "case": 5,
+    "repetition": 3,
+    "utterance": "크림만 15,000원 이하로 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1774.0,
+      "result": {
+        "planId": "8a08e76b-a927-4c31-9d82-6511317b6256",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "task-cream",
+            "operation": "update",
+            "quote": "크림만 15,000원 이하로 바꿔줘",
+            "productOperation": "search"
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [],
+        "updated": [
+          "task-cream"
+        ],
+        "invalidated": [
+          "task-cream"
+        ],
+        "preserved": [
+          "comparison",
+          "look",
+          "task-toner"
+        ]
+      }
+    },
+    "passed": true,
+    "answer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T12:34:46.572807+00:00",
+    "case": 6,
+    "repetition": 3,
+    "utterance": "그것만 바꿔줘",
+    "modelConfiguredMode": "live",
+    "actualModelCalls": 1,
+    "model": "gpt-6-luna",
+    "contractSha256": "c35e43f33405ecdec425f77ea3a4a50bfc064b0752bdfd58da1b83cbd743731f",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1882.3,
+      "result": {
+        "planId": "7afdc2b0-aee5-485a-96a2-81722208280f",
+        "version": 1,
+        "action": "clarify",
+        "targets": [],
+        "quote": "",
+        "question": "“그것만 바꿔줘”에서 ‘그것’이 가리키는 작업과 원하는 변경 내용이 불분명합니다. 비교 작업, 데일리 룩, 토너 검색, 크림 검색 중 어떤 것을 어떤 내용으로 바꾸길 원하시나요?",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": true,
+    "answer": "“그것만 바꿔줘”에서 ‘그것’이 가리키는 작업과 원하는 변경 내용이 불분명합니다. 비교 작업, 데일리 룩, 토너 검색, 크림 검색 중 어떤 것을 어떤 내용으로 바꾸길 원하시나요?",
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN"
+  }
+]

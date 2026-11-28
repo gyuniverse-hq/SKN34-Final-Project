@@ -1,0 +1,18 @@
+{
+  "source": "Manually preserved from the actual Codex exec tool output before the Aside stop click; not a replay or injected delay",
+  "command": "Get-Content reports/g8/parent/stage5-closeout-model-events.jsonl -Tail 3; Get-Date -Format o",
+  "observedAt": "2026-11-28T01:53:21.8596684+09:00",
+  "lastModelEvent": {
+    "at": "2026-11-27T16:53:14.482422+00:00",
+    "event": "start",
+    "path": "/v1/responses",
+    "model": "gpt-6.1-terra",
+    "status": null
+  },
+  "observation": "No corresponding end event was present in the actual tail output at this time. Stop button was visible in the preceding Aside snapshot.",
+  "cancelHttpStartedAt": "2026-11-27T16:53:25.804701+00:00",
+  "cancelHttpStatus": 200,
+  "oldRequestFinishedAt": "2026-11-27T16:53:35.408549+00:00",
+  "oldRequestErrorCode": "request_interrupted",
+  "limitation": "Existing end events retain the HTTP start timestamp; their at field is not completion time. Request completion and cancel timing come from the separate request records. Already-started specialist internal calls were allowed to finish."
+}

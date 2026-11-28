@@ -1,0 +1,15 @@
+{
+  "observedAt": "2026-11-27T17:25:48.1641179Z",
+  "source": "actual model event file before stop click",
+  "pending": [
+    {
+      "at": "2026-11-28T02:25:40.434159+09:00",
+      "mode": "live",
+      "method": "HTTP",
+      "path": "/v1/responses",
+      "model": "gpt-6.1-terra",
+      "status": null,
+      "event": "start"
+    }
+  ]
+}

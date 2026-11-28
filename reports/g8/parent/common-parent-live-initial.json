@@ -1,0 +1,128 @@
+[
+  {
+    "at": "2026-11-27T10:21:52.976448+00:00",
+    "utterance": "아까 못 마친 쪽만 이어서 해 줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "destination": "api.openai.com/v1",
+    "actualModelCalls": 1,
+    "expectedAction": "retry",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 3063.3,
+      "result": {
+        "planId": "12f6bfe6-2a67-4e53-b6c1-0594a1e4e532",
+        "version": 1,
+        "action": "retry",
+        "targets": [
+          "style"
+        ],
+        "quote": "못 마친 쪽만 이어서",
+        "question": ""
+      }
+    },
+    "controlAnswer": null,
+    "passed": true,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:21:54.345641+00:00",
+    "utterance": "이 상담은 여기서 멈춰",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "destination": "api.openai.com/v1",
+    "actualModelCalls": 1,
+    "expectedAction": "cancel",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1367.6,
+      "result": {
+        "planId": "b9478f91-7ebd-4e89-a72e-3646ea50cda0",
+        "version": 1,
+        "action": "cancel",
+        "targets": [
+          "product",
+          "style"
+        ],
+        "quote": "여기서 멈춰",
+        "question": ""
+      }
+    },
+    "controlAnswer": "요청하신 상담 작업을 중단했어요.",
+    "passed": true,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:21:56.060168+00:00",
+    "utterance": "중단한 룩 찾기부터 이어 줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "destination": "api.openai.com/v1",
+    "actualModelCalls": 1,
+    "expectedAction": "resume",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1714.0,
+      "result": {
+        "planId": "6d0ef1b5-e7eb-48e0-81be-aab94ff51f06",
+        "version": 1,
+        "action": "resume",
+        "targets": [
+          "product",
+          "style"
+        ],
+        "quote": "이어 줘",
+        "question": ""
+      }
+    },
+    "controlAnswer": null,
+    "passed": false,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:21:58.550023+00:00",
+    "utterance": "향료 제외 조건만 해제하고 예산은 유지해 줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "destination": "api.openai.com/v1",
+    "actualModelCalls": 1,
+    "expectedAction": "continue",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2488.6,
+      "result": {
+        "planId": "68b50702-95c7-420f-b861-ab0698895bb2",
+        "version": 1,
+        "action": "clarify",
+        "targets": [
+          "skin"
+        ],
+        "quote": "",
+        "question": "향료 제외 조건을 상담 조건에서만 해제하려는 건가요, 아니면 저장된 선호/필터 설정을 변경하려는 건가요?"
+      }
+    },
+    "controlAnswer": "향료 제외 조건을 상담 조건에서만 해제하려는 건가요, 아니면 저장된 선호/필터 설정을 변경하려는 건가요?",
+    "passed": false,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  }
+]

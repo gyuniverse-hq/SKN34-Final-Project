@@ -1,0 +1,44 @@
+........................................................................ [ 17%]
+........................................................................ [ 35%]
+........................................................................ [ 53%]
+........................................................................ [ 70%]
+........................................................................ [ 88%]
+..............................................                           [100%]
+============================== warnings summary ===============================
+tests/test_g8_consultation_parent.py::test_result_binding_changes_actual_knowledge_input
+  tests\test_g8_consultation_parent.py:159: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+tests/test_g8_consultation_parent.py::test_same_zone_question_only_changes_target_and_final_option_result
+  tests\test_g8_consultation_parent.py:391: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+tests/test_g8_consultation_parent.py::test_goal_only_withdrawal_preserves_filters_and_product_route[\uc124\uba85\uc740 \ube7c\uace0 \uc0c1\ud488\ub9cc \ucc3e\uc544\uc918]
+tests/test_g8_consultation_parent.py::test_goal_only_withdrawal_preserves_filters_and_product_route[\uc124\uba85 \ub9d0\uace0 \uc81c\ud488\ub9cc \ucd94\ucc9c\ud574\uc918]
+  tests\test_g8_consultation_parent.py:513: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+tests/test_g8_compound_consultation.py::test_condition_verbs_through_chat_service[\ud574\uc81c\ud574]
+tests/test_g8_compound_consultation.py::test_condition_verbs_through_chat_service[\uc0ad\uc81c\ud574]
+tests/test_g8_compound_consultation.py::test_condition_verbs_through_chat_service[\uc7ac\uc801\uc6a9\ud574]
+tests/test_g8_compound_consultation.py::test_condition_verbs_through_chat_service[\ub2e4\uc2dc \uc801\uc6a9\ud574]
+  tests\test_g8_compound_consultation.py:934: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+tests/test_g8_compound_consultation.py::test_mixed_execution_uses_existing_chat_path[\uc5bc\uad74\uc5d0 \ubc1c\ub77c]
+tests/test_g8_compound_consultation.py::test_mixed_execution_uses_existing_chat_path[\uac15\ub3c4\ub97c \uc870\uc808\ud574\uc918]
+tests/test_g8_compound_consultation.py::test_mixed_execution_uses_existing_chat_path[\ub9bd \uc0c9\ub3c4 \uc124\uc815\ud574\uc918]
+tests/test_g8_compound_consultation.py::test_mixed_execution_uses_existing_chat_path[\uc5bc\uad74\uc5d0 \ubc1c\ub77c\uc904\ub798?]
+  tests\test_g8_compound_consultation.py:1017: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+tests/test_g8_compound_consultation.py::test_original_n01_requests_situation_before_inventing_goal
+  tests\test_g8_compound_consultation.py:1075: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+tests/test_g8_compound_consultation.py::test_usage_advice_preserves_reapplication_and_goal_change
+  tests\test_g8_compound_consultation.py:1212: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+406 passed, 14 warnings in 5.62s

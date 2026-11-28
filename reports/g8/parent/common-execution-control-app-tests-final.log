@@ -1,0 +1,10 @@
+
+> final_project@1.0.0 test
+> jest --runInBand __tests__/chatConversationStore.test.ts __tests__/useChatConversations.test.tsx __tests__/chatScreen.test.ts
+
+
+Test Suites: 3 passed, 3 total
+Tests:       165 passed, 165 total
+Snapshots:   0 total
+Time:        23.931 s
+Ran all test suites matching __tests__/chatConversationStore.test.ts|__tests__/useChatConversations.test.tsx|__tests__/chatScreen.test.ts.

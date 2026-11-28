@@ -1,0 +1,1127 @@
+[
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:17.842Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:17.845Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:17.846Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:18.917Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:18.923Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:18.935Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:22.504Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:22.507Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:22.563Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:22.563Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:22.565Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:22.565Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:22.567Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:22.567Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:22.567Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:22.567Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:22.567Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:22.567Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:23.017Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:23.018Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:23.096Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:23.096Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:23.096Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:23.096Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:23.097Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:23.097Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:23.097Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:23.097Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:23.098Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:23.098Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:23.098Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:23.099Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:23.099Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:23.099Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:23.100Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:23.100Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:23.100Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:23.100Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:23.101Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:23.101Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:23.101Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:23.101Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:23.102Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:23.203Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:23.203Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:23.204Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:23.205Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:23.205Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:23.860Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:23.861Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:23.862Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:23.862Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:23.862Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:23.863Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:23.864Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:23.864Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:23.864Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:23.903Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:23.903Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:23.903Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:23.916Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:23.918Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:23.920Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:33.921Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:33.922Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:33.922Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:33.923Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:33.923Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:33.923Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:33.925Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:33.925Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:33.925Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:33.926Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:33.927Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:33.927Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:34.072Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:34.080Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:34.080Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:34.080Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:34.082Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:34.082Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:34.082Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:34.164Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:34.164Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:34.164Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:34.164Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:34.164Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:34.165Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:34.165Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:34.165Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.016Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.017Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.017Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.017Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.017Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.017Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.018Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.019Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.019Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.019Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.019Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.019Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.020Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.021Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.021Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.022Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.022Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.022Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:54.191Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:54.191Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:54.194Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.194Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.194Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.194Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.195Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.195Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.195Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:54.195Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:54.225Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.225Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.225Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.225Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.226Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.226Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.227Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:54.227Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:detail-returned",
+    "timestamp": "2026-11-27T13:40:54.227Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:restored",
+    "timestamp": "2026-11-27T13:40:54.227Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:recovered",
+    "timestamp": "2026-11-27T13:40:54.227Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:finally",
+    "timestamp": "2026-11-27T13:40:54.228Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.286Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.403Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.403Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.407Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.407Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.407Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:40:54.485Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:40:54.487Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:40:54.487Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:40:54.487Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:40:54.487Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:40:54.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:40:54.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:40:54.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:40:54.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:03.487Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:03.487Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:03.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:03.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:03.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:03.488Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:03.489Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:03.490Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:03.490Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:03.490Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:03.490Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:03.490Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:03.492Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:03.492Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:03.492Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:03.492Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:03.492Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:03.492Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:41:03.685Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:41:03.686Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:41:03.688Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:03.688Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:03.688Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:03.688Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:03.689Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:03.689Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:03.689Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:41:03.689Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:41:03.739Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:03.739Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:03.739Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:03.739Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:detail-returned",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:restored",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:recovered",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:finally",
+    "timestamp": "2026-11-27T13:41:03.740Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:25.283Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:25.284Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:25.284Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:25.284Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:25.284Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:25.284Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:25.285Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:25.285Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:25.285Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:25.286Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:25.286Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:25.286Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:25.287Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:25.287Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:25.287Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:25.288Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:25.288Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:25.288Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:41:25.518Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:start",
+    "timestamp": "2026-11-27T13:41:25.519Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:41:25.521Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:25.522Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:25.522Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:25.522Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:25.522Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:25.523Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:25.523Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:41:25.523Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:body:end",
+    "timestamp": "2026-11-27T13:41:25.573Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:start",
+    "timestamp": "2026-11-27T13:41:25.573Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:first-session:end",
+    "timestamp": "2026-11-27T13:41:25.573Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:start",
+    "timestamp": "2026-11-27T13:41:25.574Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:claims:end",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:start",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE auth:last-session:end",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE chat:owner-verified",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:detail-returned",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:restored",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:recovered",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  },
+  {
+    "level": "info",
+    "message": "G8_RESTORE open:finally",
+    "timestamp": "2026-11-27T13:41:25.575Z"
+  }
+]

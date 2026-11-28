@@ -1,0 +1,457 @@
+{
+  "cases": [
+    {
+      "repeat": 1,
+      "case": "number",
+      "utterance": "2번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "36e85613-163a-4c8f-85b5-633501fe8e71",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 2,
+        "quote": "2번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 1,
+      "case": "reordered",
+      "utterance": "1번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "2a9f58e6-8ad2-49f7-b532-72838ad8bc0f",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 1,
+        "quote": "1번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 1,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "f04495b2-1137-43c4-922a-7d303532d516",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "별도로 립펜슬 찾아줘.",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          }
+        ],
+        "questionChanges": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "explanationQuote": "",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "actualModelCalls": 2,
+      "pass": true
+    },
+    {
+      "repeat": 2,
+      "case": "number",
+      "utterance": "2번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "83174cb8-2c8f-4960-8d44-f59d7ea1d5a7",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 2,
+        "quote": "2번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 2,
+      "case": "reordered",
+      "utterance": "1번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "36b5f5cd-090c-4710-a41d-d904139b34a6",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 1,
+        "quote": "1번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 2,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "a589d9d3-e4e3-4974-895a-265b8d28c381",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          }
+        ],
+        "questionChanges": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "explanationQuote": "",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "actualModelCalls": 2,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "number",
+      "utterance": "2번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "00e33c26-62e3-44fc-b33a-dba12d24c3bc",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 2,
+        "quote": "2번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "reordered",
+      "utterance": "1번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "26612e67-43c0-4612-9056-c2195cfe6056",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 1,
+        "quote": "1번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "beb286e3-e0fc-443c-b29d-2707a2bd6cc5",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          }
+        ],
+        "questionChanges": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "explanationQuote": "",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "actualModelCalls": 2,
+      "pass": true
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-11-27T19:28:36.412628+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:39.201009+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:41.385809+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:43.668908+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:46.140593+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:48.752442+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:50.676189+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:52.812315+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:55.344512+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:56.972821+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:28:59.571913+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:29:01.703034+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    }
+  ],
+  "pass": true
+}

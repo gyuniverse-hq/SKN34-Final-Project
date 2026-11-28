@@ -1,0 +1,302 @@
+{
+  "case": "G8-COMMON-ANSWER-LOGIN-APP-PARTIAL",
+  "at": "2026-11-27T12:06:58.310633+00:00",
+  "branch": "feat/compound-consultation",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "developLocalRef": "991dd634dba33b99ceeb1c03de4dd8d921ce07f9",
+  "remoteFetched": false,
+  "uncommitted": true,
+  "stage": "5-C common answer and app integration; incomplete",
+  "sourceSha256": [
+    {
+      "path": "__tests__/chatProductDetail.test.tsx",
+      "sha256": "11996702c410ddbd6b4286000cf4627a2f4a3b37e6cf404806eabc9700e685a5"
+    },
+    {
+      "path": "__tests__/chatProducts.test.ts",
+      "sha256": "5652961ef2e1d57293c0d7256cf36ef9fa26cc5a9ce45b86afea811790ac1f2d"
+    },
+    {
+      "path": "__tests__/useChatConversations.test.tsx",
+      "sha256": "3c71c91c70cd3fbf22658e1d0925842b25c869aad3b75eb6fa00f5c8992dccb6"
+    },
+    {
+      "path": "app/chat.tsx",
+      "sha256": "a85847d1cb208be4f6c6412679f4b6375f7147dafc80e7e285175b35736fb49c"
+    },
+    {
+      "path": "backend/chatbot/app/repositories/conversation_repository.py",
+      "sha256": "706560f54fa5f5c8fd19e29bf2034b767d5c6c481757adfba452445988e44b08"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "28933a86910c5023aba7529ed2e40c3ddefc5fb7eb23022e6f00f35de8f4fed4"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_answer.py",
+      "sha256": "d6c5d4c446546d41ee789cec2b780d3048869d3d03a87732140d6ed141f4c454"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "9ba21eb078587edfca175fa702b53d467f5f9a5a98c57b6940ce047611109483"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_task.py",
+      "sha256": "1f2b27704becacef0cf19d8ea0d83e9bdf0d61d33fbdf8bd923845807a4c0f8a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/conversation.py",
+      "sha256": "07663b7140bd3cf05cb0b9e50ad2e341c422a3da4e6fa406cee50947f012aa22"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "143a804bcfeb15d72cf64337eb340d9d57339cb15294a312db7c9649dda04e4a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_intent.py",
+      "sha256": "5b33dd75f9dd13fc3fa86b1fff4fda2b901faef4c4c22056308ffff50a4e530c"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/product_style_consultation.py",
+      "sha256": "bb18ba0b87fc0d938017bff3b9cbd85f48bef2474334e1166130c1d94a31d4ac"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/supervisor.py",
+      "sha256": "c02ef2f4512a12eed90fb7dd5b25e406094f1a0091adf00be8c43731c9448ca8"
+    },
+    {
+      "path": "backend/chatbot/app/services/beauty_consultation_service.py",
+      "sha256": "cfaf586a6e96e879671e392f18bd0c453e4c7600d8e3303ddf33197487e529b8"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "61ee933c34ef78f76966229c2c6d28a311a1486ea78dbfb1b4be70114da9393a"
+    },
+    {
+      "path": "backend/chatbot/app/services/compound_consultation_graph.py",
+      "sha256": "41d89ea6dd4039cbf5c63c2154a62e1589da216d380bf161f6968fb68af4489f"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_answer_service.py",
+      "sha256": "257ce50cfb32f44337280a94103f47e07d272aeae61ab773a3543958908a5530"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_intent_service.py",
+      "sha256": "ca4fe107345415f79dc284525d57b0785eab5510c132c30c10ef9998cabeccfe"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "9f6b8e749bbaf1a5b25be56547a68c58a0563e148085df0e3981c6417893112c"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_task_adapter.py",
+      "sha256": "eadc0d1552a97edb7e5dda09ba21dc4e8fd0b6d4eb7affe6f17373aca7613f57"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "67efc592e200e9acf18cbd3dc859ec57c958aebc9ca6c601a617e39be36d6636"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_service.py",
+      "sha256": "e4cea14ee858e40b3ef625107a4a20bf301eb116a32ea627aebfc7f0012d407e"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "28647fe91d0372cfbca2f7008659ecc068fbb4bd70573dea517c70d3fd7ec3a1"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_interpreter.py",
+      "sha256": "8676b1d753ad9363a26a1c0c0a519d53c3f164de854ade089e7dee9a56f51121"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_search_contract.py",
+      "sha256": "61973262f58ff719915e5f50e02e6edeea8e5b194f4da689d6c6a16084b60a68"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_style_consultation_service.py",
+      "sha256": "e3cbae270fe0743531385eaadb4d2ba48eb90464c2ef2b787c69bf7c91b2438a"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+      "sha256": "3bab198a5b4bd6bde444a1ff0924af10f5689c381af4eb18b89ae2141e006fe4"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "2d5c592804924f8e332922ea2271d97f0559723340cdd26e3f9188048b050e70"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_compound_consultation.py",
+      "sha256": "f6a85edf4b611e82218612b1d1a92d24443e905c2e493f5ef489b5d72d977fbb"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_answer.py",
+      "sha256": "127049b4fe5b3bd17a96f0eb53523969fd94f8dfa70cb5227e07e566695cde5c"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_intent.py",
+      "sha256": "3c76efa95687058b272c682398a066a6e37dfccca9504c22971c996fee46ce25"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "d642948192c993a18ed4a06d2d585ae8c9317075e8c1339a5914045923fc3a96"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "530970ff99872a033765e03babd3b728ff28227060a771b00f94a0b88eb56fb7"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+      "sha256": "5cc37f158b166ba1c6707ed970d5270e09db9336f2bc3e28c9aeae799d822c8f"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_partial_success.py",
+      "sha256": "f541fc82df530949dc70ca0191aa285c68d79d47f46b7412ba81c0d08d002d15"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_task_contract.py",
+      "sha256": "58f646bd62536d7d117aa5a88ec212f25c34aeae378191a4c7e08b1cd8ee3c21"
+    },
+    {
+      "path": "backend/chatbot/tests/test_product_search_contract.py",
+      "sha256": "535b4fa2263fb99a67394762e4153863b8a94ee4949f5f20e93227fe5847a291"
+    },
+    {
+      "path": "docs/ai-design/G8-IMPLEMENTATION-SPEC.md",
+      "sha256": "36aef4841d223922d046af0607f8a2ca4830717f740fd4c9cdfc92ec1037d936"
+    },
+    {
+      "path": "docs/ai-design/G8-WORKLOG.md",
+      "sha256": "e936d6c572d750f64faf83a86b8e9340e51a08c23eca0c2ddfe8eb51fe6c6ae4"
+    },
+    {
+      "path": "hooks/useChatConversations.ts",
+      "sha256": "9d3e0b80a009bb6cdd1df66b4e473ed540c9556cd9ded077350a7a5a29a2c4b5"
+    },
+    {
+      "path": "lib/api.ts",
+      "sha256": "65fb0a7f1e17734d9b36bad14a75bb1d6ee7cbfed0a24229bc8d19f2bc338c37"
+    },
+    {
+      "path": "reports/g8/parent/common-answer-app-finalize.py",
+      "sha256": "fe2db4367ae95b1cc2bce8afd33e60c214cc704c579391f87d4f3b29d30dd150"
+    },
+    {
+      "path": "reports/g8/parent/common-answer-app-preserve.py",
+      "sha256": "824962180c933662a148cab6629201e3f01ad1f26e2993b14621a6812a15901d"
+    },
+    {
+      "path": "reports/g8/parent/common-answer-app-run-pg.py",
+      "sha256": "e0354d70be356f81ce631dff086d6c9acf87e8132ed52e90d717b3854aee7c4a"
+    },
+    {
+      "path": "reports/g8/parent/common-answer-app-run.py",
+      "sha256": "2ba11404106d54e9e60108b7e185b908840c34c7e92ba7a14cddfe5c0a35649f"
+    },
+    {
+      "path": "reports/g8/parent/common-answer-app-verify-pg.py",
+      "sha256": "fb5d3b9cb2486027981c1183652041dbb7b2e3b4e1590d5abc4945bb92f3fe3f"
+    }
+  ],
+  "sourceDiff": "reports/g8/parent/common-answer-app-source.diff",
+  "newSources": "reports/g8/parent/common-answer-app-new-sources.json",
+  "suites": {
+    "common-answer-app-backend-temp-retry.xml": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "38",
+      "time": "0.821",
+      "timestamp": "2026-11-27T20:58:45.007909+09:00",
+      "hostname": "playdata"
+    },
+    "common-answer-app-backend.xml": {
+      "name": "pytest",
+      "errors": "17",
+      "failures": "0",
+      "skipped": "121",
+      "tests": "1769",
+      "time": "50.639",
+      "timestamp": "2026-11-27T20:57:20.346741+09:00",
+      "hostname": "playdata"
+    },
+    "common-answer-app-live-pg-answer.xml": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "1",
+      "time": "27.881",
+      "timestamp": "2026-11-27T20:50:41.189703+09:00",
+      "hostname": "playdata"
+    },
+    "common-answer-app-pg.xml": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "9",
+      "tests": "54",
+      "time": "36.887",
+      "timestamp": "2026-11-27T20:58:59.186543+09:00",
+      "hostname": "playdata"
+    }
+  },
+  "staticChecks": {
+    "ruff": "PASS",
+    "importContracts": 3,
+    "typecheck": "PASS",
+    "lint": "PASS"
+  },
+  "mockApp": {
+    "suites": 3,
+    "testsPassed": 61
+  },
+  "apiLive": {
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualCallsPerTurn": [
+      3,
+      2,
+      2,
+      2
+    ],
+    "auth": "mock",
+    "parentSeed": "synthetic",
+    "pg": "live",
+    "catalog": "live"
+  },
+  "browserLive": {
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualCallsPerCompletedTurn": [
+      1,
+      3,
+      3,
+      2
+    ],
+    "auth": "real_supabase",
+    "parentSeed": "normal_UI",
+    "pg": "live",
+    "catalog": "live",
+    "g5": "disabled",
+    "savedAnswersAndCards": "PASS",
+    "cardsAndProductDetail": "PASS",
+    "recentRoomRestore": "BLOCKED_LOADING",
+    "restoredCardDetail": "NOT_RUN",
+    "saleOptionCase": "NOT_RUN",
+    "screenshots": "CDP_TIMEOUT_accessibility_snapshots_preserved"
+  },
+  "incompleteInitialAttempt": "Neo4j connection failure before launcher fix; no completed-turn record or asserted model call count",
+  "defects": [
+    "recent conversation loading despite server GET 200; client cause unconfirmed",
+    "toner new search absorbed into existing comparison followup"
+  ],
+  "notRun": [
+    "Expo Go",
+    "full original G8 evaluation",
+    "human review",
+    "PR"
+  ],
+  "dataVersion": "local Catalog runtime; release version unconfirmed",
+  "modelSnapshot": "alias only"
+}

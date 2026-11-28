@@ -1,0 +1,10 @@
+{
+  "baselineCoveredFiles": 257,
+  "outsideApprovedChanges": [],
+  "approvedCodeFiles": 15,
+  "missingInitialByteBaseline": [
+    "backend/chatbot/tests/test_supervisor.py",
+    "backend/chatbot/tests/test_style_recipe.py"
+  ],
+  "provenance": "baseline-extra.json preserves prior app runtime hashes; missing initial test bytes are not claimed as captured"
+}

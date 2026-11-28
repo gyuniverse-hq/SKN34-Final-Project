@@ -1,0 +1,34 @@
+........................................................................ [ 17%]
+...............FF..............F........................................ [ 35%]
+........................................................................ [ 52%]
+........................................................................ [ 70%]
+........................................................................ [ 87%]
+...................................................                      [100%]
+================================== FAILURES ===================================
+_ test_first_entry_result_proposal_binds_actual_recipe[\ud569\uc131 \uccab \uc21c\uc11c] _
+tests\test_g8_consultation_parent.py:606: in test_first_entry_result_proposal_binds_actual_recipe
+    assert [p.id for p in result.products] == ["blush-b"]
+E   AssertionError: assert [] == ['blush-b']
+E     
+E     Right contains one more item: 'blush-b'
+E     Use -v to get more diff
+_ test_first_entry_result_proposal_binds_actual_recipe[\ud569\uc131 \ubcc0\uacbd\ub41c \uc21c\uc11c] _
+tests\test_g8_consultation_parent.py:606: in test_first_entry_result_proposal_binds_actual_recipe
+    assert [p.id for p in result.products] == ["blush-b"]
+E   AssertionError: assert [] == ['blush-b']
+E     
+E     Right contains one more item: 'blush-b'
+E     Use -v to get more diff
+_____ test_new_plain_product_cards_do_not_disappear_behind_cached_scopes ______
+tests\test_g8_consultation_parent.py:1081: in test_new_plain_product_cards_do_not_disappear_behind_cached_scopes
+    fresh = ChatResponse(answer="립펜슬 후보", products=[product("립펜슬", 10000, category="lip")])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for ChatResponse
+E   products.0
+E     Input should be a valid dictionary or instance of ProductRef [type=model_type, input_value=CatalogProduct(id='립펜...ne, color_family=None)]), input_type=CatalogProduct]
+E       For further information visit https://errors.pydantic.dev/2.14/v/model_type
+=========================== short test summary info ===========================
+FAILED tests/test_g8_consultation_parent.py::test_first_entry_result_proposal_binds_actual_recipe[\ud569\uc131 \uccab \uc21c\uc11c]
+FAILED tests/test_g8_consultation_parent.py::test_first_entry_result_proposal_binds_actual_recipe[\ud569\uc131 \ubcc0\uacbd\ub41c \uc21c\uc11c]
+FAILED tests/test_g8_consultation_parent.py::test_new_plain_product_cards_do_not_disappear_behind_cached_scopes
+3 failed, 408 passed in 6.59s

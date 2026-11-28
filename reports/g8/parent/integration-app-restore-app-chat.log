@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\reports\g8\parent\integration-app-restore-app-run.py", line 158, in <module>
+    serve(sys.argv[1])
+  File "C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project\reports\g8\parent\integration-app-restore-app-run.py", line 96, in serve
+    original_send = httpx.AsyncClient.send
+                    ^^^^^
+NameError: name 'httpx' is not defined

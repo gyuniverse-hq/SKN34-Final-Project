@@ -1,0 +1,22 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_real_checkpoint_cancel_then_replacement_before_old_finishes _______
+tests\test_g7_conversation_api_pg.py:125: in test_real_checkpoint_cancel_then_replacement_before_old_finishes
+    assert entered.wait(15)
+E   assert False
+E    +  where False = wait(15)
+E    +    where wait = <threading.Event at 0x227294d5430: unset>.wait
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-28T08:22:33+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-28T08:22:33+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "2512dc2d1e16407aaa30af1779dfa40e", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 233.0}
+{"ts": "2026-11-28T08:22:33+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 503 Service Unavailable\"", "request_id": "-"}
+{"ts": "2026-11-28T08:22:33+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "a14ea4daacf44d09b11ca2ec67f1e0d8", "method": "POST", "path": "/api/chat", "status": 503, "duration_ms": 358.3}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 503 Service Unavailable"
+INFO     access:observability.py:82 request
+=========================== short test summary info ===========================
+FAILED tests/test_g7_conversation_api_pg.py::test_real_checkpoint_cancel_then_replacement_before_old_finishes
+1 failed, 33 deselected in 17.52s

@@ -1,0 +1,11 @@
+......s................................................................. [ 29%]
+........................................................................ [ 59%]
+........................................................................ [ 89%]
+.........................                                                [100%]
+============================== warnings summary ===============================
+tests/test_g8_owned_look_interpreter.py::test_live_model_reference_contract
+  tests\test_g8_owned_look_interpreter.py:245: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.anyio
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+240 passed, 1 skipped, 1 warning in 4.90s

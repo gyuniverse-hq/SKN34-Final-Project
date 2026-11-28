@@ -1,0 +1,802 @@
+{
+  "mode": "product",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "at": "2026-11-27T11:13:28.156678+00:00",
+  "uncommitted": true,
+  "parentSeed": "synthetic completed style task; not restored from PG",
+  "catalog": "live HTTP 19834",
+  "modelConfiguredMode": "live",
+  "pg": "NOT_RUN",
+  "loginApp": "NOT_RUN",
+  "turns": [
+    {
+      "question": "토너 찾아줘. 크림도 찾아줘",
+      "response": {
+        "answer": "토너 찾아줘.\n현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.\n\n크림도 찾아줘\n현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+        "products": [
+          {
+            "id": "oy-a000000002839",
+            "brand": "바이오더마",
+            "name": "바이오더마 센시비오 토너 250ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000004434",
+            "brand": "바이오더마",
+            "name": "바이오더마 하이드라비오 토너 250ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000011085",
+            "brand": "엠도씨",
+            "name": "엠도씨 세붐 스트라이크 토너 150ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000016873",
+            "brand": "유리아쥬",
+            "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000104167",
+            "brand": "크리니크",
+            "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000104169",
+            "brand": "크리니크",
+            "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000006014",
+            "brand": "이아소",
+            "name": "[닥터이아소] 트리플 엠 하이드레이팅 크림",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000012881",
+            "brand": "피지오겔",
+            "name": "피지오겔 DMT 페이셜 보습장벽 크림 150ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000013189",
+            "brand": "뉴트로지나",
+            "name": "[끈적임ZERO/피지ZERO] 뉴트로지나 딥클린 클렌징크림 285ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000016808",
+            "brand": "유세린",
+            "name": "유세린 볼륨리프팅 나이트 크림 50ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000107841",
+            "brand": "미프",
+            "name": "미프 미남크림 톤업화이트닝 50ml",
+            "category": "skincare"
+          },
+          {
+            "id": "oy-a000000110704",
+            "brand": "착한팩토리",
+            "name": "착한팩토리 광채 수면크림팩",
+            "category": "skincare"
+          }
+        ]
+      },
+      "parent": {
+        "schemaVersion": 1,
+        "planId": "94e91273-b2c4-4dbf-80be-b66d497d350f",
+        "version": 2,
+        "tasks": [
+          {
+            "taskId": "style",
+            "attempts": 0,
+            "reason": null,
+            "toolTraceIds": [],
+            "goal": "style",
+            "objective": "기존 룩 검색",
+            "status": "completed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": null,
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          {
+            "taskId": "task-fc3161c5b0ff45a9955ea64f5a864a23",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "94e91273-b2c4-4dbf-80be-b66d497d350f:2:task-fc3161c5b0ff45a9955ea64f5a864a23:1"
+            ],
+            "goal": "product",
+            "objective": "토너 찾아줘.",
+            "status": "completed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [
+              "oy-a000000002839",
+              "oy-a000000004434",
+              "oy-a000000011085",
+              "oy-a000000016873",
+              "oy-a000000104167",
+              "oy-a000000104169"
+            ],
+            "limitations": [],
+            "displayResult": {
+              "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+              "products": [
+                {
+                  "id": "oy-a000000002839",
+                  "brand": "바이오더마",
+                  "name": "바이오더마 센시비오 토너 250ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000004434",
+                  "brand": "바이오더마",
+                  "name": "바이오더마 하이드라비오 토너 250ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000011085",
+                  "brand": "엠도씨",
+                  "name": "엠도씨 세붐 스트라이크 토너 150ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000016873",
+                  "brand": "유리아쥬",
+                  "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000104167",
+                  "brand": "크리니크",
+                  "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000104169",
+                  "brand": "크리니크",
+                  "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+                  "category": "skincare"
+                }
+              ],
+              "resultType": "recommendations",
+              "evidence": [
+                {
+                  "productId": "oy-a000000002839",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000004434",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000011085",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000016873",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000104167",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000104169",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                }
+              ]
+            },
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          {
+            "taskId": "task-7bfcdea770074d2e9358592c72860911",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "94e91273-b2c4-4dbf-80be-b66d497d350f:2:task-7bfcdea770074d2e9358592c72860911:1"
+            ],
+            "goal": "product",
+            "objective": "크림도 찾아줘",
+            "status": "completed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [
+              "oy-a000000006014",
+              "oy-a000000012881",
+              "oy-a000000013189",
+              "oy-a000000016808",
+              "oy-a000000107841",
+              "oy-a000000110704"
+            ],
+            "limitations": [],
+            "displayResult": {
+              "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+              "products": [
+                {
+                  "id": "oy-a000000006014",
+                  "brand": "이아소",
+                  "name": "[닥터이아소] 트리플 엠 하이드레이팅 크림",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000012881",
+                  "brand": "피지오겔",
+                  "name": "피지오겔 DMT 페이셜 보습장벽 크림 150ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000013189",
+                  "brand": "뉴트로지나",
+                  "name": "[끈적임ZERO/피지ZERO] 뉴트로지나 딥클린 클렌징크림 285ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000016808",
+                  "brand": "유세린",
+                  "name": "유세린 볼륨리프팅 나이트 크림 50ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000107841",
+                  "brand": "미프",
+                  "name": "미프 미남크림 톤업화이트닝 50ml",
+                  "category": "skincare"
+                },
+                {
+                  "id": "oy-a000000110704",
+                  "brand": "착한팩토리",
+                  "name": "착한팩토리 광채 수면크림팩",
+                  "category": "skincare"
+                }
+              ],
+              "resultType": "recommendations",
+              "evidence": [
+                {
+                  "productId": "oy-a000000006014",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000012881",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000013189",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000016808",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000107841",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                },
+                {
+                  "productId": "oy-a000000110704",
+                  "source": "catalog_api",
+                  "ingredientCoverage": "unknown",
+                  "fragranceStatus": "unknown"
+                }
+              ]
+            },
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          }
+        ],
+        "question": null,
+        "look": null,
+        "executionState": "active"
+      },
+      "taskResults": [
+        {
+          "plan_id": "94e91273-b2c4-4dbf-80be-b66d497d350f",
+          "plan_version": 2,
+          "task_id": "style",
+          "family": "independent",
+          "capability": "style",
+          "status": "completed",
+          "attempt": 0,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "기존 룩 검색",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          "input_fingerprint": "a510c098d3b6ea33651ffcb3806c79c4ff1566d7314777b31a4ed4c39bc893b6",
+          "source_fingerprint": null,
+          "payload": null,
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        },
+        {
+          "plan_id": "94e91273-b2c4-4dbf-80be-b66d497d350f",
+          "plan_version": 2,
+          "task_id": "task-fc3161c5b0ff45a9955ea64f5a864a23",
+          "family": "independent",
+          "capability": "product",
+          "status": "completed",
+          "attempt": 1,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "토너 찾아줘.",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          "input_fingerprint": "9fa0315c4fdd4d948c1d80b7494bc83d97d5426ad96f3129a81d6e734cda963b",
+          "source_fingerprint": null,
+          "payload": {
+            "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+            "products": [
+              {
+                "id": "oy-a000000002839",
+                "brand": "바이오더마",
+                "name": "바이오더마 센시비오 토너 250ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000004434",
+                "brand": "바이오더마",
+                "name": "바이오더마 하이드라비오 토너 250ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000011085",
+                "brand": "엠도씨",
+                "name": "엠도씨 세붐 스트라이크 토너 150ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000016873",
+                "brand": "유리아쥬",
+                "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000104167",
+                "brand": "크리니크",
+                "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000104169",
+                "brand": "크리니크",
+                "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+                "category": "skincare"
+              }
+            ],
+            "chatContext": {
+              "version": 1,
+              "issuedAt": 1795778012,
+              "filters": {
+                "category": "skincare",
+                "maxPriceKRW": null,
+                "fragranceFree": false,
+                "moisturizing": false,
+                "query": "토너",
+                "ingredientConditions": []
+              },
+              "candidateIds": [
+                "oy-a000000002839",
+                "oy-a000000004434",
+                "oy-a000000011085",
+                "oy-a000000016873",
+                "oy-a000000104167",
+                "oy-a000000104169"
+              ],
+              "scopeIds": [
+                "oy-a000000002839",
+                "oy-a000000004434",
+                "oy-a000000011085",
+                "oy-a000000016873",
+                "oy-a000000104167",
+                "oy-a000000104169"
+              ],
+              "selectedProductId": null,
+              "selectedOptionId": null
+            },
+            "resultType": "recommendations",
+            "evidence": [
+              {
+                "productId": "oy-a000000002839",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000004434",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000011085",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000016873",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000104167",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000104169",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              }
+            ]
+          },
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        },
+        {
+          "plan_id": "94e91273-b2c4-4dbf-80be-b66d497d350f",
+          "plan_version": 2,
+          "task_id": "task-7bfcdea770074d2e9358592c72860911",
+          "family": "independent",
+          "capability": "product",
+          "status": "completed",
+          "attempt": 1,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "크림도 찾아줘",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          "input_fingerprint": "8b210c0384c1b7178279606ee41e26ca32b086229cf69a7039ab5075ed9479b1",
+          "source_fingerprint": null,
+          "payload": {
+            "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+            "products": [
+              {
+                "id": "oy-a000000006014",
+                "brand": "이아소",
+                "name": "[닥터이아소] 트리플 엠 하이드레이팅 크림",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000012881",
+                "brand": "피지오겔",
+                "name": "피지오겔 DMT 페이셜 보습장벽 크림 150ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000013189",
+                "brand": "뉴트로지나",
+                "name": "[끈적임ZERO/피지ZERO] 뉴트로지나 딥클린 클렌징크림 285ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000016808",
+                "brand": "유세린",
+                "name": "유세린 볼륨리프팅 나이트 크림 50ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000107841",
+                "brand": "미프",
+                "name": "미프 미남크림 톤업화이트닝 50ml",
+                "category": "skincare"
+              },
+              {
+                "id": "oy-a000000110704",
+                "brand": "착한팩토리",
+                "name": "착한팩토리 광채 수면크림팩",
+                "category": "skincare"
+              }
+            ],
+            "chatContext": {
+              "version": 1,
+              "issuedAt": 1795778017,
+              "filters": {
+                "category": "skincare",
+                "maxPriceKRW": null,
+                "fragranceFree": false,
+                "moisturizing": false,
+                "query": "크림",
+                "ingredientConditions": []
+              },
+              "candidateIds": [
+                "oy-a000000006014",
+                "oy-a000000012881",
+                "oy-a000000013189",
+                "oy-a000000016808",
+                "oy-a000000107841",
+                "oy-a000000110704"
+              ],
+              "scopeIds": [
+                "oy-a000000006014",
+                "oy-a000000012881",
+                "oy-a000000013189",
+                "oy-a000000016808",
+                "oy-a000000107841",
+                "oy-a000000110704"
+              ],
+              "selectedProductId": null,
+              "selectedOptionId": null
+            },
+            "resultType": "recommendations",
+            "evidence": [
+              {
+                "productId": "oy-a000000006014",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000012881",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000013189",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000016808",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000107841",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              },
+              {
+                "productId": "oy-a000000110704",
+                "source": "catalog_api",
+                "ingredientCoverage": "unknown",
+                "fragranceStatus": "unknown"
+              }
+            ]
+          },
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        }
+      ],
+      "events": [
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "at": "2026-11-27T11:13:28.465212+00:00",
+          "model": "gpt-6-luna",
+          "tools": [
+            "interpret_consultation_change"
+          ],
+          "stage": null,
+          "status": 200
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "at": "2026-11-27T11:13:31.128689+00:00",
+          "model": "gpt-6-luna",
+          "tools": [],
+          "stage": null,
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "GET",
+          "host": "127.0.0.1",
+          "path": "/api/products",
+          "at": "2026-11-27T11:13:33.154311+00:00",
+          "query": "category=skincare",
+          "input": null,
+          "status": 200,
+          "responseSha256": "b5dbbd247630ce1b5e81489b31ccd44864733590f6ea2d49920b730fa0f7ea6f",
+          "responseKeys": [
+            "products"
+          ],
+          "productCount": 4991,
+          "candidateCount": 0
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "at": "2026-11-27T11:13:33.967118+00:00",
+          "model": "gpt-6-luna",
+          "tools": [],
+          "stage": null,
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "GET",
+          "host": "127.0.0.1",
+          "path": "/api/products",
+          "at": "2026-11-27T11:13:37.531064+00:00",
+          "query": "category=skincare",
+          "input": null,
+          "status": 200,
+          "responseSha256": "b5dbbd247630ce1b5e81489b31ccd44864733590f6ea2d49920b730fa0f7ea6f",
+          "responseKeys": [
+            "products"
+          ],
+          "productCount": 4991,
+          "candidateCount": 0
+        }
+      ],
+      "dispatches": [
+        {
+          "capability": "product",
+          "inputMessage": "토너 찾아줘.",
+          "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+          "products": [
+            {
+              "id": "oy-a000000002839",
+              "brand": "바이오더마",
+              "name": "바이오더마 센시비오 토너 250ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000004434",
+              "brand": "바이오더마",
+              "name": "바이오더마 하이드라비오 토너 250ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000011085",
+              "brand": "엠도씨",
+              "name": "엠도씨 세붐 스트라이크 토너 150ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000016873",
+              "brand": "유리아쥬",
+              "name": "[수분장벽토너] 유리아쥬 제모스 토너 250ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000104167",
+              "brand": "크리니크",
+              "name": "[30ml추가증정] 크리니크 각질케어토너2번 200ml 단품/기획",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000104169",
+              "brand": "크리니크",
+              "name": "[30ml추가증정] 크리니크 각질케어토너3번 200ml 단품/기획",
+              "category": "skincare"
+            }
+          ],
+          "knowledgeStatus": null
+        },
+        {
+          "capability": "product",
+          "inputMessage": "크림도 찾아줘",
+          "answer": "현재 카탈로그에서 조건에 맞는 후보 6개를 찾았어요. 표시 순서의 번호로 후속 질문을 할 수 있어요. 가격은 상품 기준가격이며 판매처·옵션에 따라 달라질 수 있어요.",
+          "products": [
+            {
+              "id": "oy-a000000006014",
+              "brand": "이아소",
+              "name": "[닥터이아소] 트리플 엠 하이드레이팅 크림",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000012881",
+              "brand": "피지오겔",
+              "name": "피지오겔 DMT 페이셜 보습장벽 크림 150ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000013189",
+              "brand": "뉴트로지나",
+              "name": "[끈적임ZERO/피지ZERO] 뉴트로지나 딥클린 클렌징크림 285ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000016808",
+              "brand": "유세린",
+              "name": "유세린 볼륨리프팅 나이트 크림 50ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000107841",
+              "brand": "미프",
+              "name": "미프 미남크림 톤업화이트닝 50ml",
+              "category": "skincare"
+            },
+            {
+              "id": "oy-a000000110704",
+              "brand": "착한팩토리",
+              "name": "착한팩토리 광채 수면크림팩",
+              "category": "skincare"
+            }
+          ],
+          "knowledgeStatus": null
+        }
+      ],
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2741.0,
+        "result": {
+          "planId": "94e91273-b2c4-4dbf-80be-b66d497d350f",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "changes": [],
+          "additions": [
+            {
+              "capability": "product",
+              "quote": "토너 찾아줘.",
+              "sharedQuotes": []
+            },
+            {
+              "capability": "product",
+              "quote": "크림도 찾아줘",
+              "sharedQuotes": []
+            }
+          ]
+        }
+      },
+      "actualRemoteHttpCalls": 3,
+      "embeddingCallsInApi": "not instrumented; search telemetry only"
+    }
+  ]
+}

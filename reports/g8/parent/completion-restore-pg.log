@@ -1,0 +1,29 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____ test_completion_restore_keeps_two_query_scopes_and_selected_result ______
+tests\test_g7_conversation_api_pg.py:1783: in test_completion_restore_keeps_two_query_scopes_and_selected_result
+    assert detail["messages"][-1]["displayPayload"]["consultation"] == summary
+E   AssertionError: assert {'status': 'c...quired': True} == {'status': 'c...도 찾아줘'}], ...}
+E     
+E     Omitting 4 identical items, use -vv to show
+E     Right contains 1 more item:
+E     {'selectedTaskId': None}
+E     Use -v to get more diff
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-28T00:53:05+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-28T00:53:05+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "0bd80994658d48e59461211c08bcb701", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 223.1}
+{"ts": "2026-11-28T00:53:05+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-28T00:53:05+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "0fa402b40be947f7a9dec3dd4a9b1d42", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 252.3}
+{"ts": "2026-11-28T00:53:05+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/aefcd9fb-edfa-4e57-804b-e54dfd1bd78a \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-28T00:53:05+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "19d54e53d2164c23ab538b8a6195c462", "method": "GET", "path": "/api/chat/conversations/aefcd9fb-edfa-4e57-804b-e54dfd1bd78a", "status": 200, "duration_ms": 21.5}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/aefcd9fb-edfa-4e57-804b-e54dfd1bd78a "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+=========================== short test summary info ===========================
+FAILED tests/test_g7_conversation_api_pg.py::test_completion_restore_keeps_two_query_scopes_and_selected_result
+1 failed, 27 deselected in 2.69s

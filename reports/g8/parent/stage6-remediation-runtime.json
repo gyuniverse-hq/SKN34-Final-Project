@@ -1,0 +1,18 @@
+{
+  "pids": {
+    "relay": 44928,
+    "g5": 23752,
+    "chat": 43808,
+    "web": 22436
+  },
+  "ports": {
+    "chat": 19833,
+    "catalog": 19834,
+    "web": 19836,
+    "g5": 19838,
+    "relay": 19841
+  },
+  "modelConfiguredMode": "live",
+  "auth": "existing actual Supabase session",
+  "chatDatabase": "vishue_g8_browser"
+}

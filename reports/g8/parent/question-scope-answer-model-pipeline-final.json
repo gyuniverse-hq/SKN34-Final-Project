@@ -1,0 +1,1372 @@
+{
+  "configuredMode": "live",
+  "promptSha256": "543a571938367e83abd008e4ffa66ffa84340831eacd57df35139cf39a1bf533",
+  "schemaSha256": "2fc7ce876949e3079300205373b43592cc2de0305a2d0a7899ea277784206804",
+  "records": [
+    {
+      "case": 1,
+      "repeat": 1,
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2055.0,
+        "result": {
+          "planId": "6e878405-2a8f-468f-b8c0-a705d72eef73",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담 결과는 그대로 둬",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 07웜베이지는 없어",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 07웜베이지는 없어"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "삐아 07웜베이지는 없어",
+          "input": {
+            "utterance": "삐아 07웜베이지는 없어",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1576.8,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing",
+        "question": ""
+      },
+      "answer": null
+    },
+    {
+      "case": 1,
+      "repeat": 2,
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2069.8,
+        "result": {
+          "planId": "5df8370a-9650-4995-b7a2-6b38e8b79b6d",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담 결과는 그대로 둬",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 07웜베이지는 없어",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 07웜베이지는 없어"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "삐아 07웜베이지는 없어",
+          "input": {
+            "utterance": "삐아 07웜베이지는 없어",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1342.3,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing",
+        "question": ""
+      },
+      "answer": null
+    },
+    {
+      "case": 1,
+      "repeat": 3,
+      "utterance": "삐아 07웜베이지는 없어. 그 상품 보유 여부에 답한 거야. 롬앤 질문과 피부 상담 결과는 그대로 둬",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2082.8,
+        "result": {
+          "planId": "446ac2e1-488b-4ad0-96ba-2ce395a17341",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담 결과는 그대로 둬",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 07웜베이지는 없어",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 07웜베이지는 없어"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "삐아 07웜베이지는 없어",
+          "input": {
+            "utterance": "삐아 07웜베이지는 없어",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1904.9,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing",
+        "question": ""
+      },
+      "answer": null
+    },
+    {
+      "case": 2,
+      "repeat": 1,
+      "utterance": "삐아 팔레트는 없고, 롬앤은 나중에 답할게. 피부 설명은 유지해줘.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2002.5,
+        "result": {
+          "planId": "358a2b4d-b3fa-4244-bf31-a30f2efbcc48",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 팔레트는 없고",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 팔레트는 없고"
+            },
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "romand",
+              "operation": "preserve",
+              "quote": "롬앤은 나중에 답할게."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "삐아 팔레트는 없고",
+          "input": {
+            "utterance": "삐아 팔레트는 없고",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1598.5,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing"
+      },
+      "answer": null
+    },
+    {
+      "case": 2,
+      "repeat": 2,
+      "utterance": "삐아 팔레트는 없고, 롬앤은 나중에 답할게. 피부 설명은 유지해줘.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2145.4,
+        "result": {
+          "planId": "cb7433bb-0631-46ba-8eaf-1150d854d11d",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 팔레트는 없고\n롬앤은 나중에 답할게.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 팔레트는 없고"
+            },
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "romand",
+              "operation": "answer",
+              "quote": "롬앤은 나중에 답할게."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "삐아 팔레트는 없고",
+          "input": {
+            "utterance": "삐아 팔레트는 없고",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1060.8,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        },
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "롬앤은 나중에 답할게.",
+          "input": {
+            "utterance": "롬앤은 나중에 답할게.",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "롬앤 컨투어 02그레이쿨을 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "romand",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "action": "defer",
+            "status": null,
+            "question": ""
+          },
+          "status": "deferred"
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "defer",
+        "status": null
+      },
+      "answer": null
+    },
+    {
+      "case": 2,
+      "repeat": 3,
+      "utterance": "삐아 팔레트는 없고, 롬앤은 나중에 답할게. 피부 설명은 유지해줘.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2036.1,
+        "result": {
+          "planId": "8e78ec8f-9771-4aac-8a8d-1c28c02310a9",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "삐아 팔레트는 없고",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "삐아 팔레트는 없고"
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "삐아 팔레트는 없고",
+          "input": {
+            "utterance": "삐아 팔레트는 없고",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1338.4,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing",
+        "question": ""
+      },
+      "answer": null
+    },
+    {
+      "case": 3,
+      "repeat": 1,
+      "utterance": "피부 설명은 그대로 두고, 컨투어 질문은 남겨 둬. 아이팔레트는 안 갖고 있어.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1911.2,
+        "result": {
+          "planId": "30590d4c-f0f3-42f3-b318-de14269ab541",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 그대로 두고",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "아이팔레트는 안 갖고 있어.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "아이팔레트는 안 갖고 있어."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "아이팔레트는 안 갖고 있어.",
+          "input": {
+            "utterance": "아이팔레트는 안 갖고 있어.",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1424.5,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing"
+      },
+      "answer": null
+    },
+    {
+      "case": 3,
+      "repeat": 2,
+      "utterance": "피부 설명은 그대로 두고, 컨투어 질문은 남겨 둬. 아이팔레트는 안 갖고 있어.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1927.5,
+        "result": {
+          "planId": "152f7143-d15d-4f0c-b00c-1666f6625761",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 그대로 두고",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "아이팔레트는 안 갖고 있어.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "아이팔레트는 안 갖고 있어."
+            },
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "romand",
+              "operation": "preserve",
+              "quote": "컨투어 질문은 남겨 둬."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "아이팔레트는 안 갖고 있어.",
+          "input": {
+            "utterance": "아이팔레트는 안 갖고 있어.",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1352.9,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing",
+        "question": ""
+      },
+      "answer": null
+    },
+    {
+      "case": 3,
+      "repeat": 3,
+      "utterance": "피부 설명은 그대로 두고, 컨투어 질문은 남겨 둬. 아이팔레트는 안 갖고 있어.",
+      "mode": "live",
+      "passed": true,
+      "audit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1819.9,
+        "result": {
+          "planId": "f79f20e0-5f9d-44c9-be3c-1667be6c1f3e",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 설명은 그대로 두고",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "update",
+              "quote": "아이팔레트는 안 갖고 있어.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-look",
+              "inputKey": "ownership",
+              "needId": "bbia",
+              "operation": "answer",
+              "quote": "아이팔레트는 안 갖고 있어."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-look"
+          ],
+          "invalidated": [
+            "task-look"
+          ],
+          "preserved": [
+            "task-skin"
+          ]
+        }
+      },
+      "questionInterpretation": [
+        {
+          "configured": true,
+          "invocations": 1,
+          "snapshotVersion": "synthetic-snapshot-v1",
+          "utterance": "아이팔레트는 안 갖고 있어.",
+          "input": {
+            "utterance": "아이팔레트는 안 갖고 있어.",
+            "currentQuestion": {
+              "comparisonPriceBasis": null,
+              "comparisonBaseId": null,
+              "comparisonChoices": [],
+              "taskId": "task-look",
+              "goal": "owned_look",
+              "version": 1,
+              "text": "삐아 아이팔레트 07웜베이지를 가지고 있나요?",
+              "inputKey": "ownership",
+              "zone": null,
+              "needId": "bbia",
+              "recipeVersion": "recipe-v1",
+              "ownershipScope": "option"
+            }
+          },
+          "proposal": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          },
+          "status": "validated",
+          "elapsedMs": 1257.0,
+          "result": {
+            "snapshotVersion": "synthetic-snapshot-v1",
+            "action": "update",
+            "operations": [
+              {
+                "action": "declare",
+                "targetId": "bbia",
+                "scope": "option",
+                "status": "missing"
+              }
+            ],
+            "question": ""
+          }
+        }
+      ],
+      "appliedDeclarations": [
+        [
+          "bbia",
+          "option",
+          "missing"
+        ]
+      ],
+      "proposal": {
+        "action": "answer",
+        "status": "missing",
+        "question": ""
+      },
+      "answer": null
+    }
+  ],
+  "actualHttpStarts": 19,
+  "events": [
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:01.592810+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:03.336981+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:03.619620+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:04.928908+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:05.229788+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:07.006670+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:07.279442+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:08.352752+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:08.646516+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:10.443557+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:10.837662+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:12.351242+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:12.731455+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:14.365062+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:14.733396+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:15.965398+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:16.267715+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:18.121748+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:18.351943+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:19.183987+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:19.441849+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:20.968665+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:21.206282+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:23.015120+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:23.277720+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:24.354777+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:24.648655+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:26.278752+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:26.556347+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:27.717197+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:27.984015+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:29.654043+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:29.887570+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:31.008844+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:31.347081+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:32.840064+00:00",
+      "status": 200
+    },
+    {
+      "event": "start",
+      "at": "2026-11-27T18:14:33.079336+00:00",
+      "model": "gpt-6-luna"
+    },
+    {
+      "event": "end",
+      "at": "2026-11-27T18:14:34.100030+00:00",
+      "status": 200
+    }
+  ]
+}

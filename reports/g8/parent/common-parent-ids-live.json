@@ -1,0 +1,542 @@
+[
+  {
+    "at": "2026-11-27T10:53:28.578782+00:00",
+    "case": 1,
+    "repetition": 1,
+    "utterance": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2656.2,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "knowledge",
+            "quote": "세안 후 보습 순서를 설명해줘.",
+            "sharedQuotes": []
+          },
+          {
+            "capability": "knowledge",
+            "quote": "자외선 차단제를 덧바르는 방법도 설명해줘",
+            "sharedQuotes": []
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:31.210386+00:00",
+    "case": 2,
+    "repetition": 1,
+    "utterance": "토너 찾아줘. 크림도 찾아줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2629.1,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘.",
+            "sharedQuotes": []
+          },
+          {
+            "capability": "product",
+            "quote": "크림도 찾아줘",
+            "sharedQuotes": []
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:33.001508+00:00",
+    "case": 3,
+    "repetition": 1,
+    "utterance": "덧바르는 방법만 다시 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1789.3,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "retry",
+        "targets": [
+          "task-sunscreen"
+        ],
+        "quote": "덧바르는 방법만 다시 설명해줘",
+        "question": "",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:34.724323+00:00",
+    "case": 4,
+    "repetition": 1,
+    "utterance": "보습 설명은 빼고 차단제는 덧바르기도 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1716.5,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "task-moisture",
+            "operation": "withdraw",
+            "quote": "보습 설명은 빼고"
+          },
+          {
+            "taskId": "task-sunscreen",
+            "operation": "update",
+            "quote": "차단제는 덧바르기도 설명해줘"
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [
+          "task-moisture"
+        ],
+        "updated": [
+          "task-sunscreen"
+        ],
+        "invalidated": [
+          "task-moisture",
+          "task-sunscreen"
+        ],
+        "preserved": []
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:36.065397+00:00",
+    "case": 1,
+    "repetition": 2,
+    "utterance": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1337.5,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "knowledge",
+            "quote": "세안 후 보습 순서를 설명해줘.",
+            "sharedQuotes": []
+          },
+          {
+            "capability": "knowledge",
+            "quote": "자외선 차단제를 덧바르는 방법도 설명해줘",
+            "sharedQuotes": []
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:38.282346+00:00",
+    "case": 2,
+    "repetition": 2,
+    "utterance": "토너 찾아줘. 크림도 찾아줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 2215.1,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘.",
+            "sharedQuotes": []
+          },
+          {
+            "capability": "product",
+            "quote": "크림도 찾아줘",
+            "sharedQuotes": []
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:40.003422+00:00",
+    "case": 3,
+    "repetition": 2,
+    "utterance": "덧바르는 방법만 다시 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1718.3,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "retry",
+        "targets": [
+          "task-sunscreen"
+        ],
+        "quote": "덧바르는 방법만 다시 설명해줘",
+        "question": "",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:41.272901+00:00",
+    "case": 4,
+    "repetition": 2,
+    "utterance": "보습 설명은 빼고 차단제는 덧바르기도 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1266.0,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "task-moisture",
+            "operation": "withdraw",
+            "quote": "보습 설명은 빼고"
+          },
+          {
+            "taskId": "task-sunscreen",
+            "operation": "update",
+            "quote": "차단제는 덧바르기도 설명해줘"
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [
+          "task-moisture"
+        ],
+        "updated": [
+          "task-sunscreen"
+        ],
+        "invalidated": [
+          "task-moisture",
+          "task-sunscreen"
+        ],
+        "preserved": []
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:42.813232+00:00",
+    "case": 1,
+    "repetition": 3,
+    "utterance": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1537.6,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "knowledge",
+            "quote": "세안 후 보습 순서를 설명해줘.",
+            "sharedQuotes": []
+          },
+          {
+            "capability": "knowledge",
+            "quote": "자외선 차단제를 덧바르는 방법도 설명해줘",
+            "sharedQuotes": []
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:44.347131+00:00",
+    "case": 2,
+    "repetition": 3,
+    "utterance": "토너 찾아줘. 크림도 찾아줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1531.9,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "토너 찾아줘.",
+            "sharedQuotes": []
+          },
+          {
+            "capability": "product",
+            "quote": "크림도 찾아줘",
+            "sharedQuotes": []
+          }
+        ]
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:45.736116+00:00",
+    "case": 3,
+    "repetition": 3,
+    "utterance": "덧바르는 방법만 다시 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1383.5,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "retry",
+        "targets": [
+          "task-sunscreen"
+        ],
+        "quote": "덧바르는 방법만 다시 설명해줘",
+        "question": "",
+        "changes": [],
+        "additions": []
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  },
+  {
+    "at": "2026-11-27T10:53:47.074247+00:00",
+    "case": 4,
+    "repetition": 3,
+    "utterance": "보습 설명은 빼고 차단제는 덧바르기도 설명해줘",
+    "modelConfiguredMode": "live",
+    "model": "gpt-6-luna",
+    "actualModelCalls": 1,
+    "destination": "api.openai.com/v1",
+    "contractSha256": "833fddd066f342dc52ac3909e0f90fd80e7a43cde103525b59bf7c6cec3f47f5",
+    "audit": {
+      "configured": true,
+      "invocations": 1,
+      "planVersion": 1,
+      "status": "validated",
+      "elapsedMs": 1335.4,
+      "result": {
+        "planId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "quote": "",
+        "question": "",
+        "changes": [
+          {
+            "taskId": "task-moisture",
+            "operation": "withdraw",
+            "quote": "보습 설명은 빼고"
+          },
+          {
+            "taskId": "task-sunscreen",
+            "operation": "update",
+            "quote": "차단제는 덧바르기도 설명해줘"
+          }
+        ],
+        "additions": []
+      },
+      "replan": {
+        "withdrawn": [
+          "task-moisture"
+        ],
+        "updated": [
+          "task-sunscreen"
+        ],
+        "invalidated": [
+          "task-moisture",
+          "task-sunscreen"
+        ],
+        "preserved": []
+      }
+    },
+    "passed": true,
+    "controlAnswer": null,
+    "catalog": "NOT_RUN",
+    "pg": "NOT_RUN",
+    "app": "NOT_RUN"
+  }
+]

@@ -1,0 +1,18 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/chat]
+- link "(tabs), back" [ref=e1]
+- heading "뷰티 AI" [level=1]
+- button "기억 관리" [ref=e3]: ""
+- button "최근 상담" [ref=e4]: ""
+- button "새 상담" [ref=e5]: ""
+- text: "질문은 각각 처리돼요. 이어서 물어볼 때 필요한 내용을 함께 적어주세요."
+- button "제품 추천" [ref=e12]
+- button "성분 확인" [ref=e13]
+- button "스타일 레시피" [ref=e14]
+- text: "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘"
+- progressbar "답변을 준비하고 있어요…":
+  - progressbar
+  - text: "답변을 준비하고 있어요…"
+- button "답변 중단" [ref=e15]
+- textbox "궁금한 점을 입력하세요" [ref=e10] [placeholder="궁금한 점을 입력하세요"]
+- button "보내기" [ref=e11] [disabled]: ""

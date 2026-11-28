@@ -1,0 +1,532 @@
+{
+  "turns": [
+    {
+      "question": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘",
+      "answer": "비교할 제품을 카탈로그에서 하나로 확인하지 못했어요. 브랜드와 정확한 제품명을 알려 주세요.\n\n말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+      "parent": {
+        "schemaVersion": 1,
+        "planId": "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd",
+        "version": 1,
+        "tasks": [
+          {
+            "productOperation": "compare",
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": {
+              "version": 1,
+              "issuedAt": 1795783704,
+              "filters": {
+                "category": null,
+                "maxPriceKRW": null,
+                "fragranceFree": false,
+                "moisturizing": false,
+                "query": "",
+                "ingredientConditions": []
+              },
+              "candidateIds": [],
+              "scopeIds": [],
+              "selectedProductId": "oy-a000000004434",
+              "selectedOptionId": null
+            },
+            "taskId": "product",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd:1:product:1"
+            ],
+            "goal": "product",
+            "objective": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘",
+            "status": "waiting_user",
+            "version": 1,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "answer": "비교할 제품을 카탈로그에서 하나로 확인하지 못했어요. 브랜드와 정확한 제품명을 알려 주세요.",
+              "products": [],
+              "resultType": "clarification",
+              "evidence": []
+            },
+            "scopeDigest": "3862413aeca4396414c96813de3e3f3dde28a05cc852de0d4ae73931375d756b"
+          },
+          {
+            "productOperation": null,
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": null,
+            "taskId": "style",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd:1:style:1"
+            ],
+            "goal": "style",
+            "objective": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘",
+            "status": "completed",
+            "version": 1,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [
+              "video:-ZPXSgyerkQ",
+              "video:_yyvVZ55LuI",
+              "video:L8RvSmdkR2g"
+            ],
+            "limitations": [],
+            "displayResult": {
+              "styleCandidates": [
+                {
+                  "kind": "video",
+                  "lookId": "-ZPXSgyerkQ",
+                  "title": "데일리 GRWM 메이크업",
+                  "tags": [
+                    "데일리·활용",
+                    "#데일리GRWM"
+                  ],
+                  "match": "데일리"
+                },
+                {
+                  "kind": "video",
+                  "lookId": "_yyvVZ55LuI",
+                  "title": "꾸안꾸 등교 메이크업",
+                  "tags": [
+                    "시즌·데일리",
+                    "#꾸안꾸등교"
+                  ],
+                  "match": "데일리"
+                },
+                {
+                  "kind": "video",
+                  "lookId": "L8RvSmdkR2g",
+                  "title": "청순 청량 여름 데일리 메이크업",
+                  "tags": [
+                    "시즌·데일리",
+                    "#청순청량여름데일리"
+                  ],
+                  "match": "데일리"
+                }
+              ],
+              "styleConditions": [
+                {
+                  "slot": "occasion",
+                  "value": "데일리"
+                }
+              ],
+              "styleStatus": "ready",
+              "answer": "말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+              "products": []
+            },
+            "scopeDigest": "3862413aeca4396414c96813de3e3f3dde28a05cc852de0d4ae73931375d756b"
+          }
+        ],
+        "question": {
+          "taskId": "product",
+          "goal": "product",
+          "version": 1,
+          "text": "비교할 제품을 카탈로그에서 하나로 확인하지 못했어요. 브랜드와 정확한 제품명을 알려 주세요.",
+          "inputKey": "selection",
+          "zone": null,
+          "needId": null,
+          "recipeVersion": null,
+          "ownershipScope": null
+        },
+        "look": null,
+        "executionState": "active"
+      },
+      "events": [
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "127.0.0.1",
+          "path": "/api/products/oy-a000000004434",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "127.0.0.1",
+          "path": "/api/products",
+          "query": "q=%ED%86%A0%EB%A6%AC%EB%93%A0+%EB%A6%BD+%EC%97%90%EC%84%BC%EC%8A%A4",
+          "status": 200
+        },
+        {
+          "host": "127.0.0.1",
+          "path": "/api/style-looks",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "127.0.0.1",
+          "path": "/api/looks",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        }
+      ],
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 3
+    },
+    {
+      "question": "비교 대상만 다른 크림으로 바꿔줘",
+      "answer": "어떤 제품과 비교할까요? 비교할 제품명을 알려 주세요.\n\n말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+      "parent": {
+        "schemaVersion": 1,
+        "planId": "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd",
+        "version": 2,
+        "tasks": [
+          {
+            "productOperation": "compare",
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": {
+              "version": 1,
+              "issuedAt": 1795783711,
+              "filters": {
+                "category": null,
+                "maxPriceKRW": null,
+                "fragranceFree": false,
+                "moisturizing": false,
+                "query": "",
+                "ingredientConditions": []
+              },
+              "candidateIds": [],
+              "scopeIds": [],
+              "selectedProductId": "oy-a000000004434",
+              "selectedOptionId": null
+            },
+            "taskId": "product",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd:2:product:1"
+            ],
+            "goal": "product",
+            "objective": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘\n현재 사용자의 변경 요청: 비교 대상만 다른 크림으로 바꿔줘",
+            "status": "waiting_user",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "answer": "어떤 제품과 비교할까요? 비교할 제품명을 알려 주세요.",
+              "products": [],
+              "resultType": "clarification",
+              "evidence": []
+            },
+            "scopeDigest": "3862413aeca4396414c96813de3e3f3dde28a05cc852de0d4ae73931375d756b"
+          },
+          {
+            "productOperation": null,
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": null,
+            "taskId": "style",
+            "attempts": 0,
+            "reason": "preserved_completed_result",
+            "toolTraceIds": [],
+            "goal": "style",
+            "objective": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘\n현재 사용자의 변경 요청: 비교 대상만 다른 크림으로 바꿔줘",
+            "status": "completed",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [
+              "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd:1:style"
+            ],
+            "referenceDigest": null,
+            "resultRefs": [
+              "video:-ZPXSgyerkQ",
+              "video:_yyvVZ55LuI",
+              "video:L8RvSmdkR2g"
+            ],
+            "limitations": [],
+            "displayResult": {
+              "styleCandidates": [
+                {
+                  "kind": "video",
+                  "lookId": "-ZPXSgyerkQ",
+                  "title": "데일리 GRWM 메이크업",
+                  "tags": [
+                    "데일리·활용",
+                    "#데일리GRWM"
+                  ],
+                  "match": "데일리"
+                },
+                {
+                  "kind": "video",
+                  "lookId": "_yyvVZ55LuI",
+                  "title": "꾸안꾸 등교 메이크업",
+                  "tags": [
+                    "시즌·데일리",
+                    "#꾸안꾸등교"
+                  ],
+                  "match": "데일리"
+                },
+                {
+                  "kind": "video",
+                  "lookId": "L8RvSmdkR2g",
+                  "title": "청순 청량 여름 데일리 메이크업",
+                  "tags": [
+                    "시즌·데일리",
+                    "#청순청량여름데일리"
+                  ],
+                  "match": "데일리"
+                }
+              ],
+              "styleConditions": [
+                {
+                  "slot": "occasion",
+                  "value": "데일리"
+                }
+              ],
+              "styleStatus": "ready",
+              "answer": "말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+              "products": []
+            },
+            "scopeDigest": "3862413aeca4396414c96813de3e3f3dde28a05cc852de0d4ae73931375d756b"
+          }
+        ],
+        "question": {
+          "taskId": "product",
+          "goal": "product",
+          "version": 2,
+          "text": "어떤 제품과 비교할까요? 비교할 제품명을 알려 주세요.",
+          "inputKey": "selection",
+          "zone": null,
+          "needId": null,
+          "recipeVersion": null,
+          "ownershipScope": null
+        },
+        "look": null,
+        "executionState": "active"
+      },
+      "events": [
+        {
+          "host": "127.0.0.1",
+          "path": "/api/products/oy-a000000004434",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        }
+      ],
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 2
+    },
+    {
+      "question": "다슈 맨즈 아쿠아 리얼 모이스트 올인원크림",
+      "answer": "바이오더마 바이오더마 하이드라비오 토너 250ml\nCatalog 기준가격: 19,200원.\n오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. 가격 원본 출처와 검수 상태는 미확인입니다.\n\n다슈 다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml\nCatalog 기준가격: 12,600원.\n오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. 가격 원본 출처와 검수 상태는 미확인입니다.\n\n말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+      "parent": {
+        "schemaVersion": 1,
+        "planId": "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd",
+        "version": 3,
+        "tasks": [
+          {
+            "productOperation": "compare",
+            "productRequirement": {
+              "kind": null
+            },
+            "productAssessment": {
+              "status": "completed",
+              "outcome": "matched",
+              "requirement": {
+                "kind": null
+              },
+              "inspected": 2,
+              "matched": 2,
+              "unknown": 0,
+              "evidence": [
+                {
+                  "productId": "oy-a000000004434",
+                  "source": "catalog_identity_lookup"
+                },
+                {
+                  "productId": "oy-a000000122212",
+                  "source": "catalog_identity_lookup"
+                }
+              ],
+              "limitations": []
+            },
+            "productContext": {
+              "version": 1,
+              "issuedAt": 1795783716,
+              "filters": {
+                "category": null,
+                "maxPriceKRW": null,
+                "fragranceFree": false,
+                "moisturizing": false,
+                "query": "",
+                "ingredientConditions": []
+              },
+              "candidateIds": [],
+              "scopeIds": [],
+              "selectedProductId": "oy-a000000004434",
+              "selectedOptionId": null
+            },
+            "taskId": "product",
+            "attempts": 1,
+            "reason": "matched",
+            "toolTraceIds": [
+              "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd:3:product:1"
+            ],
+            "goal": "product",
+            "objective": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘\n현재 사용자의 변경 요청: 비교 대상만 다른 크림으로 바꿔줘\n현재 사용자의 변경 요청: 다슈 맨즈 아쿠아 리얼 모이스트 올인원크림",
+            "status": "completed",
+            "version": 3,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "answer": "바이오더마 바이오더마 하이드라비오 토너 250ml\nCatalog 기준가격: 19,200원.\n오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. 가격 원본 출처와 검수 상태는 미확인입니다.\n\n다슈 다슈 맨즈 아쿠아 리얼 모이스트 올인원크림 153ml\nCatalog 기준가격: 12,600원.\n오늘의 실제 판매가·판매처·확인 시각은 미확인입니다. 가격 원본 출처와 검수 상태는 미확인입니다.",
+              "products": [],
+              "resultType": "product_detail",
+              "evidence": []
+            },
+            "scopeDigest": "3862413aeca4396414c96813de3e3f3dde28a05cc852de0d4ae73931375d756b"
+          },
+          {
+            "productOperation": null,
+            "productRequirement": null,
+            "productAssessment": null,
+            "productContext": null,
+            "taskId": "style",
+            "attempts": 0,
+            "reason": "preserved_completed_result",
+            "toolTraceIds": [],
+            "goal": "style",
+            "objective": "이 제품과 토리든 립 에센스를 비교하고 데일리 룩도 찾아줘\n현재 사용자의 변경 요청: 비교 대상만 다른 크림으로 바꿔줘\n현재 사용자의 변경 요청: 다슈 맨즈 아쿠아 리얼 모이스트 올인원크림",
+            "status": "completed",
+            "version": 3,
+            "dependsOn": [],
+            "inputRefs": [
+              "6fa3d7f8-f344-42ee-94e5-ede5ce4100bd:2:style"
+            ],
+            "referenceDigest": null,
+            "resultRefs": [
+              "video:-ZPXSgyerkQ",
+              "video:_yyvVZ55LuI",
+              "video:L8RvSmdkR2g"
+            ],
+            "limitations": [],
+            "displayResult": {
+              "styleCandidates": [
+                {
+                  "kind": "video",
+                  "lookId": "-ZPXSgyerkQ",
+                  "title": "데일리 GRWM 메이크업",
+                  "tags": [
+                    "데일리·활용",
+                    "#데일리GRWM"
+                  ],
+                  "match": "데일리"
+                },
+                {
+                  "kind": "video",
+                  "lookId": "_yyvVZ55LuI",
+                  "title": "꾸안꾸 등교 메이크업",
+                  "tags": [
+                    "시즌·데일리",
+                    "#꾸안꾸등교"
+                  ],
+                  "match": "데일리"
+                },
+                {
+                  "kind": "video",
+                  "lookId": "L8RvSmdkR2g",
+                  "title": "청순 청량 여름 데일리 메이크업",
+                  "tags": [
+                    "시즌·데일리",
+                    "#청순청량여름데일리"
+                  ],
+                  "match": "데일리"
+                }
+              ],
+              "styleConditions": [
+                {
+                  "slot": "occasion",
+                  "value": "데일리"
+                }
+              ],
+              "styleStatus": "ready",
+              "answer": "말씀하신 조건과 제목·태그가 직접 연결되는 참고 후보예요. 실제 눈·립 표현은 영상에서 확인해 주세요.",
+              "products": []
+            },
+            "scopeDigest": "3862413aeca4396414c96813de3e3f3dde28a05cc852de0d4ae73931375d756b"
+          }
+        ],
+        "question": null,
+        "look": null,
+        "executionState": "active"
+      },
+      "events": [
+        {
+          "host": "127.0.0.1",
+          "path": "/api/products/oy-a000000004434",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "127.0.0.1",
+          "path": "/api/products/oy-a000000004434",
+          "query": "",
+          "status": 200
+        },
+        {
+          "host": "127.0.0.1",
+          "path": "/api/products",
+          "query": "q=%EB%8B%A4%EC%8A%88+%EB%A7%A8%EC%A6%88+%EC%95%84%EC%BF%A0%EC%95%84+%EB%A6%AC%EC%96%BC+%EB%AA%A8%EC%9D%B4%EC%8A%A4%ED%8A%B8+%EC%98%AC%EC%9D%B8%EC%9B%90%ED%81%AC%EB%A6%BC",
+          "status": 200
+        }
+      ],
+      "modelConfiguredMode": "live",
+      "actualModelCalls": 2
+    }
+  ],
+  "auth": "mock",
+  "parentSeed": "normal ChatService",
+  "pg": "live",
+  "catalog": "live",
+  "loginApp": "NOT_RUN",
+  "model": "gpt-6-luna"
+}

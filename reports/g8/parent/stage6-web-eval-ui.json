@@ -1,0 +1,49 @@
+{
+  "browser": "Aside persistent direct REPL",
+  "auth": "existing actual Supabase login and G7 settings; no new consent changes",
+  "reviewMethod": "actual UI actions and accessibility DOM, raw server turns and read-only PG; no pixel-quality claim",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "scope": "web only; not a physical phone"
+  },
+  "restoreCurrentRun": {
+    "result": "PASS",
+    "cards": 4,
+    "sourceRow": 2,
+    "selectedProductId": "oy-a000001002051",
+    "optionId": "A000001002051-001",
+    "url": "http://localhost:19836/product/oy-a000001002051?optionId=A000001002051-001&requireShade=1",
+    "detailPriceKRW": 16490,
+    "observedAt": "2026-11-02T09:28:29",
+    "image": "image unavailable; honest missing-image label visible",
+    "checkoutRestrictionVisible": true
+  },
+  "restoreHistoricalOption": {
+    "result": "PASS for restore/detail, not fresh N02 production",
+    "productId": "oy-a000000162667",
+    "optionId": "A000000162667-012",
+    "optionName": "[단품] 07 웜 베이지",
+    "referencePriceKRW": 17000,
+    "observedAt": "2026-10-28T10:06:07"
+  },
+  "stop": {
+    "accepted": true,
+    "ui": "답변을 중단했어요. 내용을 바꿔 다시 질문할 수 있어요.",
+    "cancelPost": 200,
+    "immediateReplacementHttp": 503,
+    "oldLateHttp": 409
+  },
+  "executedWrites": {
+    "cart": false,
+    "checkout": false,
+    "AR": false,
+    "memoryConfirmation": false
+  },
+  "screenshots": "NOT_SAVED; no screenshot evidence claimed",
+  "failedBrowserActions": [
+    "exact emoji tab selector not found; regex locator succeeded",
+    "back link Enter navigation completed before a later redundant click resolved; selector not found",
+    "first stop attempt missed because the short product-context response had already completed; not counted as cancellation"
+  ]
+}

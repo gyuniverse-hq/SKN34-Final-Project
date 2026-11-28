@@ -1,0 +1,155 @@
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:19836
+
+An update for expo is available: 58.0.20 → ~58.1.0
+20 other packages may need updating. Run npx expo install --check for details.
+Logs for your project will appear below.
+| (node:54616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:54616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:54616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:54616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:54616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:54616) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+λ Bundled 17379ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1776 modules)
+Web Bundled 6085ms node_modules\expo-router\entry.js (831 modules)
+λ Bundled 541ms app\chat.tsx (55 modules)
+Web Bundled 6027ms node_modules\expo-router\entry.js (831 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 2246ms app\_layout.tsx (1003 modules)
+Web Bundled 502ms app\(tabs)\_layout.tsx (898 modules)
+Web Bundled 4665ms app\chat.tsx (1039 modules)
+Web Bundled 5433ms app\(tabs)\index.tsx (1415 modules)
+λ Bundled 117ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 45ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 4ms app\chat.tsx (1 module)
+Web Bundled 43ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 72ms app\_layout.tsx (1 module)
+Web Bundled 26ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 64ms app\(tabs)\index.tsx (1 module)
+Web Bundled 60ms app\chat.tsx (1 module)
+Web  DEBUG  g8_read_phase credentials_start
+Web  DEBUG  g8_read_phase credentials_end
+Web  DEBUG  g8_read_phase response_decoded
+Web  DEBUG  g8_read_phase latest_credentials_end
+Web  DEBUG  g8_read_phase credentials_start
+Web  DEBUG  g8_read_phase credentials_end
+No apps connected. Sending "sendDevCommand" to all React Native apps failed. Make sure your app is running in the simulator or on a phone connected via USB.
+No apps connected. Sending "sendDevCommand" to all React Native apps failed. Make sure your app is running in the simulator or on a phone connected via USB.
+Web Bundled 1454ms app\product\[id].tsx (1347 modules)
+λ Bundled 157ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 28ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 94ms app\product\[id].tsx (1 module)
+Web Bundled 32ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 58ms app\_layout.tsx (1 module)
+Web Bundled 30ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 92ms app\(tabs)\index.tsx (1 module)
+Web Bundled 94ms app\product\[id].tsx (1 module)
+No apps connected. Sending "sendDevCommand" to all React Native apps failed. Make sure your app is running in the simulator or on a phone connected via USB.
+λ Bundled 173ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 72ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 6ms app\chat.tsx (1 module)
+Web Bundled 58ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 100ms app\_layout.tsx (1 module)
+Web Bundled 39ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 138ms app\(tabs)\index.tsx (1 module)
+Web Bundled 184ms app\chat.tsx (1 module)
+No apps connected. Sending "sendDevCommand" to all React Native apps failed. Make sure your app is running in the simulator or on a phone connected via USB.
+No apps connected. Sending "sendDevCommand" to all React Native apps failed. Make sure your app is running in the simulator or on a phone connected via USB.
+λ Bundled 214ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 38ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 3ms app\chat.tsx (1 module)
+Web Bundled 37ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 107ms app\_layout.tsx (1 module)
+Web Bundled 45ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 73ms app\(tabs)\index.tsx (1 module)
+Web Bundled 161ms app\chat.tsx (1 module)
+Web Bundled 27ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 50ms app\_layout.tsx (1 module)
+Web Bundled 25ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 63ms app\(tabs)\index.tsx (1 module)
+Web Bundled 60ms app\chat.tsx (1 module)
+λ Bundled 112ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1 module)
+Web Bundled 46ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 3ms app\chat.tsx (1 module)
+Web Bundled 46ms node_modules\expo-router\entry.js (1 module)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 54ms app\_layout.tsx (1 module)
+Web Bundled 32ms app\(tabs)\_layout.tsx (1 module)
+Web Bundled 112ms app\(tabs)\index.tsx (1 module)
+Web Bundled 117ms app\chat.tsx (1 module)
+Web  ERROR  null
+Web  WARN  g8_read_phase deadline_started
+Starting project at C:\Users\playdata2\.codex\worktrees\vishue-compound-consultation\SKN34-Final-Project
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:19836
+
+An update for expo is available: 58.0.20 → ~58.1.0
+20 other packages may need updating. Run npx expo install --check for details.
+Logs for your project will appear below.
+| (node:46308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:46308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:46308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:46308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:46308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:46308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+λ Bundled 17841ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (1776 modules)
+Web Bundled 6628ms node_modules\expo-router\entry.js (831 modules)
+λ Bundled 581ms app\chat.tsx (66 modules)
+Web Bundled 5752ms node_modules\expo-router\entry.js (829 modules)
+Web  INFO  %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+Web  LOG  Running application "main" with appParams: {"hydrate": true, "rootTag": "#root"}
+Web Bundled 2187ms app\_layout.tsx (1004 modules)
+Web Bundled 542ms app\(tabs)\_layout.tsx (898 modules)
+Web Bundled 4642ms app\chat.tsx (1029 modules)
+Web Bundled 5069ms app\(tabs)\index.tsx (1415 modules)
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web Bundled 71ms app\chat.tsx (1 module)
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_restore_phase select_started
+Web  WARN  g8_read_phase deadline_started
+Web  DEBUG  g8_restore_phase detail_ready
+Web  DEBUG  g8_restore_phase restored
+Web  DEBUG  g8_restore_phase recovery_finished
+Web  DEBUG  g8_restore_phase finally_current
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  WARN  g8_read_phase deadline_started
+Web  DEBUG  g8_restore_phase detail_ready
+Web  DEBUG  g8_restore_phase restored
+Web  DEBUG  g8_restore_phase recovery_finished
+Web  DEBUG  g8_restore_phase finally_current

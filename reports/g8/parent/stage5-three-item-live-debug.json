@@ -1,0 +1,405 @@
+{
+  "cases": [
+    {
+      "repeat": 1,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": "어떤 상담 작업을 변경할지 다시 알려주세요.",
+      "intent": null,
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "rejected_proposal",
+        "rejectionCode": "ungrounded_change"
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_sVmtlZAEmKDhxbVOO9JKCHX1",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"cb118ebc-68fa-4c7e-9b0b-5fa204641a63\",\"version\":1,\"action\":\"continue\",\"quote\":\"별도로 립펜슬 찾아줘.\",\"questionChanges\":[{\"taskId\":\"task-product\",\"inputKey\":\"selection\",\"needId\":null,\"operation\":\"answer\",\"quote\":\"립펜슬\"}],\"changes\":[{\"taskId\":\"task-skin\",\"operation\":\"preserve\",\"quote\":\"피부 상담 결과는 그대로 유지해줘.\"},{\"taskId\":\"task-look\",\"operation\":\"preserve\",\"quote\":\"룩 상담 결과는 그대로 유지해줘.\"}] }"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": false
+    },
+    {
+      "repeat": 2,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "0e10bcdc-ec66-4c63-abb8-56a1d8c5277e",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "별도로 립펜슬 찾아줘.",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-product",
+            "operation": "update",
+            "quote": "립펜슬 찾아줘.",
+            "productOperation": "search"
+          }
+        ],
+        "questionChanges": [
+          {
+            "taskId": "task-product",
+            "inputKey": "selection",
+            "needId": null,
+            "operation": "answer",
+            "quote": "립펜슬 찾아줘."
+          }
+        ],
+        "additions": []
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2827.4,
+        "result": {
+          "planId": "0e10bcdc-ec66-4c63-abb8-56a1d8c5277e",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "resultPosition": null,
+          "quote": "별도로 립펜슬 찾아줘.",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-product",
+              "operation": "update",
+              "quote": "립펜슬 찾아줘.",
+              "productOperation": "search"
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-product",
+              "inputKey": "selection",
+              "needId": null,
+              "operation": "answer",
+              "quote": "립펜슬 찾아줘."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-product"
+          ],
+          "invalidated": [
+            "task-product"
+          ],
+          "preserved": [
+            "task-look",
+            "task-skin"
+          ]
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_DTgl38gil08tlDKU8hmsLjTv",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"0e10bcdc-ec66-4c63-abb8-56a1d8c5277e\",\"version\":1,\"action\":\"continue\",\"targets\":[],\"quote\":\"별도로 립펜슬 찾아줘.\",\"questionChanges\":[{\"taskId\":\"task-product\",\"inputKey\":\"selection\",\"needId\":null,\"operation\":\"answer\",\"quote\":\"립펜슬 찾아줘.\"}],\"changes\":[{\"taskId\":\"task-skin\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"},{\"taskId\":\"task-look\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"}]}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        },
+        {
+          "role": "assistant",
+          "content": "{\"intent\":\"search\",\"scope\":\"catalog\",\"category\":\"lip\",\"productRequirement\":{\"operation\":\"set\",\"kind\":null,\"quote\":\"립펜슬 찾아줘.\",\"name_term\":\"립펜슬\"}}",
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 2,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "6624c24e-aa00-4c35-ab0c-0e1bf207216e",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-product",
+            "operation": "update",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "productOperation": "search"
+          }
+        ],
+        "questionChanges": [
+          {
+            "taskId": "task-product",
+            "inputKey": "selection",
+            "needId": null,
+            "operation": "answer",
+            "quote": "별도로 립펜슬 찾아줘."
+          }
+        ],
+        "additions": []
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2527.7,
+        "result": {
+          "planId": "6624c24e-aa00-4c35-ab0c-0e1bf207216e",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "resultPosition": null,
+          "quote": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-product",
+              "operation": "update",
+              "quote": "별도로 립펜슬 찾아줘.",
+              "productOperation": "search"
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-product",
+              "inputKey": "selection",
+              "needId": null,
+              "operation": "answer",
+              "quote": "별도로 립펜슬 찾아줘."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-product"
+          ],
+          "invalidated": [
+            "task-product"
+          ],
+          "preserved": [
+            "task-look",
+            "task-skin"
+          ]
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_XKoS2QYb08EQLKeO3Wij9Gvk",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"6624c24e-aa00-4c35-ab0c-0e1bf207216e\",\"version\":1,\"action\":\"continue\",\"targets\":[],\"quote\":\"별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.\",\"questionChanges\":[{\"taskId\":\"task-product\",\"inputKey\":\"selection\",\"operation\":\"answer\",\"quote\":\"별도로 립펜슬 찾아줘.\"}],\"changes\":[{\"taskId\":\"task-skin\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"},{\"taskId\":\"task-look\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"}]}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        },
+        {
+          "role": "assistant",
+          "content": "{\"intent\":\"search\",\"scope\":\"catalog\",\"category\":\"lip\",\"productRequirement\":{\"operation\":\"set\",\"kind\":null,\"quote\":\"별도로 립펜슬 찾아줘.\",\"name_term\":\"립펜슬\"}}",
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 2,
+      "pass": true
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-11-27T19:49:58.549349+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:50:00.428055+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:50:03.383419+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:50:05.591860+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T19:50:08.132522+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    }
+  ],
+  "pass": false
+}

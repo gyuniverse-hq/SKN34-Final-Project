@@ -1,0 +1,139 @@
+{
+  "case": "G8-E01-PARTIAL-READS-PG-BLOCKED",
+  "at": "2026-11-27T09:18:04.792856+00:00",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "uncommitted": true,
+  "stage": "5-collaboration",
+  "bundle": "2-of-6",
+  "sourceSha256": [
+    {
+      "path": "backend/chatbot/app/schemas/chat.py",
+      "sha256": "0eb29f9835c7e5315e2bf72b1e99791551f90026a09cd4682f0ce8eb89c0c5b4"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_answer.py",
+      "sha256": "5dcf920d13d0abb86a01cd620911933e7fdad645975ffcaaaa1e0804b27e8bfa"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/consultation_parent.py",
+      "sha256": "79828a0cd3932df830908880f1681f927f7b09c5425a4bbc842e885c3a2e5e4b"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/conversation.py",
+      "sha256": "07663b7140bd3cf05cb0b9e50ad2e341c422a3da4e6fa406cee50947f012aa22"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_context.py",
+      "sha256": "143a804bcfeb15d72cf64337eb340d9d57339cb15294a312db7c9649dda04e4a"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/owned_look_intent.py",
+      "sha256": "5b33dd75f9dd13fc3fa86b1fff4fda2b901faef4c4c22056308ffff50a4e530c"
+    },
+    {
+      "path": "backend/chatbot/app/schemas/product_style_consultation.py",
+      "sha256": "bb18ba0b87fc0d938017bff3b9cbd85f48bef2474334e1166130c1d94a31d4ac"
+    },
+    {
+      "path": "backend/chatbot/app/services/chat_service.py",
+      "sha256": "9438b240bf05391b8d694a6c5c5fbbbc55ec793cdda40a1b4707a7fe99df5e1a"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_answer_service.py",
+      "sha256": "3dc6a496b25145ada55859f1c3adde353012dcf07948f1796e19072e900c6fb8"
+    },
+    {
+      "path": "backend/chatbot/app/services/consultation_parent_graph.py",
+      "sha256": "fb5c4c4ef4efb5a516ab6de44422562199a70fb571a57fbf09ea302b719c3f96"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_context.py",
+      "sha256": "ec1c9af1eaf77855424c0fd1d37c3f2f13b617e81a5d332b6d6257efad88d07d"
+    },
+    {
+      "path": "backend/chatbot/app/services/conversation_service.py",
+      "sha256": "e4cea14ee858e40b3ef625107a4a20bf301eb116a32ea627aebfc7f0012d407e"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_consultation_service.py",
+      "sha256": "9000ba897e3b63eb20f2c992150772f1007d40417c101cc2be00b2fe2fad0e3e"
+    },
+    {
+      "path": "backend/chatbot/app/services/owned_look_interpreter.py",
+      "sha256": "8676b1d753ad9363a26a1c0c0a519d53c3f164de854ade089e7dee9a56f51121"
+    },
+    {
+      "path": "backend/chatbot/app/services/product_style_consultation_service.py",
+      "sha256": "4d626609b54becde44e837bea65b377415df9338a19fbf077719786e33c9fdca"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g7_memory_api_pg.py",
+      "sha256": "7dc39b27c81f550e004035e67d36115d9d80d201c70337e564fc75290852ed3b"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_answer.py",
+      "sha256": "9d628014f7efb5bd675f65a65ea0d4763cb9b04681b645d2cc27a96110ae369a"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_consultation_parent.py",
+      "sha256": "d642948192c993a18ed4a06d2d585ae8c9317075e8c1339a5914045923fc3a96"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look.py",
+      "sha256": "530970ff99872a033765e03babd3b728ff28227060a771b00f94a0b88eb56fb7"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_owned_look_interpreter.py",
+      "sha256": "22a78f8ad02ab8fb25115bb81f8cbede72a7348b318511e472de1c4e318b453c"
+    },
+    {
+      "path": "backend/chatbot/tests/test_g8_partial_success.py",
+      "sha256": "984930d3a2739f7a02d8c0d55b1901f4a113c0606721a852308e8b27776d7545"
+    },
+    {
+      "path": "docs/ai-design/G8-IMPLEMENTATION-SPEC.md",
+      "sha256": "7ce25299043ebd00d47266a67331dce9692cbe91c00423ebc01054955b862880"
+    },
+    {
+      "path": "docs/ai-design/G8-WORKLOG.md",
+      "sha256": "23ad531b5a1f09499420986a14b958ac214b1dad0ebf523432b78d407a98897b"
+    }
+  ],
+  "diff": "reports/g8/parent/e01-source.diff",
+  "validation": {
+    "backend": {
+      "passed": 1586,
+      "skipped": 117
+    },
+    "mockAndSyntheticHttp": 10,
+    "includingRealCatalog": 11,
+    "actualExternalModelCalls": 0,
+    "modelMode": "mock",
+    "catalogMode": "live local HTTP for one case, mock/synthetic HTTP for others",
+    "pg": "FAIL: new productStyle rejected by repository context allowlist; additional file approval pending",
+    "authMode": "mock in PG test",
+    "ruff": "PASS",
+    "imports": "3 PASS",
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "liveModel": "NOT_RUN",
+    "loginApp": "NOT_RUN",
+    "fullG8": "NOT_RUN"
+  },
+  "commands": [
+    "uv run pytest tests/test_g8_partial_success.py -q --tb=short -o junit_family=legacy --junitxml=../../reports/g8/parent/e01-catalog.xml (G8_E01_LIVE_CATALOG=http://127.0.0.1:19834)",
+    "python reports/g8/parent/e01-run-pg.py",
+    "uv run ruff check .",
+    "uv run lint-imports",
+    "uv run pytest -q --tb=short -o junit_family=legacy --junitxml=../../reports/g8/parent/e01-backend.xml",
+    "npm run typecheck",
+    "npm run lint"
+  ],
+  "security": {
+    "scanner": "8.30.1",
+    "ignore": "empty",
+    "result": "PASS only after finalizer success"
+  },
+  "prCreated": false,
+  "pushed": false
+}

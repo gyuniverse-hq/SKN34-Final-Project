@@ -1,0 +1,97 @@
+{
+  "at": "2026-11-27T23:55:53.295157+00:00",
+  "policy": "Main agent actual Aside web review replaces human semantic review by explicit user decision; not independent human or mobile-device certification.",
+  "overall": "F1-F4 scoped remediation verified; full gate NOT_CLOSED because actual recent-conversation restoration still hangs.",
+  "stage": "⑤ existing defects repaired; ⑥ targeted integration in progress; ⑤ final closure withheld for bundle 5 actual restore",
+  "cases": [
+    {
+      "id": "F1/N01",
+      "rows": [
+        14,
+        15,
+        16
+      ],
+      "result": "PASS ownership and answer+condition workflow; knowledge coverage PARTIAL",
+      "reason": "One typed skin task owns original explanation and suitable products. Actual clarification answer plus budget accepted; G5 explanation and four exact options, budget-only update returns two options without G5. No claim of individualized diagnosis or product efficacy."
+    },
+    {
+      "id": "F1/F2/N02",
+      "rows": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "result": "PASS scoped defects; original full owned-lip workflow PARTIAL",
+      "reason": "Seven general guidance steps contain no None. Missing palette answer and budget accepted; Bbia exact sale option under 20k returned, Romand ownership question preserved. General guide is not verified video technique; full owned-lip substitution not established in this run."
+    },
+    {
+      "id": "F3/B01",
+      "rows": [
+        8
+      ],
+      "result": "PASS protected reply and execution boundary",
+      "reason": "Relevant AR/memory instructions, no model or Catalog calls, no AR execution or memory write. Actual same-requestId browser replay NOT_RUN."
+    },
+    {
+      "id": "F3/single-read-entry",
+      "rows": [
+        17
+      ],
+      "result": "PASS",
+      "reason": "Typed initial product task, actual Catalog query lip-pencil and maxPriceKRW15000. Partial candidate coverage is preserved, not full catalog completion."
+    },
+    {
+      "id": "F4/cancel-replacement",
+      "rows": [
+        17,
+        18
+      ],
+      "result": "PASS actual model-overlap replacement and final-save guard",
+      "reason": "Cancel POST200 while G5 running, new lip search starts before old request ends and succeeds without503. Old request ends409/request_interrupted. Actual PG stores only replacement pair and current summary. Durable checkpoint locking separately reproduced/fixed using real PG and controlled mock specialist."
+    },
+    {
+      "id": "E01",
+      "rows": [
+        9,
+        10,
+        11
+      ],
+      "result": "PASS tested partial-success/selective-retry semantics",
+      "reason": "Validation-only Style UpstreamError, actual product comparison preserved; after disabling fault, style-only Catalog reads and honest no-match. Not a natural upstream HTTP503 or positive look recommendation."
+    },
+    {
+      "id": "app-recent-restore",
+      "rows": [],
+      "result": "FAIL",
+      "reason": "After full web navigation, selecting new replacement room and current-run N02 room leaves recent-list loading. Repeated direct REPL snapshots show loading; no corresponding detail GET observed at the Chat server. Exact pre-request wait location not instrumented/proven. PG saved data is correct. Do not claim restored cards/detail PASS. Frontend product files not modified in this 17-file scope."
+    }
+  ],
+  "intermediateFailures": [
+    {
+      "rows": [
+        2
+      ],
+      "reason": "Budget update unnecessarily reran G5 before task-scoped delta fix"
+    },
+    {
+      "rows": [
+        12,
+        13
+      ],
+      "reason": "Situation answer split into independent product search and skin knowledge-only plan; fixed before rows14-16"
+    }
+  ],
+  "sourcePolicy": "Each raw turn retains immutable runtime manifest; earlier-source successes are not relabelled final-source executions. Rows14-18 use final runtime. Current final source capsule includes all 15 approved code/test files; optional import deletion separately approved.",
+  "notRun": [
+    "full original N02 owned-lip application and all alternatives in final live environment",
+    "full ingredient-positive adoption/retention/removal integration in this run",
+    "same-requestId replay with actual browser auth",
+    "restored-card detail due restore failure",
+    "Android/iOS touch, face/camera/AR, voice, other languages",
+    "global dataset/provider snapshot pinning",
+    "SLO/load acceptance",
+    "PR/commit/push/deploy"
+  ],
+  "next": "Finish the existing bundle5 recent-restore defect with a separately reviewed exact frontend scope, then remaining original 14-capability/12-scenario integration matrix; no new product feature scope."
+}

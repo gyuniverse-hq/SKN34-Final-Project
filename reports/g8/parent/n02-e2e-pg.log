@@ -1,0 +1,29 @@
+Disposable PostgreSQL: vishue_chat_test, port 15434
+..........s.....sss...F.............ssss........                         [100%]
+================================== FAILURES ===================================
+___________ test_reference_exception_pg_restore[style_consultation] ___________
+tests\test_g7_memory_api_pg.py:2387: in test_reference_exception_pg_restore
+    "state": observed[-1]._owned_look_context.model_dump(mode="json", by_alias=True),
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'NoneType' object has no attribute 'model_dump'
+---------------------------- Captured stderr call -----------------------------
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat/conversations \"HTTP/1.1 201 Created\"", "request_id": "-"}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "846e67613ee24e5e9769e47f366780c0", "method": "POST", "path": "/api/chat/conversations", "status": 201, "duration_ms": 138.1}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: PATCH http://testserver/api/chat/conversations/6f021834-9825-4c30-a811-a48590f11d22/state \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "0317c1f71c0348748aefb1942b802789", "method": "PATCH", "path": "/api/chat/conversations/6f021834-9825-4c30-a811-a48590f11d22/state", "status": 200, "duration_ms": 88.9}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: POST http://testserver/api/chat \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "6e351ffd77484d86ba2d14ea13308f2c", "method": "POST", "path": "/api/chat", "status": 200, "duration_ms": 97.8}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "httpx2", "msg": "HTTP Request: GET http://testserver/api/chat/conversations/6f021834-9825-4c30-a811-a48590f11d22 \"HTTP/1.1 200 OK\"", "request_id": "-"}
+{"ts": "2026-11-27T17:30:12+0900", "level": "INFO", "service": "chatbot", "logger": "access", "msg": "request", "request_id": "07ade62c696f4a0eb2675d206d325071", "method": "GET", "path": "/api/chat/conversations/6f021834-9825-4c30-a811-a48590f11d22", "status": 200, "duration_ms": 26.1}
+------------------------------ Captured log call ------------------------------
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat/conversations "HTTP/1.1 201 Created"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: PATCH http://testserver/api/chat/conversations/6f021834-9825-4c30-a811-a48590f11d22/state "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: POST http://testserver/api/chat "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+INFO     httpx2:_client.py:1084 HTTP Request: GET http://testserver/api/chat/conversations/6f021834-9825-4c30-a811-a48590f11d22 "HTTP/1.1 200 OK"
+INFO     access:observability.py:82 request
+=========================== short test summary info ===========================
+FAILED tests/test_g7_memory_api_pg.py::test_reference_exception_pg_restore[style_consultation]
+1 failed, 39 passed, 8 skipped in 31.95s

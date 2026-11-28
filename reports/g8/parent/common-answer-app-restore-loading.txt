@@ -1,0 +1,45 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/chat?productId=oy-a000000004434]
+- link "(tabs), back" [ref=e1]
+- heading "상품 상담" [level=1]
+- button "기억 관리" [ref=e3]: ""
+- button "최근 상담" [ref=e4]: ""
+- button "새 상담" [ref=e5]: ""
+- heading "상품 상담" [level=1]
+- text: "상담 대상: 바이오더마 하이드라비오 토너 250ml · 호수 미선택 뷰티 고민을 자유롭게 이야기해 주세요"
+- button "이 제품 성분은?" [ref=e6]
+- button "이 제품 자세히 알려줘" [ref=e7]
+- button "이 제품 가격은?" [ref=e8]
+- button "이 제품과 비교해줘. 비교할 제품: " [ref=e9]
+- textbox "궁금한 점을 입력하세요" [ref=e10] [placeholder="궁금한 점을 입력하세요"]
+- button "보내기" [ref=e11] [disabled]: ""
+- heading "최근 상담" [level=1]
+- button "상담 목록 새로고침" [ref=e13] [disabled]: ""
+- button "취소" [ref=e14]: ""
+- generic [ref=e15] [scrollable]:
+  - button "새 상담" [ref=e16]
+  - text: "상담을 불러오는 중이에요."
+  - button "상품 상담 상담 대상: 바이오더마 하이드라비오 토너 250ml 2026. 11. 27. 오후 9:04:10" [ref=e17]
+  - button "삭제" [ref=e18]: ""
+  - button "상품 상담 보습 2026. 11. 27. 오후 8:59:44" [ref=e19]
+  - button "삭제" [ref=e20]: ""
+  - button "일반 상담 2026. 11. 27. 오후 8:51:30" [ref=e21]
+  - button "삭제" [ref=e22]: ""
+  - button "상품 상담 상담 대상: [립케어 1등/1+1] 토리든 솔리드인 세라마이드 립 에센스 11ml 더블기획/단품 2026. 11. 27. 오후 6:37:38" [ref=e23]
+  - button "삭제" [ref=e24]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:55:05" [ref=e25]
+  - button "삭제" [ref=e26]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:53:42" [ref=e27]
+  - button "삭제" [ref=e28]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:52:30" [ref=e29]
+  - button "삭제" [ref=e30]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:38:58" [ref=e31]
+  - button "삭제" [ref=e32]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:38:17" [ref=e33]
+  - button "삭제" [ref=e34]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:35:54" [ref=e35]
+  - button "삭제" [ref=e36]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:30:11" [ref=e37]
+  - button "삭제" [ref=e38]: ""
+  - button "룩 상담 상담 대상: 학생 아이돌 감성 메이크업 2026. 11. 27. 오후 5:22:42" [ref=e39]
+  - button "삭제" [ref=e40]: ""

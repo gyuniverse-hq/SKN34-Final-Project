@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="17.525" timestamp="2026-11-28T08:22:32.570540+09:00" hostname="playdata"><testcase classname="tests.test_g7_conversation_api_pg" name="test_real_checkpoint_cancel_then_replacement_before_old_finishes" file="tests\test_g7_conversation_api_pg.py" line="88" time="15.261"><failure message="assert False&#10; +  where False = wait(15)&#10; +    where wait = &lt;threading.Event at 0x227294d5430: unset&gt;.wait">tests\test_g7_conversation_api_pg.py:125: in test_real_checkpoint_cancel_then_replacement_before_old_finishes
+    assert entered.wait(15)
+E   assert False
+E    +  where False = wait(15)
+E    +    where wait = &lt;threading.Event at 0x227294d5430: unset&gt;.wait</failure></testcase></testsuite></testsuites>

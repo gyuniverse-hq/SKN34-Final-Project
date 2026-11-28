@@ -1,0 +1,21 @@
+{
+  "changedBackendSources": [
+    "backend/chatbot/app/schemas/consultation_parent.py",
+    "backend/chatbot/app/schemas/consultation_task.py",
+    "backend/chatbot/app/services/beauty_consultation_service.py",
+    "backend/chatbot/app/services/compound_consultation_service.py",
+    "backend/chatbot/app/services/consultation_intent_service.py",
+    "backend/chatbot/app/services/consultation_parent_graph.py",
+    "backend/chatbot/app/services/knowledge_service.py",
+    "backend/chatbot/app/services/product_search_contract.py",
+    "backend/chatbot/tests/test_g7_conversation_api_pg.py",
+    "backend/chatbot/tests/test_g8_compound_consultation.py",
+    "backend/chatbot/tests/test_g8_consultation_intent.py",
+    "backend/chatbot/tests/test_g8_consultation_parent.py",
+    "backend/chatbot/tests/test_knowledge_service.py",
+    "backend/chatbot/tests/test_product_search_contract.py"
+  ],
+  "count": 14,
+  "frontendSourceChanges": 0,
+  "newArtifactPrefix": "stage5-three-item-"
+}

@@ -1,0 +1,904 @@
+{
+  "mode": "knowledge",
+  "head": "3a8ee1c5d44214623487e5f07717500368259900",
+  "at": "2026-11-27T11:16:27.367246+00:00",
+  "uncommitted": true,
+  "parentSeed": "synthetic completed style task; not restored from PG",
+  "catalog": "live HTTP 19834",
+  "modelConfiguredMode": "live",
+  "pg": "NOT_RUN",
+  "loginApp": "NOT_RUN",
+  "turns": [
+    {
+      "question": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘",
+      "response": {
+        "knowledge": {
+          "status": "partial",
+          "claims": [
+            {
+              "claim": "세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요.",
+              "citations": [
+                "E1",
+                "E2",
+                "E3"
+              ]
+            },
+            {
+              "claim": "염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요.",
+              "citations": [
+                "E4"
+              ]
+            }
+          ],
+          "evidence": [
+            {
+              "id": "E1",
+              "documentId": 1569,
+              "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+              "title": "강의노트02",
+              "sourceFileId": 1771,
+              "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+              "blockOrder": 7813,
+              "startUtf16": 0,
+              "endUtf16": 29,
+              "sourceLocator": {
+                "end": 206999,
+                "row": -1,
+                "cell": -1,
+                "part": "main",
+                "path": [],
+                "unit": "utf16",
+                "start": 206969,
+                "table": -1,
+                "format": "ole",
+                "paragraph": 7813
+              },
+              "quote": "✔ Step 1) 물기를 수건으로 완전히 닦지 않는다",
+              "relevance": "essential"
+            },
+            {
+              "id": "E2",
+              "documentId": 1569,
+              "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+              "title": "강의노트02",
+              "sourceFileId": 1771,
+              "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+              "blockOrder": 7812,
+              "startUtf16": 0,
+              "endUtf16": 17,
+              "sourceLocator": {
+                "end": 206969,
+                "row": -1,
+                "cell": -1,
+                "part": "main",
+                "path": [],
+                "unit": "utf16",
+                "start": 206952,
+                "table": -1,
+                "format": "ole",
+                "paragraph": 7812
+              },
+              "quote": "2. 3초 보습의 올바른 순서\r",
+              "relevance": "support"
+            },
+            {
+              "id": "E3",
+              "documentId": 1569,
+              "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+              "title": "강의노트02",
+              "sourceFileId": 1771,
+              "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+              "blockOrder": 7814,
+              "startUtf16": 0,
+              "endUtf16": 48,
+              "sourceLocator": {
+                "end": 207047,
+                "row": -1,
+                "cell": -1,
+                "part": "main",
+                "path": [],
+                "unit": "utf16",
+                "start": 206999,
+                "table": -1,
+                "format": "ole",
+                "paragraph": 7814
+              },
+              "quote": "물기를 30~40%만 제거하는 수준에서 멈춘다.\u000b(흔히 말하는 “물기 머금은 상태”)\r",
+              "relevance": "support"
+            },
+            {
+              "id": "E4",
+              "documentId": 1000,
+              "chunkId": "94bd25ff447ae2dc4c4f9c2346b01724617a067b8267ed6671d6c673dbdfdf5b",
+              "title": "자외선의 유해성에 대한 인지도와 차단방법에 관한 연구",
+              "sourceFileId": 989,
+              "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+              "blockOrder": 268,
+              "startUtf16": 571,
+              "endUtf16": 638,
+              "sourceLocator": {
+                "end": 46199,
+                "row": -1,
+                "cell": -1,
+                "part": "main",
+                "path": [],
+                "unit": "utf16",
+                "start": 45245,
+                "table": -1,
+                "format": "ole",
+                "paragraph": 268
+              },
+              "quote": "특히 염소소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦아내고 자외선차단제품을 다시 발라야 한다.",
+              "relevance": "essential"
+            }
+          ],
+          "findings": [],
+          "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다.\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다."
+        },
+        "answer": "세안 후 보습 순서를 설명해줘.\n세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요. [E1] [E2] [E3]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다.\n\n자외선 차단제를 덧바르는 방법도 설명해줘\n염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요. [E4]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다.",
+        "products": []
+      },
+      "parent": {
+        "schemaVersion": 1,
+        "planId": "20c00f42-4849-4653-b2b1-69a8a99c0fac",
+        "version": 2,
+        "tasks": [
+          {
+            "taskId": "style",
+            "attempts": 0,
+            "reason": null,
+            "toolTraceIds": [],
+            "goal": "style",
+            "objective": "기존 룩 검색",
+            "status": "superseded",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": null,
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          {
+            "taskId": "task-398dd685a6394284a36ea62ce23b426a",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "20c00f42-4849-4653-b2b1-69a8a99c0fac:2:task-398dd685a6394284a36ea62ce23b426a:1"
+            ],
+            "goal": "knowledge",
+            "objective": "세안 후 보습 순서를 설명해줘.",
+            "status": "partial",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "knowledge": {
+                "status": "partial",
+                "claims": [
+                  {
+                    "claim": "세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요.",
+                    "citations": [
+                      "E2",
+                      "E2.1",
+                      "E2.2"
+                    ]
+                  }
+                ],
+                "evidence": [
+                  {
+                    "id": "E2",
+                    "documentId": 1569,
+                    "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                    "title": "강의노트02",
+                    "sourceFileId": 1771,
+                    "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                    "blockOrder": 7813,
+                    "startUtf16": 0,
+                    "endUtf16": 29,
+                    "sourceLocator": {
+                      "end": 206999,
+                      "row": -1,
+                      "cell": -1,
+                      "part": "main",
+                      "path": [],
+                      "unit": "utf16",
+                      "start": 206969,
+                      "table": -1,
+                      "format": "ole",
+                      "paragraph": 7813
+                    },
+                    "quote": "✔ Step 1) 물기를 수건으로 완전히 닦지 않는다",
+                    "relevance": "essential"
+                  },
+                  {
+                    "id": "E2.1",
+                    "documentId": 1569,
+                    "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                    "title": "강의노트02",
+                    "sourceFileId": 1771,
+                    "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                    "blockOrder": 7812,
+                    "startUtf16": 0,
+                    "endUtf16": 17,
+                    "sourceLocator": {
+                      "end": 206969,
+                      "row": -1,
+                      "cell": -1,
+                      "part": "main",
+                      "path": [],
+                      "unit": "utf16",
+                      "start": 206952,
+                      "table": -1,
+                      "format": "ole",
+                      "paragraph": 7812
+                    },
+                    "quote": "2. 3초 보습의 올바른 순서\r",
+                    "relevance": "support"
+                  },
+                  {
+                    "id": "E2.2",
+                    "documentId": 1569,
+                    "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                    "title": "강의노트02",
+                    "sourceFileId": 1771,
+                    "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                    "blockOrder": 7814,
+                    "startUtf16": 0,
+                    "endUtf16": 48,
+                    "sourceLocator": {
+                      "end": 207047,
+                      "row": -1,
+                      "cell": -1,
+                      "part": "main",
+                      "path": [],
+                      "unit": "utf16",
+                      "start": 206999,
+                      "table": -1,
+                      "format": "ole",
+                      "paragraph": 7814
+                    },
+                    "quote": "물기를 30~40%만 제거하는 수준에서 멈춘다.\u000b(흔히 말하는 “물기 머금은 상태”)\r",
+                    "relevance": "support"
+                  }
+                ],
+                "findings": [
+                  {
+                    "index": 2,
+                    "label": "UNSUPPORTED",
+                    "reason": "적용 조건 판정 UNVERIFIED. 제품 순서는 메이크업 루틴에서 제시되어 일반적인 세안 후 적용 범위가 확인되지 않습니다."
+                  }
+                ],
+                "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다."
+              },
+              "answer": "세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요. [E2] [E2.1] [E2.2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다.",
+              "products": []
+            },
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          {
+            "taskId": "task-072ed87aa0794d848358436975492682",
+            "attempts": 1,
+            "reason": null,
+            "toolTraceIds": [
+              "20c00f42-4849-4653-b2b1-69a8a99c0fac:2:task-072ed87aa0794d848358436975492682:1"
+            ],
+            "goal": "knowledge",
+            "objective": "자외선 차단제를 덧바르는 방법도 설명해줘",
+            "status": "partial",
+            "version": 2,
+            "dependsOn": [],
+            "inputRefs": [],
+            "referenceDigest": null,
+            "resultRefs": [],
+            "limitations": [],
+            "displayResult": {
+              "knowledge": {
+                "status": "partial",
+                "claims": [
+                  {
+                    "claim": "염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요.",
+                    "citations": [
+                      "E2"
+                    ]
+                  }
+                ],
+                "evidence": [
+                  {
+                    "id": "E2",
+                    "documentId": 1000,
+                    "chunkId": "94bd25ff447ae2dc4c4f9c2346b01724617a067b8267ed6671d6c673dbdfdf5b",
+                    "title": "자외선의 유해성에 대한 인지도와 차단방법에 관한 연구",
+                    "sourceFileId": 989,
+                    "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+                    "blockOrder": 268,
+                    "startUtf16": 571,
+                    "endUtf16": 638,
+                    "sourceLocator": {
+                      "end": 46199,
+                      "row": -1,
+                      "cell": -1,
+                      "part": "main",
+                      "path": [],
+                      "unit": "utf16",
+                      "start": 45245,
+                      "table": -1,
+                      "format": "ole",
+                      "paragraph": 268
+                    },
+                    "quote": "특히 염소소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦아내고 자외선차단제품을 다시 발라야 한다.",
+                    "relevance": "essential"
+                  }
+                ],
+                "findings": [
+                  {
+                    "index": 1,
+                    "label": "UNSUPPORTED",
+                    "reason": "적용 조건 판정 BOUNDED. 땀이나 닦임으로 제거된 경우의 덧바름을 뒷받침한다."
+                  }
+                ],
+                "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다."
+              },
+              "answer": "염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요. [E2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다.",
+              "products": []
+            },
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          }
+        ],
+        "question": null,
+        "look": null,
+        "executionState": "active"
+      },
+      "taskResults": [
+        {
+          "plan_id": "20c00f42-4849-4653-b2b1-69a8a99c0fac",
+          "plan_version": 2,
+          "task_id": "style",
+          "family": "independent",
+          "capability": "style",
+          "status": "skipped",
+          "attempt": 0,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "기존 룩 검색",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7"
+          },
+          "input_fingerprint": "a510c098d3b6ea33651ffcb3806c79c4ff1566d7314777b31a4ed4c39bc893b6",
+          "source_fingerprint": null,
+          "payload": null,
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        },
+        {
+          "plan_id": "20c00f42-4849-4653-b2b1-69a8a99c0fac",
+          "plan_version": 2,
+          "task_id": "task-398dd685a6394284a36ea62ce23b426a",
+          "family": "independent",
+          "capability": "knowledge",
+          "status": "partial",
+          "attempt": 1,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "세안 후 보습 순서를 설명해줘.",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7",
+            "referenceContext": {}
+          },
+          "input_fingerprint": "f9c73361814e6bfc46c648bfaadfa666537811e8babc9a6329851124ca57419e",
+          "source_fingerprint": null,
+          "payload": {
+            "knowledge": {
+              "status": "partial",
+              "claims": [
+                {
+                  "claim": "세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요.",
+                  "citations": [
+                    "E2",
+                    "E2.1",
+                    "E2.2"
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "id": "E2",
+                  "documentId": 1569,
+                  "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 7813,
+                  "startUtf16": 0,
+                  "endUtf16": 29,
+                  "sourceLocator": {
+                    "end": 206999,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 206969,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 7813
+                  },
+                  "quote": "✔ Step 1) 물기를 수건으로 완전히 닦지 않는다",
+                  "relevance": "essential"
+                },
+                {
+                  "id": "E2.1",
+                  "documentId": 1569,
+                  "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 7812,
+                  "startUtf16": 0,
+                  "endUtf16": 17,
+                  "sourceLocator": {
+                    "end": 206969,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 206952,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 7812
+                  },
+                  "quote": "2. 3초 보습의 올바른 순서\r",
+                  "relevance": "support"
+                },
+                {
+                  "id": "E2.2",
+                  "documentId": 1569,
+                  "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                  "title": "강의노트02",
+                  "sourceFileId": 1771,
+                  "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                  "blockOrder": 7814,
+                  "startUtf16": 0,
+                  "endUtf16": 48,
+                  "sourceLocator": {
+                    "end": 207047,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 206999,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 7814
+                  },
+                  "quote": "물기를 30~40%만 제거하는 수준에서 멈춘다.\u000b(흔히 말하는 “물기 머금은 상태”)\r",
+                  "relevance": "support"
+                }
+              ],
+              "findings": [
+                {
+                  "index": 2,
+                  "label": "UNSUPPORTED",
+                  "reason": "적용 조건 판정 UNVERIFIED. 제품 순서는 메이크업 루틴에서 제시되어 일반적인 세안 후 적용 범위가 확인되지 않습니다."
+                }
+              ],
+              "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다."
+            },
+            "answer": "세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요. [E2] [E2.1] [E2.2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다.",
+            "products": []
+          },
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        },
+        {
+          "plan_id": "20c00f42-4849-4653-b2b1-69a8a99c0fac",
+          "plan_version": 2,
+          "task_id": "task-072ed87aa0794d848358436975492682",
+          "family": "independent",
+          "capability": "knowledge",
+          "status": "partial",
+          "attempt": 1,
+          "depends_on": [],
+          "bindings": [],
+          "inputs": {
+            "objective": "자외선 차단제를 덧바르는 방법도 설명해줘",
+            "scopeDigest": "cfa27114e4289b7072d424ba8ced613b965163dac5f105d812080a64c5c91db7",
+            "referenceContext": {}
+          },
+          "input_fingerprint": "cbb3f60a512d1f32c4c7e6eb3aea391e08def7e2f9bf33ea5dd8126b8067b281",
+          "source_fingerprint": null,
+          "payload": {
+            "knowledge": {
+              "status": "partial",
+              "claims": [
+                {
+                  "claim": "염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요.",
+                  "citations": [
+                    "E2"
+                  ]
+                }
+              ],
+              "evidence": [
+                {
+                  "id": "E2",
+                  "documentId": 1000,
+                  "chunkId": "94bd25ff447ae2dc4c4f9c2346b01724617a067b8267ed6671d6c673dbdfdf5b",
+                  "title": "자외선의 유해성에 대한 인지도와 차단방법에 관한 연구",
+                  "sourceFileId": 989,
+                  "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+                  "blockOrder": 268,
+                  "startUtf16": 571,
+                  "endUtf16": 638,
+                  "sourceLocator": {
+                    "end": 46199,
+                    "row": -1,
+                    "cell": -1,
+                    "part": "main",
+                    "path": [],
+                    "unit": "utf16",
+                    "start": 45245,
+                    "table": -1,
+                    "format": "ole",
+                    "paragraph": 268
+                  },
+                  "quote": "특히 염소소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦아내고 자외선차단제품을 다시 발라야 한다.",
+                  "relevance": "essential"
+                }
+              ],
+              "findings": [
+                {
+                  "index": 1,
+                  "label": "UNSUPPORTED",
+                  "reason": "적용 조건 판정 BOUNDED. 땀이나 닦임으로 제거된 경우의 덧바름을 뒷받침한다."
+                }
+              ],
+              "limitations": "일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다."
+            },
+            "answer": "염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요. [E2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다.",
+            "products": []
+          },
+          "limitations": [],
+          "reason": null,
+          "reused": false
+        }
+      ],
+      "events": [
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/chat/completions",
+          "at": "2026-11-27T11:16:27.651520+00:00",
+          "model": "gpt-6-luna",
+          "tools": [
+            "interpret_consultation_change"
+          ],
+          "stage": null,
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "POST",
+          "host": "127.0.0.1",
+          "path": "/internal/knowledge/search",
+          "at": "2026-11-27T11:16:30.315458+00:00",
+          "query": "",
+          "input": {
+            "question": "세안 후 보습 순서를 설명해줘.",
+            "strategy": "large",
+            "limit": 20
+          },
+          "status": 200,
+          "responseSha256": "e763fd2e8c11cc33593a0816ccb3b69e1e08a55b597f6c075498965e03b59538",
+          "responseKeys": [
+            "candidates",
+            "embeddingInputTokens",
+            "embeddingMs",
+            "lookupMs"
+          ],
+          "productCount": 0,
+          "candidateCount": 20,
+          "embeddingInputTokens": 16
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:16:39.763632+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_select",
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "POST",
+          "host": "127.0.0.1",
+          "path": "/internal/knowledge/context",
+          "at": "2026-11-27T11:16:50.734712+00:00",
+          "query": "",
+          "input": {
+            "evidence": [
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 14191,
+                "chunkId": "98ee10b91bbe7170c70f04edfc8f021c23057576e6357acf1ac3d47b0db2ed2d",
+                "startUtf16": 2,
+                "endUtf16": 28
+              },
+              {
+                "documentId": 1569,
+                "extractionId": 1765,
+                "sourceVersion": "7ea7115120045ec961ab037772a6c6547aeff6b4f4b08350b7a4cc723844d2f3",
+                "blockOrder": 7813,
+                "chunkId": "4b35c71b62cb2b434b589f8f82919b68859f3ae6647755fabf0a71a968c3a457",
+                "startUtf16": 0,
+                "endUtf16": 29
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7433,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 24
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7434,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 12
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7435,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 8
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 7436,
+                "chunkId": "f0429eb73091292dafb968557cc33e7c3d31233d573cd101b62fe244c0356e3a",
+                "startUtf16": 0,
+                "endUtf16": 29
+              },
+              {
+                "documentId": 2713,
+                "extractionId": 1780,
+                "sourceVersion": "dfe85281a92bc19a78103f4a5de1a848fcea9fe6c3fc428681bc727dac579cce",
+                "blockOrder": 13867,
+                "chunkId": "052c1accc74fb6c4c9c13d02da7c54b597c770856c9514b5ef8830efc4d31a3d",
+                "startUtf16": 0,
+                "endUtf16": 50
+              },
+              {
+                "documentId": 2201,
+                "extractionId": 1767,
+                "sourceVersion": "b4581b9e5f8377f952393f548a03c38fdb32876c1c2b6a5f04421a070ad98067",
+                "blockOrder": 3963,
+                "chunkId": "5856c4fc5d4ffeaff9f908ddce425472359e9186fcf720bf4bc69b3eb108329f",
+                "startUtf16": 0,
+                "endUtf16": 57
+              }
+            ]
+          },
+          "status": 200,
+          "responseSha256": "67cde75a6c1acc8ba01c3523c19cfbc91b8181dd6f5a5ba4814b42cd7ec79739",
+          "responseKeys": []
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:16:50.827708+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_answer",
+          "status": 200
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:16:54.496771+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_detect",
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "POST",
+          "host": "127.0.0.1",
+          "path": "/internal/knowledge/search",
+          "at": "2026-11-27T11:17:00.487984+00:00",
+          "query": "",
+          "input": {
+            "question": "자외선 차단제를 덧바르는 방법도 설명해줘",
+            "strategy": "large",
+            "limit": 20
+          },
+          "status": 200,
+          "responseSha256": "7b6b77dfa5d3704c6c5abbf3ae2628fd6ad3323372c5079b426cb9f3e17dffb0",
+          "responseKeys": [
+            "candidates",
+            "embeddingInputTokens",
+            "embeddingMs",
+            "lookupMs"
+          ],
+          "productCount": 0,
+          "candidateCount": 20,
+          "embeddingInputTokens": 28
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:17:01.638827+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_select",
+          "status": 200
+        },
+        {
+          "kind": "local_http",
+          "method": "POST",
+          "host": "127.0.0.1",
+          "path": "/internal/knowledge/context",
+          "at": "2026-11-27T11:17:10.659635+00:00",
+          "query": "",
+          "input": {
+            "evidence": [
+              {
+                "documentId": 1000,
+                "extractionId": 986,
+                "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+                "blockOrder": 208,
+                "chunkId": "281ec02c9b889324db0b9ed5b1568afddb680e99174002e128d8e06f386891ac",
+                "startUtf16": 0,
+                "endUtf16": 122
+              },
+              {
+                "documentId": 1000,
+                "extractionId": 986,
+                "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+                "blockOrder": 268,
+                "chunkId": "94bd25ff447ae2dc4c4f9c2346b01724617a067b8267ed6671d6c673dbdfdf5b",
+                "startUtf16": 571,
+                "endUtf16": 638
+              },
+              {
+                "documentId": 1000,
+                "extractionId": 986,
+                "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+                "blockOrder": 268,
+                "chunkId": "94bd25ff447ae2dc4c4f9c2346b01724617a067b8267ed6671d6c673dbdfdf5b",
+                "startUtf16": 776,
+                "endUtf16": 854
+              },
+              {
+                "documentId": 1000,
+                "extractionId": 986,
+                "sourceVersion": "508061c15ce180f39e96ab50f3d4e042114077cef8f207099de9e07e876e8bdb",
+                "blockOrder": 208,
+                "chunkId": "281ec02c9b889324db0b9ed5b1568afddb680e99174002e128d8e06f386891ac",
+                "startUtf16": 123,
+                "endUtf16": 237
+              }
+            ]
+          },
+          "status": 200,
+          "responseSha256": "0fd1b1a37d9c5b839cce6e1ba283effdb8f19a692a093f14b6f00da1f42e3100",
+          "responseKeys": []
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:17:10.698467+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_answer",
+          "status": 200
+        },
+        {
+          "kind": "remote_model",
+          "method": "POST",
+          "host": "api.openai.com",
+          "path": "/v1/responses",
+          "at": "2026-11-27T11:17:13.334021+00:00",
+          "model": "gpt-6.1-terra",
+          "tools": [],
+          "stage": "g5_detect",
+          "status": 200
+        }
+      ],
+      "dispatches": [
+        {
+          "capability": "knowledge",
+          "inputMessage": "세안 후 보습 순서를 설명해줘.",
+          "answer": "세안 후 수건으로 물기를 완전히 닦지 말고, 물기를 머금은 상태로 남겨두세요. [E2] [E2.1] [E2.2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 세안 후 보습 순서 안내ㅤ입니다.",
+          "products": [],
+          "knowledgeStatus": "partial"
+        },
+        {
+          "capability": "knowledge",
+          "inputMessage": "자외선 차단제를 덧바르는 방법도 설명해줘",
+          "answer": "염소 소독을 강하게 하는 수영장에서는 물에서 나오자마자 수건으로 몸을 잘 닦은 뒤 자외선차단제품을 다시 발라주세요. [E2]\n\n일부 내용은 제공된 원문으로 확인하기 어렵습니다. 확인이 필요한 항목은 자외선 차단제 덧바르는 방법입니다.",
+          "products": [],
+          "knowledgeStatus": "partial"
+        }
+      ],
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2491.9,
+        "result": {
+          "planId": "20c00f42-4849-4653-b2b1-69a8a99c0fac",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "quote": "",
+          "question": "",
+          "changes": [
+            {
+              "taskId": "style",
+              "operation": "withdraw",
+              "quote": "세안 후 보습 순서를 설명해줘. 자외선 차단제를 덧바르는 방법도 설명해줘"
+            }
+          ],
+          "additions": [
+            {
+              "capability": "knowledge",
+              "quote": "세안 후 보습 순서를 설명해줘.",
+              "sharedQuotes": []
+            },
+            {
+              "capability": "knowledge",
+              "quote": "자외선 차단제를 덧바르는 방법도 설명해줘",
+              "sharedQuotes": []
+            }
+          ]
+        },
+        "replan": {
+          "withdrawn": [
+            "style"
+          ],
+          "updated": [],
+          "invalidated": [
+            "style"
+          ],
+          "preserved": []
+        }
+      },
+      "actualRemoteHttpCalls": 7,
+      "embeddingCallsInApi": "not instrumented; search telemetry only"
+    }
+  ]
+}

@@ -1,0 +1,952 @@
+{
+  "cases": [
+    {
+      "repeat": 1,
+      "case": "number",
+      "utterance": "2번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "9f724b95-20a7-421d-bfc4-20011f6fc1ca",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 2,
+        "quote": "2번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2514.0,
+        "result": {
+          "planId": "9f724b95-20a7-421d-bfc4-20011f6fc1ca",
+          "version": 1,
+          "action": "show",
+          "targets": [
+            "task-look"
+          ],
+          "resultPosition": 2,
+          "quote": "2번 결과 보여줘",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [],
+          "questionChanges": [],
+          "additions": []
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_jIArM93bIM6rPWQUU11xp5cw",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"9f724b95-20a7-421d-bfc4-20011f6fc1ca\",\"version\":1,\"action\":\"show\",\"resultPosition\":2,\"targets\":[],\"quote\":\"2번 결과 보여줘\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 1,
+      "case": "reordered",
+      "utterance": "1번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "2302727b-617a-42c1-9814-88b1eec4f08d",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 1,
+        "quote": "1번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1720.0,
+        "result": {
+          "planId": "2302727b-617a-42c1-9814-88b1eec4f08d",
+          "version": 1,
+          "action": "show",
+          "targets": [
+            "task-look"
+          ],
+          "resultPosition": 1,
+          "quote": "1번 결과 보여줘",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [],
+          "questionChanges": [],
+          "additions": []
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_rAwQJ56aog0Q3GpuWWx6U6bW",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"2302727b-617a-42c1-9814-88b1eec4f08d\",\"version\":1,\"action\":\"show\",\"resultPosition\":1,\"targets\":[],\"quote\":\"1번 결과 보여줘\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 1,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "89f25867-f719-4d55-b9db-68a9c1aef077",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "별도로 립펜슬 찾아줘.",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-product",
+            "operation": "update",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "productOperation": "search"
+          }
+        ],
+        "questionChanges": [
+          {
+            "taskId": "task-product",
+            "inputKey": "selection",
+            "needId": null,
+            "operation": "answer",
+            "quote": "별도로 립펜슬 찾아줘."
+          }
+        ],
+        "additions": []
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2448.7,
+        "result": {
+          "planId": "89f25867-f719-4d55-b9db-68a9c1aef077",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "resultPosition": null,
+          "quote": "별도로 립펜슬 찾아줘.",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-product",
+              "operation": "update",
+              "quote": "별도로 립펜슬 찾아줘.",
+              "productOperation": "search"
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-product",
+              "inputKey": "selection",
+              "needId": null,
+              "operation": "answer",
+              "quote": "별도로 립펜슬 찾아줘."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-product"
+          ],
+          "invalidated": [
+            "task-product"
+          ],
+          "preserved": [
+            "task-look",
+            "task-skin"
+          ]
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_K1Oj5iPoNQxAlFlhhw3xmy4g",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"89f25867-f719-4d55-b9db-68a9c1aef077\",\"version\":1,\"action\":\"continue\",\"quote\":\"별도로 립펜슬 찾아줘.\",\"questionChanges\":[{\"taskId\":\"task-product\",\"inputKey\":\"selection\",\"needId\":null,\"operation\":\"answer\",\"quote\":\"별도로 립펜슬 찾아줘.\"}],\"changes\":[{\"taskId\":\"task-skin\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"},{\"taskId\":\"task-look\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"}] }"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        },
+        {
+          "role": "assistant",
+          "content": "{\"intent\":\"search\",\"scope\":\"catalog\",\"category\":\"lip\",\"productRequirement\":{\"operation\":\"set\",\"kind\":null,\"quote\":\"별도로 립펜슬 찾아줘.\",\"name_term\":\"립펜슬\"}}",
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 2,
+      "pass": true
+    },
+    {
+      "repeat": 2,
+      "case": "number",
+      "utterance": "2번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "56528e25-37d9-4ec4-a6ac-aeb02ee18568",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 2,
+        "quote": "2번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1604.1,
+        "result": {
+          "planId": "56528e25-37d9-4ec4-a6ac-aeb02ee18568",
+          "version": 1,
+          "action": "show",
+          "targets": [
+            "task-look"
+          ],
+          "resultPosition": 2,
+          "quote": "2번 결과 보여줘",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [],
+          "questionChanges": [],
+          "additions": []
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_JGzegZmZuUQIWsz468qFAbMp",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"56528e25-37d9-4ec4-a6ac-aeb02ee18568\",\"version\":1,\"action\":\"show\",\"resultPosition\":2,\"targets\":[],\"quote\":\"2번 결과 보여줘\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 2,
+      "case": "reordered",
+      "utterance": "1번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "07b22e5d-21bc-4089-84ef-b471cf3555df",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 1,
+        "quote": "1번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 1701.2,
+        "result": {
+          "planId": "07b22e5d-21bc-4089-84ef-b471cf3555df",
+          "version": 1,
+          "action": "show",
+          "targets": [
+            "task-look"
+          ],
+          "resultPosition": 1,
+          "quote": "1번 결과 보여줘",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [],
+          "questionChanges": [],
+          "additions": []
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_I8DLCKumOszCf4ZvBS7tLeD7",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"07b22e5d-21bc-4089-84ef-b471cf3555df\",\"version\":1,\"action\":\"show\",\"targets\":[],\"resultPosition\":1,\"quote\":\"1번 결과 보여줘\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 2,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "48e7fd36-99d0-4690-b213-8c4cb610eea2",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "별도로 립펜슬 찾아줘.",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-product",
+            "operation": "update",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "productOperation": "search"
+          }
+        ],
+        "questionChanges": [
+          {
+            "taskId": "task-product",
+            "inputKey": "selection",
+            "needId": null,
+            "operation": "answer",
+            "quote": "별도로 립펜슬 찾아줘."
+          }
+        ],
+        "additions": []
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 3292.5,
+        "result": {
+          "planId": "48e7fd36-99d0-4690-b213-8c4cb610eea2",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "resultPosition": null,
+          "quote": "별도로 립펜슬 찾아줘.",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-product",
+              "operation": "update",
+              "quote": "별도로 립펜슬 찾아줘.",
+              "productOperation": "search"
+            }
+          ],
+          "questionChanges": [
+            {
+              "taskId": "task-product",
+              "inputKey": "selection",
+              "needId": null,
+              "operation": "answer",
+              "quote": "별도로 립펜슬 찾아줘."
+            }
+          ],
+          "additions": []
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [
+            "task-product"
+          ],
+          "invalidated": [
+            "task-product"
+          ],
+          "preserved": [
+            "task-look",
+            "task-skin"
+          ]
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_gpCoNAc2pf7Uc8xttzNj2Mo5",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"48e7fd36-99d0-4690-b213-8c4cb610eea2\",\"version\":1,\"action\":\"continue\",\"quote\":\"별도로 립펜슬 찾아줘.\",\"questionChanges\":[{\"taskId\":\"task-product\",\"inputKey\":\"selection\",\"needId\":null,\"operation\":\"answer\",\"quote\":\"별도로 립펜슬 찾아줘.\"}],\"changes\":[{\"taskId\":\"task-skin\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"},{\"taskId\":\"task-look\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"}] }"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        },
+        {
+          "role": "assistant",
+          "content": "{\"intent\":\"search\",\"scope\":\"catalog\",\"category\":\"lip\",\"productRequirement\":{\"operation\":\"set\",\"kind\":null,\"quote\":\"별도로 립펜슬 찾아줘.\",\"name_term\":\"립펜슬\"}}",
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 2,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "number",
+      "utterance": "2번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "29c4c1be-74cb-4475-b8db-f231723a1d42",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 2,
+        "quote": "2번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2113.3,
+        "result": {
+          "planId": "29c4c1be-74cb-4475-b8db-f231723a1d42",
+          "version": 1,
+          "action": "show",
+          "targets": [
+            "task-look"
+          ],
+          "resultPosition": 2,
+          "quote": "2번 결과 보여줘",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [],
+          "questionChanges": [],
+          "additions": []
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_vsPcDkxPHDlGSKy0kjoqmpWj",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"29c4c1be-74cb-4475-b8db-f231723a1d42\",\"version\":1,\"action\":\"show\",\"resultPosition\":2,\"targets\":[],\"quote\":\"2번 결과 보여줘\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "reordered",
+      "utterance": "1번 결과 보여줘",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "3f23ebd7-124f-4cd0-b497-37375a086652",
+        "version": 1,
+        "action": "show",
+        "targets": [
+          "task-look"
+        ],
+        "resultPosition": 1,
+        "quote": "1번 결과 보여줘",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [],
+        "questionChanges": [],
+        "additions": []
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2008.6,
+        "result": {
+          "planId": "3f23ebd7-124f-4cd0-b497-37375a086652",
+          "version": 1,
+          "action": "show",
+          "targets": [
+            "task-look"
+          ],
+          "resultPosition": 1,
+          "quote": "1번 결과 보여줘",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [],
+          "questionChanges": [],
+          "additions": []
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_sMSiO2LOp8iQqbGI9fMU6Rh1",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"3f23ebd7-124f-4cd0-b497-37375a086652\",\"version\":1,\"action\":\"show\",\"resultPosition\":1,\"targets\":[],\"quote\":\"1번 결과 보여줘\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 1,
+      "pass": true
+    },
+    {
+      "repeat": 3,
+      "case": "new_search",
+      "utterance": "별도로 립펜슬 찾아줘. 피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+      "modelConfiguredMode": "live",
+      "response": null,
+      "intent": {
+        "planId": "feeb1c5e-343a-4681-a084-139e8540df99",
+        "version": 1,
+        "action": "continue",
+        "targets": [],
+        "resultPosition": null,
+        "quote": "별도로 립펜슬 찾아줘.",
+        "question": "",
+        "clarificationScope": null,
+        "changes": [
+          {
+            "taskId": "task-skin",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          },
+          {
+            "taskId": "task-look",
+            "operation": "preserve",
+            "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+            "productOperation": null
+          }
+        ],
+        "questionChanges": [],
+        "additions": [
+          {
+            "capability": "product",
+            "quote": "별도로 립펜슬 찾아줘.",
+            "explanationQuote": "",
+            "sharedQuotes": [],
+            "productOperation": "search"
+          }
+        ]
+      },
+      "shoppingPlan": {
+        "productRequirement": {
+          "operation": "set",
+          "kind": null,
+          "name_term": "립펜슬",
+          "quote": "별도로 립펜슬 찾아줘."
+        },
+        "intent": "search",
+        "scope": "catalog",
+        "selection": null,
+        "category": "lip",
+        "maxPriceKRW": null,
+        "fragranceFree": null,
+        "moisturizing": null,
+        "texture": null,
+        "unsupportedConditions": [],
+        "query": null,
+        "ordinal": null,
+        "ingredientName": null,
+        "ingredientOperator": "includes",
+        "ingredientLookup": false,
+        "persistIngredientConditions": false,
+        "ingredientConditions": [],
+        "shadeName": null,
+        "compareOrdinals": [],
+        "clearFilters": []
+      },
+      "requirement": {
+        "kind": null,
+        "name_term": "립펜슬"
+      },
+      "intentAudit": {
+        "configured": true,
+        "invocations": 1,
+        "planVersion": 1,
+        "status": "validated",
+        "elapsedMs": 2428.6,
+        "result": {
+          "planId": "feeb1c5e-343a-4681-a084-139e8540df99",
+          "version": 1,
+          "action": "continue",
+          "targets": [],
+          "resultPosition": null,
+          "quote": "별도로 립펜슬 찾아줘.",
+          "question": "",
+          "clarificationScope": null,
+          "changes": [
+            {
+              "taskId": "task-skin",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            },
+            {
+              "taskId": "task-look",
+              "operation": "preserve",
+              "quote": "피부 상담과 룩 상담 결과는 그대로 유지해줘.",
+              "productOperation": null
+            }
+          ],
+          "questionChanges": [],
+          "additions": [
+            {
+              "capability": "product",
+              "quote": "별도로 립펜슬 찾아줘.",
+              "explanationQuote": "",
+              "sharedQuotes": [],
+              "productOperation": "search"
+            }
+          ]
+        },
+        "replan": {
+          "withdrawn": [],
+          "updated": [],
+          "invalidated": [],
+          "preserved": [
+            "task-look",
+            "task-product",
+            "task-skin"
+          ]
+        }
+      },
+      "rawProposals": [
+        {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "id": "call_WxBuYCc3XTpYVy9hDWFrhvPY",
+              "type": "function",
+              "function": {
+                "name": "interpret_consultation_change",
+                "arguments": "{\"planId\":\"feeb1c5e-343a-4681-a084-139e8540df99\",\"version\":1,\"action\":\"continue\",\"changes\":[{\"taskId\":\"task-skin\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"},{\"taskId\":\"task-look\",\"operation\":\"preserve\",\"quote\":\"피부 상담과 룩 상담 결과는 그대로 유지해줘.\"}],\"additions\":[{\"capability\":\"product\",\"productOperation\":\"search\",\"quote\":\"별도로 립펜슬 찾아줘.\"}],\"quote\":\"별도로 립펜슬 찾아줘.\"}"
+              }
+            }
+          ],
+          "refusal": null,
+          "annotations": []
+        },
+        {
+          "role": "assistant",
+          "content": "{\"intent\":\"search\",\"scope\":\"catalog\",\"category\":\"lip\",\"productRequirement\":{\"operation\":\"set\",\"kind\":null,\"quote\":\"별도로 립펜슬 찾아줘.\",\"name_term\":\"립펜슬\"}}",
+          "refusal": null,
+          "annotations": []
+        }
+      ],
+      "actualModelCalls": 2,
+      "pass": true
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-11-27T20:14:21.100301+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:23.423319+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:25.190160+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:27.622115+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:30.164121+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:31.793553+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:33.536447+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:36.772836+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:38.991970+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:41.183350+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:43.101248+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    },
+    {
+      "at": "2026-11-27T20:14:45.564892+00:00",
+      "model": "gpt-6-luna",
+      "configuredMode": "live",
+      "path": "/v1/chat/completions",
+      "status": 200
+    }
+  ],
+  "pass": true
+}

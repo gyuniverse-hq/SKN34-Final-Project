@@ -1,0 +1,1111 @@
+{
+  "at": "2026-11-27T18:27:45.935556+00:00",
+  "pid": 54616,
+  "watchMode": true,
+  "sourceSha256": [
+    {
+      "path": "app/(tabs)/_layout.tsx",
+      "sha256": "259cc3f70eb06b06ae39fca064b269ae704fc8798256b775c85b710f8a35d610"
+    },
+    {
+      "path": "app/(tabs)/ar.tsx",
+      "sha256": "19e97e661a43853f62a1aa4ce7c26a1e74ea4ec81eb52144876a3da84c225b36"
+    },
+    {
+      "path": "app/(tabs)/celeb.tsx",
+      "sha256": "cff628ffc0687a09dc651775852f6eb9126bfac36857d4050f30c6046d294688"
+    },
+    {
+      "path": "app/(tabs)/index.tsx",
+      "sha256": "ebee498dbebf6fb60d4f7cfca331fcbd739c56ae451a09b30cac0f68108ace2f"
+    },
+    {
+      "path": "app/(tabs)/my.tsx",
+      "sha256": "01790425d5d516bfd3472309a23299c5dab65cbaaab32580380cb1bc1a91bab1"
+    },
+    {
+      "path": "app/(tabs)/shop.tsx",
+      "sha256": "a262107cbaf213492d049430313702aeba7287f61872144ae7cd5f0834df6a95"
+    },
+    {
+      "path": "app/+html.tsx",
+      "sha256": "16cc050853fd784c849b19b89f8b2e95b9a4c3ec0010a1241daad464d78d8821"
+    },
+    {
+      "path": "app/+not-found.tsx",
+      "sha256": "8cd016c44b2a56068ef4428efd09ab3ce46e522890b7fd675ecf04bfebddeda7"
+    },
+    {
+      "path": "app/_layout.tsx",
+      "sha256": "bd8820a4341872516d7dbd586c3306e3a5d4031340a3d93129b9ae7b90ad8865"
+    },
+    {
+      "path": "app/api/dev/nia/[action]+api.ts",
+      "sha256": "278684d7fbb9979ae5f81470a9606e737d3d2d86859ecf247776df976b334c30"
+    },
+    {
+      "path": "app/auth/callback.tsx",
+      "sha256": "674e290a0eecda209ee0d1525ea04718e167bb5282a39118b0f70e31b92170ca"
+    },
+    {
+      "path": "app/cart.tsx",
+      "sha256": "afca832d31f4a4c768b3ba01858caa116897852c8244eadae335e7cbe9f46209"
+    },
+    {
+      "path": "app/celebrities/[id].tsx",
+      "sha256": "ca73e4b76a413a78e3684975ba7d5228251dbe8d3197cc516256320a49799382"
+    },
+    {
+      "path": "app/celebrities/index.tsx",
+      "sha256": "a98d5f8347a8c57cd7b8526e84f1b1fa0431f926ec2b119f61fc3606a0b723ca"
+    },
+    {
+      "path": "app/celebrity-video/[id].tsx",
+      "sha256": "f790387025d22c73be7f5300c9da0db6d25ea012845bea6fa6bb4bf1b39407bc"
+    },
+    {
+      "path": "app/chat-ui-preview.tsx",
+      "sha256": "cc4a59b15c497598313ce10d08239a592ca9da04794589ca71ca66349873a210"
+    },
+    {
+      "path": "app/chat.tsx",
+      "sha256": "9f7b262c86804905bea839dd9b00e734d26159c2f96693e5f8f40c4b1c61832d"
+    },
+    {
+      "path": "app/checkout.tsx",
+      "sha256": "f28e4e3aec0e836222b3338ef72ac4fe669a20155fa83014d55cda7778f33cdb"
+    },
+    {
+      "path": "app/compare.tsx",
+      "sha256": "7266dcd03acb1ddbde117dcfe6ad949ea1730fda863e1cade10841a807936ac0"
+    },
+    {
+      "path": "app/dev/nia.tsx",
+      "sha256": "e71beb066f152724060841a01e01618b6e9e4c21a414eecf939e160b06234db6"
+    },
+    {
+      "path": "app/dev/skin-benchmark.tsx",
+      "sha256": "76be0c6422b8bf9932c848d23a6e53a29cd813dc1d8704af237641712d5ac233"
+    },
+    {
+      "path": "app/discover.tsx",
+      "sha256": "7f8dd3241d5107b28821090aa912d18beb0ea1cfde412d8afb4988b2d519707b"
+    },
+    {
+      "path": "app/external-link.tsx",
+      "sha256": "2377f5fd46d37b9bd82494f6e56cd9e719d844cd81f964f4a1eb96f39c7bed25"
+    },
+    {
+      "path": "app/idol-look/[id].tsx",
+      "sha256": "d6f9da800b13d16d433da4753c978885afce354570aaaed8253edc990617b05d"
+    },
+    {
+      "path": "app/idol-looks.tsx",
+      "sha256": "336cf146101079bf013e320b5c69f672179f5fc2f639fbc0c02ff5f4027b21b6"
+    },
+    {
+      "path": "app/ingredients.tsx",
+      "sha256": "7bedea23e000efdcc1b43e083e7f520789468ab38bc47824d92f53019908218a"
+    },
+    {
+      "path": "app/legal/[doc].tsx",
+      "sha256": "cb2236c8bb0e131016f56ccff6b92be1c6e85aaee8004280886c7873921ee057"
+    },
+    {
+      "path": "app/lists/[id].tsx",
+      "sha256": "5abe7ca407a78b76fee5892d5fe772d0629deaf72d3005a2c7de2e43d893e8a6"
+    },
+    {
+      "path": "app/lists/index.tsx",
+      "sha256": "709d15a10a3dc3a862f80617120c0135f4de2d1f84c5ab7e42e129ad68fc6974"
+    },
+    {
+      "path": "app/login.tsx",
+      "sha256": "3fbbaca396b68c501aef3930198dd4955f253a2228b41ed9e93a49c3e67d23a3"
+    },
+    {
+      "path": "app/look/[id].tsx",
+      "sha256": "e5dbb1352b7c0ef364bc6b5c6aca0a6fcef84b8b1fa03cd1747865767645deaf"
+    },
+    {
+      "path": "app/membership.tsx",
+      "sha256": "b6deca88502b5f30fc2b7f01cd1f565ee9d4219359debf81bef7e9ab32564117"
+    },
+    {
+      "path": "app/payment-result.tsx",
+      "sha256": "e353eb063d667d568a88c68c0c53a8fbe5ed66a8d3bc68f85e79ace9fe720163"
+    },
+    {
+      "path": "app/product/[id].tsx",
+      "sha256": "2a4b8eaea1f83c6ae86d37bec6a89fbb810ecb66536e98253e823d6e32053a72"
+    },
+    {
+      "path": "app/rankings.tsx",
+      "sha256": "a44742cf08a16547bebd34e8be1fc5fd17a117f651cb21bfe198c624065184bd"
+    },
+    {
+      "path": "app/recommendations.tsx",
+      "sha256": "a82b544635e65e2a01ebad19846b6a8091a5272e87b06bff96b26cd0d5270435"
+    },
+    {
+      "path": "app/reset-password.tsx",
+      "sha256": "809a7061a77fca0aa7a22bc5c0d0214cd74660c9c3ab2798134ada744721c5dc"
+    },
+    {
+      "path": "app/rewards.tsx",
+      "sha256": "6c1c23911fb5ba339648db41722d3daf67bb0199c9918d92a82f2c9416d49a93"
+    },
+    {
+      "path": "app/saved.tsx",
+      "sha256": "4da9991eb4c2079eaac15e972d6441e62bffd8c6510cbc880e2ef769eda5fe7e"
+    },
+    {
+      "path": "app/search.tsx",
+      "sha256": "f61613363c8c538f66b14ac8905e18555dd2af1d9cc3e7ca1f54442b1dc34435"
+    },
+    {
+      "path": "app/settings.tsx",
+      "sha256": "1b6c273adb42a9c4095798d875779fa0a7e0d4a386eed633855cba64ab49846f"
+    },
+    {
+      "path": "app/signup.tsx",
+      "sha256": "9911a43085ad903bd8d4937a270987d1e377221cb5de075c3bd504af308f6ca1"
+    },
+    {
+      "path": "app/skin-analysis.tsx",
+      "sha256": "9a6e0e17fc92967f0b876d9ea860cd4545acc5eb87092578e13e29e6d7eb3409"
+    },
+    {
+      "path": "app/skin-consent.tsx",
+      "sha256": "3798ed91f6ae027f48ce964c97db6bead72027627785b359b0da345da59a781e"
+    },
+    {
+      "path": "app/skin-recommendations.tsx",
+      "sha256": "755b04be0505fb49eb9729753f5c8eb090c9a62e9d97af081623e34f7307c638"
+    },
+    {
+      "path": "app/style-browse.tsx",
+      "sha256": "cda2d2e81c4ccc0929f3569e406b0ebfae2aa4d604deb7ff7e61dc00810bb365"
+    },
+    {
+      "path": "app/style-look/[id].tsx",
+      "sha256": "1960015afeaa3983a79f0e37d08c304df4ed04b8d871b7e0dd8c3674045d4808"
+    },
+    {
+      "path": "app/terms-consent.tsx",
+      "sha256": "65039d37c74600cb0a53d13f1009405a74256261ae29010e81c501f6cf5b46c7"
+    },
+    {
+      "path": "components/account/AccountDeletionProgress.tsx",
+      "sha256": "d8bc2371c36b13be9aece214976584cf0108cdf493df19156978b84bc36ff0e2"
+    },
+    {
+      "path": "components/ar/ArcFeatherView.tsx",
+      "sha256": "92a3390f9dff9af6d6d337b8057c2bd9fa2dcbefc0b7305b3c8456ad66f38ecb"
+    },
+    {
+      "path": "components/ar/ArcFeatherView.web.tsx",
+      "sha256": "3ea41068312b77eda6669b93d6642d0f463c15e14545443bc0b914ec4e4ce567"
+    },
+    {
+      "path": "components/ar/arcMotion.ts",
+      "sha256": "70f84e71ef5dba9200aa2a84bd9cf8be512b2a3e7ab7ee9d176292eb2d62f691"
+    },
+    {
+      "path": "components/ar/ArFaceView.tsx",
+      "sha256": "75cb24dfd5f52e9639e604f8afde16db1b2d8f542aa72b1a97b0230ca1e616c6"
+    },
+    {
+      "path": "components/ar/ArFaceView.web.tsx",
+      "sha256": "a14d5b63b1348e1a0b799662a69ce4e2a6a1076280c010a643c898bf1636a213"
+    },
+    {
+      "path": "components/ar/ArSheet.tsx",
+      "sha256": "3d4b065f448af3b6c5c6fe862f4d6d43d698c88f8082427d1463a5126421f3d2"
+    },
+    {
+      "path": "components/ar/ArZoneWheel.tsx",
+      "sha256": "19338ef7936446f56a0278820095c5adb3c20ceac5618076682681bc09d4f339"
+    },
+    {
+      "path": "components/ar/CoverageBar.tsx",
+      "sha256": "c9fb963cc7c35f5f3cc534183914e31b5701379cae8c887f7fc89b604a862018"
+    },
+    {
+      "path": "components/ar/faceTrackerHtml.ts",
+      "sha256": "7e7e9d86f8b86d2400ff4577a2aeb7a862b4ccd63ab070c1c681f1caa345075e"
+    },
+    {
+      "path": "components/ar/faceUV.ts",
+      "sha256": "a1a5137a2e47aafadf13a27987d2c5cbda825c718be537146561cdebb653717f"
+    },
+    {
+      "path": "components/ar/IntensityRail.tsx",
+      "sha256": "8709711fe540be317c88c8a8eff04997a59ae82c3089f1275dbe948422e2acfc"
+    },
+    {
+      "path": "components/ar/NearbyDirectionDial.tsx",
+      "sha256": "b87328b622c031076308df5c1097fa49e4c51457f52fe36457670e95c4e3b9ff"
+    },
+    {
+      "path": "components/ar/NearbyExplorer.tsx",
+      "sha256": "96d4fbbfd266300488cfeb90e4a7bc482a9f1f0f81d6cdd5caef6a7a72374a93"
+    },
+    {
+      "path": "components/ar/OpenArcPalette.tsx",
+      "sha256": "19c467e98e8f442459eda246828409a8bde1196f742dc7b615123829d85f5c83"
+    },
+    {
+      "path": "components/ar/PracticePanel.tsx",
+      "sha256": "a914cdbae4ddd47c3e5ab80664d1c1cb8944f977cab9313d7f595dd77554b41b"
+    },
+    {
+      "path": "components/ar/recorderScript.ts",
+      "sha256": "34dc73e08ed8e23d3c2a5088064bcf00e3ba45ca8ac09b593c1707b43c0b4ee5"
+    },
+    {
+      "path": "components/ar/SwatchFallback.tsx",
+      "sha256": "38306f8c0b3d2ab00f10f9565c28b031bc1531a1e55fd5640857b2722c083c47"
+    },
+    {
+      "path": "components/ar/TextureSelect.tsx",
+      "sha256": "5ef73a064c2974cf37e82e5e636c1b599f31fe17a641813635f605a00b20d854"
+    },
+    {
+      "path": "components/auth/AuthForm.tsx",
+      "sha256": "bd5326336cfc6c3e31c2b558460af37ed6f8b4a96da716c828eb7e08fc7ad5a4"
+    },
+    {
+      "path": "components/auth/TermsAgreement.tsx",
+      "sha256": "b7d23f5bb9fc0f6a97f8ee3c6a65b50c749ac4add9385062bc8b6dde0c62b118"
+    },
+    {
+      "path": "components/cart/CartRecommendationShelf.tsx",
+      "sha256": "a5092c71c1f434fa891866492f4c3314c5053d4eae98a6d4aac82f982485fb37"
+    },
+    {
+      "path": "components/celeb/CelebrityAvatar.tsx",
+      "sha256": "bb4d2c5161342dc2bef12d3c843beed803fa97a934caf6febb2e3288381ab26a"
+    },
+    {
+      "path": "components/celeb/CelebrityCard.tsx",
+      "sha256": "afc4ef113f8b06cedb4606ab9625d6a80a8295f425aeecdecabc60eb487c3ae3"
+    },
+    {
+      "path": "components/celeb/CelebrityVideoCard.tsx",
+      "sha256": "2c96da485120566e6e86e1d45e90f18878cb276508b0915c4f766cafb3aef6ff"
+    },
+    {
+      "path": "components/celeb/ColorChip.tsx",
+      "sha256": "cc9e214d25afa7153c52951f12bf743e636a6e29f146c3ca6c1a01b92cb99aad"
+    },
+    {
+      "path": "components/celeb/IdolLookCard.tsx",
+      "sha256": "9ef2e035961314df8c8748d4c627ace6ea210061788a421e73a6edd3c83242be"
+    },
+    {
+      "path": "components/celeb/KStyleCollection.tsx",
+      "sha256": "850397df386d6eb2dbd957961621a7f1f1cac3b913cd0d537cac4cefb0e32489"
+    },
+    {
+      "path": "components/celeb/LookCard.tsx",
+      "sha256": "bdeb03c0771bae25afcf1986abab4eda43abae3fd48538d6a5f69c08a7251a03"
+    },
+    {
+      "path": "components/celeb/LooksScreen.tsx",
+      "sha256": "50fb5961a597fae43b5fd2e8cfe7cf3ce8676627e4e5c321674a84249f7307da"
+    },
+    {
+      "path": "components/celeb/PhotoCredit.tsx",
+      "sha256": "90f23514bdae0af3e26bda0252dd3112c73d239c7f2f9cba12b89ae5b0d5e17d"
+    },
+    {
+      "path": "components/celeb/StyleLookCard.tsx",
+      "sha256": "0d867f6b143b672a92b187d9d20d5434010b9391ae41947913391ad170d96b16"
+    },
+    {
+      "path": "components/celeb/VideoCard.tsx",
+      "sha256": "1aab67020c65b7fa65fc434828fb2cc6fd863453b53a469ee422eb5bc256cc9b"
+    },
+    {
+      "path": "components/celeb/VideoProductActions.tsx",
+      "sha256": "31ba6ee9c44c273b0529a63d97f875250b8589ffe3d13f2cf4a6dc2b3d0d1fd0"
+    },
+    {
+      "path": "components/celeb/VideoTryOn.tsx",
+      "sha256": "a66ea2668ded9ef4e2297abf65c7a2ef5fa457b9759b0bc356fc004aa9d421b8"
+    },
+    {
+      "path": "components/celeb/YoutubePlayer.tsx",
+      "sha256": "835cdadac8929746d0bd55ba7a1dabb7cb85039f8cf2af18d894c8bb5543095d"
+    },
+    {
+      "path": "components/celeb/YoutubePlayer.web.tsx",
+      "sha256": "5d7c5c991c312594ee489b56d1c99c783582c0c7ab832b8d36ee83b7e4d53292"
+    },
+    {
+      "path": "components/chat/ChatProducts.tsx",
+      "sha256": "9026fc94a61dc147b6f09f4eef8de5b1fa1cceb3aa9c025f6b33c4d119ec41dc"
+    },
+    {
+      "path": "components/chat/HomeChatButton.tsx",
+      "sha256": "04054e277f880c629a59c862ddcb1dabfd69d6bbe8686134c4146c8536593812"
+    },
+    {
+      "path": "components/chat/IngredientResult.tsx",
+      "sha256": "7ebcd5b62c02ad966e714af46a1868af75b4761981873b779bf463cf0954aeb0"
+    },
+    {
+      "path": "components/chat/KnowledgeCitations.tsx",
+      "sha256": "eb644133d78f0df38bc0b6ac9433f1f7fffd8e4448c1a1f623a1b89d500286b5"
+    },
+    {
+      "path": "components/chat/MemoryProposalGroup.tsx",
+      "sha256": "9e1ea21af4a619841616112425385b364d6270caa333aff3fc5fd3d7d7483007"
+    },
+    {
+      "path": "components/chat/MemorySettingsControls.tsx",
+      "sha256": "b1c51d13e85abc3170293b71dae94362d681dfc10693abc964af190ece477f9d"
+    },
+    {
+      "path": "components/chat/ProductCompareSheet.tsx",
+      "sha256": "e7b7ded17eb5a49c5be900ef5b6dbcd6a079b1be507ea81a5c5f51344b8a528c"
+    },
+    {
+      "path": "components/chat/RecentConversations.tsx",
+      "sha256": "5303f0b3c2a4a1e9debd244405502a9e6cb53a15fee885b393e12ceb436f65eb"
+    },
+    {
+      "path": "components/chat/StyleRecipeResult.tsx",
+      "sha256": "9cbb651375d87f6d6fe18ceb9b50b04360d88c1823c297c5139c50e9aecf47b8"
+    },
+    {
+      "path": "components/home/HomeCatalog.tsx",
+      "sha256": "9c6bdfbaff47679448904c8edddc66872f494cd90e5aaa829aa12e756a55ef2d"
+    },
+    {
+      "path": "components/home/HomeSearch.tsx",
+      "sha256": "b9b4917bcdbab685b27eed23a774fa4c08b2fd78b78d239be0a12c965618209a"
+    },
+    {
+      "path": "components/look/ColorGaps.tsx",
+      "sha256": "82ac829b09af504c4eaae8bbd7a9b32ecddf867b5f158ea78c29d2cb115cd9c8"
+    },
+    {
+      "path": "components/nia/NiaDashboard.tsx",
+      "sha256": "c1c88422cc1c65f21e6c44957eb96ef45851ceb2d3c8898d84be7d53d288b6dd"
+    },
+    {
+      "path": "components/nia/NiaPhotoProfile.tsx",
+      "sha256": "e184ec7a2b009484170fb8583a24bda701b10e2f80537eb10e2361ecddb4ce2a"
+    },
+    {
+      "path": "components/nia/NiaViews.tsx",
+      "sha256": "dd5af4547ef3810196d5e526f909705e229e1f32c37ef4ab2efd173d10140c80"
+    },
+    {
+      "path": "components/shop/CompareTable.tsx",
+      "sha256": "ed9c8e621d1969bb71c2bd2e8e2a02682d86f9e02666c6ed619122db25be37a3"
+    },
+    {
+      "path": "components/shop/OfferList.tsx",
+      "sha256": "c2cc2dbd85441a67dc23740d5635f91af23dad8344accfa00bcbbc32ca7454f2"
+    },
+    {
+      "path": "components/shop/ProductCard.tsx",
+      "sha256": "0974afc6a61412bb56e8d0db88090af03bf15473c242750223e0766e736196c4"
+    },
+    {
+      "path": "components/shop/ProductLineCard.tsx",
+      "sha256": "a659ec2118a76ea8aeeafbbddc60e47beaace212e33f225ded455ef634b89104"
+    },
+    {
+      "path": "components/shop/SearchBar.tsx",
+      "sha256": "e041d317eb471e5560757de06d1b00c73fbe012057a059f029016dbac28e0eee"
+    },
+    {
+      "path": "components/shop/ShopHeaderActions.tsx",
+      "sha256": "94c6f00b4125bf72b908ef52f779fb7ba3d55191d868d6f122da1275866aa497"
+    },
+    {
+      "path": "components/skin/ConcernPicker.tsx",
+      "sha256": "e976d0f4a2937da9616c66032d3e32d1360bfcbe840a8754a19d9ff5bbad67c9"
+    },
+    {
+      "path": "components/skin/SkinCamera.tsx",
+      "sha256": "36e9eb4f1e1eb591922f9da380e3c750a0f6c1085ce283fb7339b1f0cf63360d"
+    },
+    {
+      "path": "components/skin/SkinMatchSection.tsx",
+      "sha256": "f7a339ac2622c477b6dc1564c8279201376d8c03d27b4283812877cceef769f9"
+    },
+    {
+      "path": "components/skin/SkinPreviewPhoto.tsx",
+      "sha256": "c5623be8899bba2772f575e7654d6ee6eb9a6c170bd2120f9d448201e1364cc7"
+    },
+    {
+      "path": "components/skin/SkinProductCard.tsx",
+      "sha256": "d90881e0f9267ef977c6293f584763928c16b65dfaea6840cc19994d24948100"
+    },
+    {
+      "path": "components/skin/SkinReportDetail.tsx",
+      "sha256": "c1d51a934f669eba1c646df2cabf2d82168c67886bf83af79e05427072fb2f2c"
+    },
+    {
+      "path": "components/skin/SkinReportOverview.tsx",
+      "sha256": "4750381e1bcc7f8bd561eab4634f53254dabe7227132cdc8cfd8881eccdf020a"
+    },
+    {
+      "path": "components/skin/SkinSolution.tsx",
+      "sha256": "c8920b419ed80e7cad2317833bb0a4fdd4d89a88578dbc79358fcb1ac7af187d"
+    },
+    {
+      "path": "components/skin/SkinSupportSummary.tsx",
+      "sha256": "d701efb09e86c7cb1db8615894ee38a34e4b6f029d854a42dfba52ec814245b5"
+    },
+    {
+      "path": "components/skin/SkinSurvey.tsx",
+      "sha256": "e7766ed9b8763198975befc96bafeb3d0a3807d4cd6fdcf5ac62a6dd4af40058"
+    },
+    {
+      "path": "components/skin/SkinSurveySummary.tsx",
+      "sha256": "1c5c37a9cd7bfbe1a718d4db6bab93c1a1dadb57c173b15ea656b681bb957c97"
+    },
+    {
+      "path": "components/ui/Badge.tsx",
+      "sha256": "838f70e64935a546c9704e1386f920c94209c4afb9032a0666bf63005c75f644"
+    },
+    {
+      "path": "components/ui/BottomSheet.tsx",
+      "sha256": "5a13bd6e0c0001b339172ac5dd176151ba75f87b11f4d68444257f3d1fe06c0d"
+    },
+    {
+      "path": "components/ui/Button.tsx",
+      "sha256": "9b6a06582d4617a68bce6ae0e7b0d78a8aca54c0ee99777834885f3c5d545e86"
+    },
+    {
+      "path": "components/ui/Chip.tsx",
+      "sha256": "a556b65be4ebfba1e3642c45dbe2e5c8f9dc1a406df258f493eb01df469d2926"
+    },
+    {
+      "path": "components/ui/InlineState.tsx",
+      "sha256": "c9e9e9b99c02e7847ab323b15c9d3c1e827c88301581f3b44e3f512a1b6c359f"
+    },
+    {
+      "path": "components/ui/ListRow.tsx",
+      "sha256": "946c1185f6ef794dc41081952bd8896da3fec6d3c3cd7a877feb415aa6165871"
+    },
+    {
+      "path": "components/ui/Mascot.tsx",
+      "sha256": "4232d8d19dc26b0ec1c068a2dbc72a445c78df5b926b3de4803b161ab53abcfa"
+    },
+    {
+      "path": "components/ui/MenuSection.tsx",
+      "sha256": "81f8817cededb4d4c82c7eaacb1e6be85c12b0612f8557333ff4ddc59f0cfd27"
+    },
+    {
+      "path": "components/ui/Notice.tsx",
+      "sha256": "641fdb5fb0403a786a79aa67aebc107a35d92e0bb32482d0196137e7c4d83606"
+    },
+    {
+      "path": "components/ui/ProductImage.tsx",
+      "sha256": "1584a16d472ca0294dc434805a9b55075a6d0fcb8f85646b4e2a30848cd9f409"
+    },
+    {
+      "path": "components/ui/QuantityStepper.tsx",
+      "sha256": "8de81d3804e81fecefaf94a4073e30494a74e10615df28e566fa7d99a1bdce77"
+    },
+    {
+      "path": "components/ui/SectionHeader.tsx",
+      "sha256": "52afb040e7df37fbddc6cbb53ff4c386004e6bec107b39d2076a64e6941dac8e"
+    },
+    {
+      "path": "components/ui/ShadePicker.tsx",
+      "sha256": "481a1bc0d29f392757a3b15b57327992f6f5fbe3d2ce5f3de4306633e6577c77"
+    },
+    {
+      "path": "components/ui/StateViews.tsx",
+      "sha256": "80e3503c2ce44b873a98ffa7e9bf77d76496707cf8f2f78a1503993f394ed42f"
+    },
+    {
+      "path": "constants/celebrities.ts",
+      "sha256": "0729baecb7b93f2e47b34fe8aac1e3522212aa51e0421e09d5062020ef18da66"
+    },
+    {
+      "path": "constants/demo.ts",
+      "sha256": "e62bc633ac142cb656b093e223c7b91c5b413f86127f84916bb334b742574146"
+    },
+    {
+      "path": "constants/homeLayout.ts",
+      "sha256": "0f7773941ee4004cee1855fa35ec172ce8067471fea1d2fcb8197b682f7063d4"
+    },
+    {
+      "path": "constants/legal.ts",
+      "sha256": "4091e8cefdf257945cb153ac0f92ca2a99bcd7455378ba3894b9653ef0f72a2f"
+    },
+    {
+      "path": "constants/signupAgreement.ts",
+      "sha256": "2c2c57a62399a3c04c620c19539c577dbc9f3abbfb7e03a43a22914ced6b7282"
+    },
+    {
+      "path": "constants/skinCare.ts",
+      "sha256": "b2cb406eb805438e34e1e15a960c33edb8f9d8c5ef8b8153314a0447c16a2448"
+    },
+    {
+      "path": "constants/skinServer.ts",
+      "sha256": "4d7975f354f662412eeb2d97b15426c734bb33028a4ce31796c8725ef3c1e228"
+    },
+    {
+      "path": "constants/skinSurvey.ts",
+      "sha256": "2a87043aef5a11202c436a603af71850e66714532517fc20dcfc9f63a9e93128"
+    },
+    {
+      "path": "constants/theme.ts",
+      "sha256": "6010e73db16ed60879d40fad18785b46c2aa91150c669648d9290996de9f4348"
+    },
+    {
+      "path": "hooks/useAccountDeletion.ts",
+      "sha256": "736fa252899765cb61c7fed3bb65769193f9d4d61b7ea40b1bd47c70961d856b"
+    },
+    {
+      "path": "hooks/useArCommand.ts",
+      "sha256": "05d3c213e1172e26d425c59da4a097ede845275107f9ed2e4790d344eb768cdf"
+    },
+    {
+      "path": "hooks/useArEnvMessage.ts",
+      "sha256": "fb7286db1e9a7ef9bada31fb18cd02817af2616947af18cdcf7e6745c8dfa499"
+    },
+    {
+      "path": "hooks/useArHistory.ts",
+      "sha256": "b59ba2ed1ab0968cccb362494a2831ac89a0dc9a0078bcfa1cdb26daebd0cb8d"
+    },
+    {
+      "path": "hooks/useArRecording.ts",
+      "sha256": "edaaacd7d9c95fd3f287d68b1c6094e243bfe99bb45ec3ff046edfac1175e580"
+    },
+    {
+      "path": "hooks/useArRouteSelection.ts",
+      "sha256": "4182e19d46f3b8974cd13b84e4b72527baa841c7120a55770b1b3e6ca44f1683"
+    },
+    {
+      "path": "hooks/useCartLines.ts",
+      "sha256": "9b5102fc9babfcf367bd506596f9a2b354afe9be6c6a3af696992adbe6d7ef02"
+    },
+    {
+      "path": "hooks/useCartRecommendations.ts",
+      "sha256": "5a4f85767591b34d6f0ae28e6b497fdf11e68683c30aa0b227751fd43e22932b"
+    },
+    {
+      "path": "hooks/useChat.ts",
+      "sha256": "c41fb88656b321d6eda4ee4bfe2b0460b628b41e761450f67ab99cd4fd321e69"
+    },
+    {
+      "path": "hooks/useChatConversations.ts",
+      "sha256": "6462c0a4672a26b764b8a8d07f65370f55bfab1bc1839c9dbf707538cb94dfe7"
+    },
+    {
+      "path": "hooks/useChatMemory.ts",
+      "sha256": "f9458ff5604f36c5e7296e3c21fb02f9305038638d93ca1ff20488588cf07245"
+    },
+    {
+      "path": "hooks/useCompareLines.ts",
+      "sha256": "672ad3177d2c7b077cabea636474970324db47ed0d4e004370ca3b89baecf376"
+    },
+    {
+      "path": "hooks/useDebouncedValue.ts",
+      "sha256": "7d5359720ef9a9f1a4c5cdf20630f5202255e9e88d49b965c24873788da68d1b"
+    },
+    {
+      "path": "hooks/useFirstArExit.ts",
+      "sha256": "064c6ad28deb1931e0b3fd629829f13a62ac820568bedcc0c80a9b31ed13d3cc"
+    },
+    {
+      "path": "hooks/useLookColorGaps.ts",
+      "sha256": "f47ef5ac895a10c5ccccb2e237bff96d0db4f89acb2b5dbf434e443b0ef50a06"
+    },
+    {
+      "path": "hooks/useMemberCameraConsent.ts",
+      "sha256": "efca3eda6f2aedca0c0e02a6abe2b483e0ac0165651050255d92ee0920465b90"
+    },
+    {
+      "path": "hooks/useNearbyExploration.ts",
+      "sha256": "cf95a0af506bc1389d332398008a6ec6dcbcca920fa3a36f7d12763ade0b7988"
+    },
+    {
+      "path": "hooks/useNiaDashboard.ts",
+      "sha256": "8509c37b4cbd063489aab788c44d8ddd3249683e537b950ec57ed36c7e6cc0a1"
+    },
+    {
+      "path": "hooks/useNiaPhotoProfile.ts",
+      "sha256": "578d1408f86f8495619c19f01e75220f1735c3e63451c3f6e4c68d91ca4909c9"
+    },
+    {
+      "path": "hooks/useOwnedSkinProfile.ts",
+      "sha256": "b5ffbd470a1fea4703a431a7ddc478f3bdc1d00b52ac291f44d27420b70e1d28"
+    },
+    {
+      "path": "hooks/useRecommendationFeedback.ts",
+      "sha256": "cfc7890e23135a6f4518a8d3f5083bef625175ee08608351dd1aabbd23acdfc2"
+    },
+    {
+      "path": "hooks/useRecommendationProductFeedback.ts",
+      "sha256": "e367bbb6ca718369d31c56d29b0fc784e2c8646616d01bfe4d74dd07346469f7"
+    },
+    {
+      "path": "hooks/useRewards.ts",
+      "sha256": "acea4191cfb771f00916fa09f350d6a37f33d16eedbb3b0d507aa8dcb4b69f59"
+    },
+    {
+      "path": "hooks/useSimilarRecommendations.ts",
+      "sha256": "9c3bd67683e94548d361896f7a5dc47d5d782413c8e8ff77d2a7cb59cdb58b99"
+    },
+    {
+      "path": "hooks/useSkinAccess.ts",
+      "sha256": "3c1a81fe2f70c1d8d8660c039793bdc5900046bc81fbf038e311655f0d114f2b"
+    },
+    {
+      "path": "hooks/useSkinAnalysis.ts",
+      "sha256": "23fec75c945404c43749bbbc6ac6ae06ed966a032beb23aab24b471e021dacc0"
+    },
+    {
+      "path": "hooks/useSkinMatchedProducts.ts",
+      "sha256": "1b964630377ac66b665acc1ea6c3acb1dbe639c6c2e4e3f818a9280f8f889e2b"
+    },
+    {
+      "path": "hooks/useSkinReport.ts",
+      "sha256": "3b1ca44cee9e183b6dc3cbfb5b7893d3701087979d10e3962ece3d6d5c1da777"
+    },
+    {
+      "path": "hooks/useTermsConsent.ts",
+      "sha256": "a86527beef23b5c31de3c5e4c6c0f0193d7ce0af8b28efee0c25ea171eabd4c8"
+    },
+    {
+      "path": "hooks/useVideoTryOn.ts",
+      "sha256": "5598bc5854f554ff45a5f1c37c1564d96fb3b6ff5d81169855b8209f4b14ddb6"
+    },
+    {
+      "path": "lib/account.ts",
+      "sha256": "135d51db3910ce9ee48769a6de12c8d7d0f2d73e6412d46f82ef70d983962c88"
+    },
+    {
+      "path": "lib/api.ts",
+      "sha256": "50add7524540175620398ad1a30592c3093c6acc0898cd928833efafc5cd6b8d"
+    },
+    {
+      "path": "lib/applicationProfiles.ts",
+      "sha256": "1c43dba9b484ae961d976d9b5efc1dc959bb95723a6061e79f5d5ef966f79077"
+    },
+    {
+      "path": "lib/arChatAdjust.ts",
+      "sha256": "c962d467d8e8bbceeb6fef33bebced853289b6fd1a9d2d24792af821a4624273"
+    },
+    {
+      "path": "lib/arChatRoute.ts",
+      "sha256": "eb83d67cf30803992579a2b3e1106deeba419b46969167eeb2ae3e449661ecfe"
+    },
+    {
+      "path": "lib/arCommandAck.ts",
+      "sha256": "0a818201138d215f44ff5bb804dd1714f34d13b5b787a83224eb0e798c8a6485"
+    },
+    {
+      "path": "lib/arEnv.ts",
+      "sha256": "02d26e60ed1149aadbb320730e13515b4ddb8ebb5f2299149e25381f4f027d86"
+    },
+    {
+      "path": "lib/arFacePalette.ts",
+      "sha256": "51753f53343d90ddc8ad7f5693190f9bf1ba2a174882f0aec768860051a594e0"
+    },
+    {
+      "path": "lib/arHistory.ts",
+      "sha256": "845a6853eedeb3b175e49e55aa1b567bb26968f9b116e3a780c2002c6b515fb9"
+    },
+    {
+      "path": "lib/arPalettePicks.ts",
+      "sha256": "7ea3c601139590bdf86cea2052fd84591c5e64e05bb4fc21940b819d03e9c1a1"
+    },
+    {
+      "path": "lib/arRecording.ts",
+      "sha256": "8752f52de0278ca91332420c11fce5538f3b7cfa3a85b2e1efd499b73abebe03"
+    },
+    {
+      "path": "lib/auth/client.ts",
+      "sha256": "c23a97c002f3847fc3066cc617ae273057435694dcbe747428c7f740a30c3a44"
+    },
+    {
+      "path": "lib/auth/errors.ts",
+      "sha256": "7acf988eca11d7b840ce43257b84b56d51e28ae37beed72e427ec613b67537e9"
+    },
+    {
+      "path": "lib/auth/index.ts",
+      "sha256": "df1428c94b0bce1e5f0c4405c467d1560eb349d6f5e623aa9c0eb3c4b2ee5b93"
+    },
+    {
+      "path": "lib/auth/redirect.ts",
+      "sha256": "16dbc84786b4e9a688e4668f4157087185f13b435ff1c16b87507f68c4063169"
+    },
+    {
+      "path": "lib/auth/validation.ts",
+      "sha256": "d10937f300e3726e55ad9a61d7d0158fcb1cc046e6a409c7097ebdc6354be5a2"
+    },
+    {
+      "path": "lib/cartAttribution.ts",
+      "sha256": "09a6f8ffde4383835362d975840ba44d98851f085dd2a51da32b57eac6c5251a"
+    },
+    {
+      "path": "lib/cartRecommendations.ts",
+      "sha256": "58a403e741d887bdd804b17ceb2a82d4cbee4966e9ef9ccffc78ddda1f784430"
+    },
+    {
+      "path": "lib/catalog.ts",
+      "sha256": "10a1e296aa88cf819d5bb25e82a8d54c49a66589f683a1089d647afb69bc228a"
+    },
+    {
+      "path": "lib/celebrityVideos.ts",
+      "sha256": "cc9cb2aed03d8c6f74b92d3a8abd54994ffdaa03a8ee05350b56f65993291539"
+    },
+    {
+      "path": "lib/chatConditions.ts",
+      "sha256": "06c32f2a446787ef6935215c28f0dd55c1cbcff97d5f0fff7bac76b04b136061"
+    },
+    {
+      "path": "lib/chatIdentity.ts",
+      "sha256": "b21deb356326c0d8e06c249ff4cc840128bd51af44317d2def89da5afa6e86c8"
+    },
+    {
+      "path": "lib/colorDifference.ts",
+      "sha256": "61485dcb05794cb1d290e89445d9ee1a48db4b557b37db74c9205cd8499f2fdd"
+    },
+    {
+      "path": "lib/colorFamily.ts",
+      "sha256": "431576acd9218c3af7d0cf6f55385afa1e2642bd5025c6e373bfba2dea218a66"
+    },
+    {
+      "path": "lib/colorGaps.ts",
+      "sha256": "9bbe8132c46089573bb293e743032e79f44153a9d98da1d3e2ba10e5b96358b8"
+    },
+    {
+      "path": "lib/confirm.ts",
+      "sha256": "40898d5eb0c5bf85ea327d3dcb0d033c089cd242bad44d30c0b7d577147c0319"
+    },
+    {
+      "path": "lib/demoLookAr.ts",
+      "sha256": "13c181aaabf316f64a496bfbf18276cd2469e93635036c8a793671f1aa000a96"
+    },
+    {
+      "path": "lib/demoLookBundle.ts",
+      "sha256": "05abe01ae3b9ef550fed0abd9df9ae45c341bb7b61039bc03e83c3af45e6713c"
+    },
+    {
+      "path": "lib/devCatalog/index.ts",
+      "sha256": "99fbd705d915004094188199a20f3239ae64099d63ac45a2baee4594a68117be"
+    },
+    {
+      "path": "lib/devCatalog/oliveyoung.ts",
+      "sha256": "472d8442105bc8956a0e2da7d615e9216fdf313c3950eefe19dba39cd9252732"
+    },
+    {
+      "path": "lib/discovery.ts",
+      "sha256": "2a44340762c53061bc4faa3970e6ac06dfd62421f59a93004df209e297c5f941"
+    },
+    {
+      "path": "lib/drawGuide.ts",
+      "sha256": "106d3b9c277ee23b0b3b7e9c55663cc201fc0af93f445cd88b76e31cfe2e6044"
+    },
+    {
+      "path": "lib/externalLink.ts",
+      "sha256": "7ac86f7d10679f41ca3c54e5374bf15ff8f2b4a3b45df321e791ee00ba65c3ec"
+    },
+    {
+      "path": "lib/faceFit.ts",
+      "sha256": "8081fb757721c6f3dd1bcb13cfd7927cfdf2818a972ded668e0ee5c38c21a5e1"
+    },
+    {
+      "path": "lib/falseLashLooks.ts",
+      "sha256": "4201e75c6ce16ba7458ff5e64ff45d151d165fecfea9c30e35f9938c58e4124d"
+    },
+    {
+      "path": "lib/format.ts",
+      "sha256": "cbcd925363cf7726ee2d1247b69cf24915b6b57e3fa1a99e346c048e93738e31"
+    },
+    {
+      "path": "lib/foundationMatch.ts",
+      "sha256": "f9bbca9bd3ab8cf2a70c596cf00452c3dbc579fc96735a1e057009e0cf2b962a"
+    },
+    {
+      "path": "lib/i18n/en.ts",
+      "sha256": "ec7a573499b567ac4f9af476f7ea50e59e8ce8747d9019a6c4a9555d8e2d4b95"
+    },
+    {
+      "path": "lib/i18n/flows.ts",
+      "sha256": "9c051839707b9925905265bab5d92f97a1793573b5a97f4b0b95c514b63f3939"
+    },
+    {
+      "path": "lib/i18n/index.ts",
+      "sha256": "53d1df08fec2f541ee2f2c0db724ee454e9ca91c44777413c661c0987fcd0efb"
+    },
+    {
+      "path": "lib/i18n/ja.ts",
+      "sha256": "a7df00d4518b91b8fc418ab2d24f4a1175bdf2bfd0488981644790a85151b8bc"
+    },
+    {
+      "path": "lib/i18n/ko.ts",
+      "sha256": "8ff633ee52a2a23978c9a5190ff074ec04c276fe31e284f3a88e5c00390f304e"
+    },
+    {
+      "path": "lib/i18n/languages.ts",
+      "sha256": "53245debb4a15d972788f47391d6bf292672a091a78a8d78f5d2cbae2e631235"
+    },
+    {
+      "path": "lib/i18n/skin.ts",
+      "sha256": "b71fe3552a0dfa9a6155e03a388b37a944f1ad1f837fcf87b539f1af6a410c96"
+    },
+    {
+      "path": "lib/i18n/skincare.ts",
+      "sha256": "3f9b272e835cf3c7478d7777de37cedd2cc77ec33c9b341b9a5dc968e766fbad"
+    },
+    {
+      "path": "lib/i18n/skinReport.ts",
+      "sha256": "10b95638dead67af5cb99792e6a528c2aec895a33162528d697c0a7c159b3472"
+    },
+    {
+      "path": "lib/i18n/skinSupport.ts",
+      "sha256": "49634ae251b2350048703a9024e9095bd92978279f49df53545624cf54606b9f"
+    },
+    {
+      "path": "lib/i18n/survey.ts",
+      "sha256": "f3810ede5a2b7d464a01812556d5d2a27bcbcf95cc3859f7ecdaf4758f610ab1"
+    },
+    {
+      "path": "lib/i18n/zh.ts",
+      "sha256": "c68e057392436dc6d8e2d3e99415d7823e4c808786573485a2a83237e0ff0125"
+    },
+    {
+      "path": "lib/idolLooks.ts",
+      "sha256": "8b6fdff88cd39efa05434b7c12c3d4f1185844ae51c19401ddad227e96ba0792"
+    },
+    {
+      "path": "lib/linerLooks.ts",
+      "sha256": "3c1cc547f28c02d1e6504f4f20727224ed79343fbc53166e3fdf44ec9273ac57"
+    },
+    {
+      "path": "lib/lipCare.ts",
+      "sha256": "14085e810f62390308704082ac1d9fd6c2e785dc187628153687209f80f62231"
+    },
+    {
+      "path": "lib/localNickname.ts",
+      "sha256": "858f158369235cb6690fd290cb8a5426aba1fca8c887ee10a606ddb60c15288f"
+    },
+    {
+      "path": "lib/lookColors.ts",
+      "sha256": "fc87e84bb1732b8dc738068d73101a2870d8e6d14a06807c32d4451afd91bf5f"
+    },
+    {
+      "path": "lib/lookGuide.ts",
+      "sha256": "8ef4c83f9f93e19ff7ea4370b5d26b237e3c1f669802f78b2169febfa1e72668"
+    },
+    {
+      "path": "lib/lookProductMatch.ts",
+      "sha256": "006b3489878c6e29e7fe2ea634f5b64e6c04f42000a170c988daeb0499a6a53e"
+    },
+    {
+      "path": "lib/lookStatus.ts",
+      "sha256": "a8f08fbb0f8e433943b0f37b1c7affdb471c4e4f8618db3626a2abdc4e64d7a2"
+    },
+    {
+      "path": "lib/maps.ts",
+      "sha256": "9ec5666797fc13316fef78f7a054c63f78ef30681ffb2a415b6c544279c4031f"
+    },
+    {
+      "path": "lib/mascaraLooks.ts",
+      "sha256": "610a833aa479791aebcb8bddd4df70c15e90bf9a86cbb469acfa2bcdbcc89b07"
+    },
+    {
+      "path": "lib/nearbyColors.ts",
+      "sha256": "9effac4e1b640cf22cf8c3d55f2cb6bc2ecc8330f0cf74dea4c64a9ad7e281cd"
+    },
+    {
+      "path": "lib/nia.ts",
+      "sha256": "16501b6f694eec03808dae1f67a175dc0d5748571dce3a1741f7b3f6c0fc47a9"
+    },
+    {
+      "path": "lib/niaPhoto.ts",
+      "sha256": "4be477f5697c5e09aed9f679f4d80979b1159d239a0ce8202c60825701cea698"
+    },
+    {
+      "path": "lib/practice.ts",
+      "sha256": "0ff5495b99d65675ba218ae444dc701536b4481c4bbaa6795cfb353903b6101a"
+    },
+    {
+      "path": "lib/productImageUrl.ts",
+      "sha256": "32c780fd74bd726940df31d166d347fce7e021cca8913a4598cbceb5d119e29e"
+    },
+    {
+      "path": "lib/queries.ts",
+      "sha256": "2a79b57c908dbe8b05a75e45bce26d93beea39fd8dc9158d7632d08c7a5705f5"
+    },
+    {
+      "path": "lib/recommendationFeedback.ts",
+      "sha256": "ae00a425950c9d2596318f31d4e26a73a84bd9ed2fa2427d63ce2d9ae6b33bf0"
+    },
+    {
+      "path": "lib/routes.ts",
+      "sha256": "7b0a6d5b97fac421cff81839c7e131936ce21c693a0eae87bae4df81f1026942"
+    },
+    {
+      "path": "lib/shadowFinishes.ts",
+      "sha256": "46bd5a2c4cd04cdc6a31383cb420d94a9f643680b28d6a43e955fd1448179efc"
+    },
+    {
+      "path": "lib/skinAnalysis.ts",
+      "sha256": "40d4e20323672564492a9a2a0c8ce4a1c510a82413bf51e9989abbee28727d1e"
+    },
+    {
+      "path": "lib/skinCapture.ts",
+      "sha256": "9096156fdd6141d6ddddff74f1d808966e751de8baaa56a62114e9d84c7bb235"
+    },
+    {
+      "path": "lib/skincare.ts",
+      "sha256": "2e973146d87c1cea6e5de13b377d73479697f161918885917362648bd4a7a34e"
+    },
+    {
+      "path": "lib/skinFilters.ts",
+      "sha256": "a3e6184af272673c4469fa21abe4f2cfc655e663189cd87e57985f2036cb3e09"
+    },
+    {
+      "path": "lib/skinFusion.ts",
+      "sha256": "74caa5a85a6319a8f520a9ff6b80f30d43f60f62ddd27d0846a5b2fcea520ee2"
+    },
+    {
+      "path": "lib/skinPreview.ts",
+      "sha256": "253e7f2855343eb7ffbdafcc7eb78b58104b69895784595f1f9ad9a967a6ed56"
+    },
+    {
+      "path": "lib/skinProfile.ts",
+      "sha256": "b8445724915c847d468ff6e370e8f31ad9a297e733f353b1e861adeeaf66ea3d"
+    },
+    {
+      "path": "lib/skinRecommendations.ts",
+      "sha256": "a7646c11aed2000dba81a83917f5e9d9f4f1b255dd93bb0eeeb4bd32747ec5e0"
+    },
+    {
+      "path": "lib/skinRegistration.ts",
+      "sha256": "6c35a86f55a857f803bb964b2efd529ca1b437beb8f32ab7f25a4f0b82f44ac2"
+    },
+    {
+      "path": "lib/skinReport.ts",
+      "sha256": "e276d19b6d36dab8101cf9a692b830da7e852fbf3d9bceac7c7c50b741050ea1"
+    },
+    {
+      "path": "lib/skinResult.ts",
+      "sha256": "5509624529ffb00a6ab43596182ece23fa09a9e2feeb408586ab020bb60b83d4"
+    },
+    {
+      "path": "lib/skinServer.ts",
+      "sha256": "da29f69e82afaf0f9fba781234cc854631177fb6f31ba16dd6496c9f33bd5e96"
+    },
+    {
+      "path": "lib/skinSupportFusion.ts",
+      "sha256": "299af6a55ccf8294f96b0ba96ce758c9ff1fd9923d57a04b6f711d364070f4f9"
+    },
+    {
+      "path": "lib/skinSurvey.ts",
+      "sha256": "9afe5726698691569c82395a89893a6ca6ac2cf9649bb428b93b14009a1af558"
+    },
+    {
+      "path": "lib/skinType.ts",
+      "sha256": "7d9b4376faaf86ad43fc55c67c9d48c4a48f6e4392183bfb57abf90f0245d868"
+    },
+    {
+      "path": "lib/skinWebHtml.ts",
+      "sha256": "f70789cfbec1041ec0b8b0b78f170d78614ad843abfe15ca59f1724a920eaab2"
+    },
+    {
+      "path": "lib/storage.ts",
+      "sha256": "8ecf2e2a70959cc81a2df9efa22f97fbe5cb6017b521c6de4a2e46850a25582d"
+    },
+    {
+      "path": "lib/styleCoaching.ts",
+      "sha256": "bc036416ef2a574ec525f86333b458eb2dc41546033f7906aa7ce7134437aa3c"
+    },
+    {
+      "path": "lib/styleLookGroups.ts",
+      "sha256": "d2d5dd0a8d327c425f8e3e8c87425fb3c57d832c0adb029189c5a3439f454187"
+    },
+    {
+      "path": "lib/videoLookMakeup.ts",
+      "sha256": "1995c90bfcd70fe63355f4def3f7e0fd1a892b244ee548459d3d08e04def910b"
+    },
+    {
+      "path": "lib/videoLookStyles.ts",
+      "sha256": "20496e1277d110660870c4e8547f7156892c749013561d7b1112b06035ef58cf"
+    },
+    {
+      "path": "lib/zoneRecipe.ts",
+      "sha256": "e6a01a2f15e6ea076e958da7576f0bd28fd20e9eada5bd8ee2a5b22a62040934"
+    },
+    {
+      "path": "store/cartStore.ts",
+      "sha256": "6c3c9149e378a36ea379e9f4f78e671c640c63dc7d1870e1985263dd5e542f5f"
+    },
+    {
+      "path": "store/chatConversationStore.ts",
+      "sha256": "e9118660baf96fdb370ddf3faf676ebfcb991c45cb902f1e301236293fd7cfdd"
+    },
+    {
+      "path": "store/compareStore.ts",
+      "sha256": "38bd7fd4fab5018531cac6c01f80d918f84853b0819d36c89676192b7deb4717"
+    },
+    {
+      "path": "store/makeupStore.ts",
+      "sha256": "e02ea903e8dfcc3e9128c6459aea63251e9a988bef89382c0dc56f949782ca9b"
+    },
+    {
+      "path": "store/recentSearchStore.ts",
+      "sha256": "39da080fc4e2387d7c74020c27f9194725dcf819cd8d80ede30d5e472c6d1e99"
+    },
+    {
+      "path": "store/settingsStore.ts",
+      "sha256": "eacefde0b8490ee4c43e2af083b46cff9cf6f48381583e43193680859dd8baa9"
+    },
+    {
+      "path": "store/shoppingListStore.ts",
+      "sha256": "742b85210404218eb4141becaa9d676c35ed5cfe1b4921a5684e9fc3a40fafd4"
+    },
+    {
+      "path": "store/skinPreviewStore.ts",
+      "sha256": "efdee96f1a4f4d5a622ab7ce878300b8aa27a6ab836a0bb74cbfd2895668eecb"
+    },
+    {
+      "path": "store/skinProfileStore.ts",
+      "sha256": "17930d4d4a0b5d36728c9cd45de0117b64ef038e2d517349d80dc23e8fadef88"
+    },
+    {
+      "path": "types/chatConversation.ts",
+      "sha256": "1e29465dbffdc551409c487bb95140cd8536a4bcbd572f6095654d1d6b7a6128"
+    },
+    {
+      "path": "types/index.ts",
+      "sha256": "d4e2a3a3138daa33e5b18dcd2f988bd4e007bb1a45df3c583313fd1aae62c34a"
+    },
+    {
+      "path": "types/nia.ts",
+      "sha256": "ac9679de90fe1df2c694b4d9e2757b2bd020ded197513b535218c7a5528fb604"
+    },
+    {
+      "path": "types/skin.ts",
+      "sha256": "cd0cfd14c79f6c28eec55baf7fafa5c9b7c411054971b399ef3ebda71cb8f651"
+    },
+    {
+      "path": "types/skincare.ts",
+      "sha256": "4e110237579958e06e31f4c9b4ea48b095395f32c7a990f826c4c8d12684bbd6"
+    },
+    {
+      "path": "types/skinReport.ts",
+      "sha256": "6ac2a67d6680c98878f67ea049c7656f8b25b3f50bb9d582e5b4f2fa3e9e9502"
+    },
+    {
+      "path": "types/view.ts",
+      "sha256": "c6b5b5ec10589a31b32d87f44f7d2aebe1192b04ed1f000fdec84e6648d6c0a6"
+    }
+  ]
+}

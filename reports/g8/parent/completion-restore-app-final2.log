@@ -1,0 +1,10 @@
+
+> final_project@1.0.0 test
+> jest --runInBand
+
+
+Test Suites: 108 passed, 108 total
+Tests:       1352 passed, 1352 total
+Snapshots:   0 total
+Time:        116.198 s
+Ran all test suites.

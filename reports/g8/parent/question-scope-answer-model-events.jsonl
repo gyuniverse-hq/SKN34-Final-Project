@@ -1,0 +1,56 @@
+{"at": "2026-11-27T18:04:47.560373+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:04:47.560373+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:04:48.934056+00:00", "event": "end"}
+{"at": "2026-11-27T18:06:20.627476+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:06:20.627476+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:06:21.815172+00:00", "event": "end"}
+{"at": "2026-11-27T18:07:25.647854+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:07:25.647854+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:07:27.532785+00:00", "event": "end"}
+{"at": "2026-11-27T18:07:32.145975+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:07:32.145975+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:07:33.647478+00:00", "event": "end"}
+{"at": "2026-11-27T18:09:06.181638+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:09:06.181638+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:09:09.088030+00:00", "event": "end"}
+{"at": "2026-11-27T18:09:09.384934+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:09:09.384934+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:09:10.933193+00:00", "event": "end"}
+{"at": "2026-11-27T18:09:21.803589+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": null, "event": "start"}
+{"at": "2026-11-27T18:09:21.803589+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": 200, "completedAt": "2026-11-27T18:09:33.611813+00:00", "event": "end"}
+{"at": "2026-11-27T18:09:33.818545+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": null, "event": "start"}
+{"at": "2026-11-27T18:09:33.818545+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": 200, "completedAt": "2026-11-27T18:09:38.143209+00:00", "event": "end"}
+{"at": "2026-11-27T18:09:38.146244+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": null, "event": "start"}
+{"at": "2026-11-27T18:09:38.146244+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": 200, "completedAt": "2026-11-27T18:09:45.328936+00:00", "event": "end"}
+{"at": "2026-11-27T18:09:45.578535+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:09:45.578535+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:09:46.454143+00:00", "event": "end"}
+{"at": "2026-11-27T18:11:11.056098+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:11:11.056098+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:11:13.136147+00:00", "event": "end"}
+{"at": "2026-11-27T18:11:17.148588+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:11:17.148588+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:11:20.452482+00:00", "event": "end"}
+{"at": "2026-11-27T18:14:15.515751+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:14:15.515751+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:14:17.462395+00:00", "event": "end"}
+{"at": "2026-11-27T18:15:50.538777+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:15:50.538777+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:15:52.190397+00:00", "event": "end"}
+{"at": "2026-11-27T18:17:19.302702+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:17:19.302702+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:17:21.682574+00:00", "event": "end"}
+{"at": "2026-11-27T18:17:26.856327+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:17:26.856327+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:17:28.013687+00:00", "event": "end"}
+{"at": "2026-11-27T18:18:27.628108+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:18:27.628108+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:18:30.097487+00:00", "event": "end"}
+{"at": "2026-11-27T18:19:34.361454+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:19:34.361454+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:19:36.417125+00:00", "event": "end"}
+{"at": "2026-11-27T18:47:05.495307+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:47:05.495307+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:47:08.242453+00:00", "event": "end"}
+{"at": "2026-11-27T18:47:08.567065+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:47:08.567065+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:47:10.939161+00:00", "event": "end"}
+{"at": "2026-11-27T18:47:19.665158+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": null, "event": "start"}
+{"at": "2026-11-27T18:47:19.665158+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": 200, "completedAt": "2026-11-27T18:47:31.355252+00:00", "event": "end"}
+{"at": "2026-11-27T18:47:31.594228+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": null, "event": "start"}
+{"at": "2026-11-27T18:47:31.594228+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": 200, "completedAt": "2026-11-27T18:47:35.799550+00:00", "event": "end"}
+{"at": "2026-11-27T18:47:35.801148+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": null, "event": "start"}
+{"at": "2026-11-27T18:47:35.801148+00:00", "mode": "live", "method": "HTTP", "path": "/v1/responses", "model": "gpt-6.1-terra", "status": 200, "completedAt": "2026-11-27T18:47:40.850069+00:00", "event": "end"}
+{"at": "2026-11-27T18:47:41.159545+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:47:41.159545+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:47:42.584005+00:00", "event": "end"}
+{"at": "2026-11-27T18:51:15.716335+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:51:15.716335+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:51:18.069776+00:00", "event": "end"}
+{"at": "2026-11-27T18:55:42.192759+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:55:42.192759+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:55:44.721025+00:00", "event": "end"}
+{"at": "2026-11-27T18:55:44.969018+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:55:44.969018+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:55:47.738334+00:00", "event": "end"}
+{"at": "2026-11-27T18:58:20.132283+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": null, "event": "start"}
+{"at": "2026-11-27T18:58:20.132283+00:00", "mode": "live", "method": "HTTP", "path": "/v1/chat/completions", "model": "gpt-6-luna", "status": 200, "completedAt": "2026-11-27T18:58:22.415637+00:00", "event": "end"}

@@ -1,0 +1,3 @@
+# note: interactive (clickable / focusable) elements only.
+- title: "VISHUE" [url=http://localhost:19836/product/oy-a000000162092?shade=a000000162092-001&optionId=A000000162092-001]
+- link "뷰티 AI, back" [ref=e145]
